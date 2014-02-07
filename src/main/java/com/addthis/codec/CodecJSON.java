@@ -36,8 +36,6 @@ import com.addthis.maljson.LineNumberInfo;
 
 public class CodecJSON extends Codec {
 
-    private static final boolean quoteDefault = System.getProperty("json.quoting", "0") != "0";
-
     public static interface JSONCodable extends Codable {
 
         public JSONObject toJSONObject() throws Exception;
@@ -46,18 +44,11 @@ public class CodecJSON extends Codec {
     }
 
     public CodecJSON() {
-        this(false);
     }
-
-    public CodecJSON(boolean quoteKeys) {
-        this.quoteKeys = quoteKeys;
-    }
-
-    private final boolean quoteKeys;
 
     @Override
     public byte[] encode(Object obj) throws Exception {
-        return Bytes.toBytes(encodeString(obj, !quoteKeys));
+        return Bytes.toBytes(encodeString(obj));
     }
 
     @Override
@@ -85,18 +76,10 @@ public class CodecJSON extends Codec {
     }
 
     public static String encodeString(Object object) {
-        return encodeString(object, 0, !quoteDefault);
+        return encodeString(object, 0);
     }
 
-    public static String encodeString(Object object, int nest) {
-        return encodeString(object, nest, !quoteDefault);
-    }
-
-    public static String encodeString(Object object, boolean noQuoteKeys) {
-        return encodeString(object, 0, noQuoteKeys);
-    }
-
-    private static String encodeString(Object object, int nest, boolean noQuoteKeys) {
+    private static String encodeString(Object object, int nest) {
         try {
             Object ret = encodeObject(object);
             if (ret instanceof JSONObject) {
