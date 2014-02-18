@@ -79,7 +79,7 @@ public class CodecJSON extends Codec {
         return encodeString(object, 0);
     }
 
-    private static String encodeString(Object object, int nest) {
+    public static String encodeString(Object object, int nest) {
         try {
             Object ret = encodeObject(object);
             if (ret instanceof JSONObject) {
