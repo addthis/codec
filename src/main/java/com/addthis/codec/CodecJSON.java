@@ -217,7 +217,14 @@ public class CodecJSON extends Codec {
             }
         } else {
             for (int i = 0; i < array.length(); i++) {
-                Array.set(value, i, decodeObjectInternal(type, array.opt(i), array.getLineNumber(i), warnings));
+                Object element = decodeObjectInternal(type, array.opt(i), array.getLineNumber(i), warnings);
+                try {
+                    Array.set(value, i, element);
+                } catch (IllegalArgumentException ex) {
+                    throw new CodecExceptionLineNumber("Element " + i + " with value " +
+                        array.opt(i).toString() + " cannot be converted to " + type.toString(),
+                        array.getLineNumber(i));
+                }
             }
         }
         return value;
