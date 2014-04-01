@@ -89,6 +89,11 @@
       <artifactId>maljson</artifactId>
       <version>0.1.1</version>
     </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-buffer</artifactId>
+      <version>4.0.17.Final</version>
+    </dependency>
 
     <!-- test -->
     <dependency>
