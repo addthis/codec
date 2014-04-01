@@ -39,6 +39,8 @@ import com.google.common.collect.HashBiMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.netty.buffer.ByteBuf;
+
 public abstract class Codec {
 
     private static final Logger log = LoggerFactory.getLogger(Codec.class);
@@ -125,6 +127,17 @@ public abstract class Codec {
         public byte[] bytesEncode();
 
         public void bytesDecode(byte b[]);
+    }
+
+    /**
+     * for classes that want to handle their own direct serialization and prefer to not
+     * use and/or allocate byte arrays
+     */
+    public static interface ByteBufCodable extends Codable {
+
+        public void writeBytes(ByteBuf buf);
+
+        public void readBytes(ByteBuf buf);
     }
 
     @SuppressWarnings("serial")
