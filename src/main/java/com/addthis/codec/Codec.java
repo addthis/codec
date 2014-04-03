@@ -124,9 +124,9 @@ public abstract class Codec {
      */
     public static interface BytesCodable extends Codable {
 
-        public byte[] bytesEncode();
+        public byte[] bytesEncode(long version);
 
-        public void bytesDecode(byte b[]);
+        public void bytesDecode(byte b[], long version);
     }
 
     /**
