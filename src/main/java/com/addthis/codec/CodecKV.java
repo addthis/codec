@@ -29,6 +29,13 @@ import com.addthis.basis.util.Bytes;
 
 public class CodecKV extends Codec {
 
+    private static final CodecKV singleton = new CodecKV();
+
+    private CodecKV() { }
+
+    @SuppressWarnings("unused")
+    public static CodecKV getSingleton() { return singleton; }
+
     @Override
     public Object decode(Object shell, byte[] data) throws Exception {
         return decodeString(getClassFieldMap(shell.getClass()), shell, new KVPairs(Bytes.toString(data)));

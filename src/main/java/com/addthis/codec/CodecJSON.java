@@ -36,6 +36,8 @@ import com.addthis.maljson.LineNumberInfo;
 
 public class CodecJSON extends Codec {
 
+    private static final CodecJSON singleton = new CodecJSON();
+
     public static interface JSONCodable extends Codable {
 
         public JSONObject toJSONObject() throws Exception;
@@ -43,8 +45,10 @@ public class CodecJSON extends Codec {
         public void fromJSONObject(JSONObject jo) throws Exception;
     }
 
-    public CodecJSON() {
-    }
+    private CodecJSON() { }
+
+    @SuppressWarnings("unused")
+    public static CodecJSON getSingleton() { return singleton; }
 
     @Override
     public byte[] encode(Object obj) throws Exception {
