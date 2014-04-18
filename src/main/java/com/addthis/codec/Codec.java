@@ -18,7 +18,6 @@ import javax.annotation.Nonnull;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
@@ -112,7 +111,7 @@ public abstract class Codec {
      */
     public static interface ConcurrentCodable extends Codable {
 
-        public boolean encodeLock();
+        public void encodeLock();
 
         public void encodeUnlock();
     }

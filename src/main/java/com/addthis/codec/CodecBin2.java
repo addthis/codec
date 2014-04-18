@@ -176,8 +176,8 @@ public final class CodecBin2 extends Codec {
             return;
         }
         boolean lock = object instanceof Codec.ConcurrentCodable;
-        if (lock && !((Codec.ConcurrentCodable) object).encodeLock()) {
-            throw new Exception("Unable to acquire encoding lock on " + object);
+        if (lock) {
+            ((Codec.ConcurrentCodable) object).encodeLock();
         }
         try {
             if (object instanceof Codec.SuperCodable) {
