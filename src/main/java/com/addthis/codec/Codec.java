@@ -407,6 +407,8 @@ public abstract class Codec {
                     list.add(t);
                 } else if (t instanceof ParameterizedType) {
                     list.add(((ParameterizedType) t).getRawType());
+                } else {
+                    list.add(null);
                 }
             }
         }
