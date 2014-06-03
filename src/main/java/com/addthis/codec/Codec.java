@@ -381,17 +381,35 @@ public abstract class Codec {
     }
 
     private static List<Type> collectTypes(List<Type> list, Class<?> type, Type node) {
-        if (type == null && node == null) {
+        if ((type == null) && (node == null)) {
             return list;
         }
         if (list == null) {
-            list = new LinkedList<Type>();
+            list = new LinkedList<>();
         }
-        collectTypes(list, node instanceof Class ? ((Class<?>) node).getSuperclass() : null, type != null ? type.getGenericSuperclass() : null);
+        if (node instanceof Class) {
+            if (type != null) {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), type.getGenericSuperclass());
+            } else {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), null);
+            }
+        } else {
+            if (type != null) {
+                collectTypes(list, null, type.getGenericSuperclass());
+            } else {
+                collectTypes(list, null, null);
+            }
+        }
         if (node instanceof ParameterizedType) {
             List<Type> tl = Arrays.asList(((ParameterizedType) node).getActualTypeArguments());
             for (Type t : tl) {
-                list.add((t instanceof Class) || (t instanceof GenericArrayType) ? t : null);
+                if ((t instanceof Class) || (t instanceof GenericArrayType)) {
+                    list.add(t);
+                } else if (t instanceof ParameterizedType) {
+                    list.add(((ParameterizedType) t).getRawType());
+                } else {
+                    list.add(null);
+                }
             }
         }
         return list;
