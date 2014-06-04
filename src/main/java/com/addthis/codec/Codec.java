@@ -243,8 +243,10 @@ public abstract class Codec {
         }
 
         public ClassMap add(String name, Class<?> type) {
-            if (map.put(name, type) != null) {
-                log.warn("warning: overriding class map for " + name + " with " + type);
+            Class prev = map.put(name, type);
+            if (prev != null) {
+                log.warn("warning: overriding class map for key "
+                         + name + " with old type " + prev + " and new type " + type);
             }
             return this;
         }
