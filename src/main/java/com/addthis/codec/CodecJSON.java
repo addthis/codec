@@ -301,15 +301,14 @@ public class CodecJSON extends Codec {
             CodableClassInfo classInfo = getClassFieldMap(type);
             String classField = classInfo.getClassField();
             String stype = jsonObj.optString(classField, null);
-            Class<?> atype;
             try {
-                atype = stype != null ? classInfo.getClass(stype) : type;
+                if (stype != null) {
+                    Class<?> atype = classInfo.getClass(stype);
+                    classInfo = getClassFieldMap(atype);
+                    type = (Class<T>) atype;
+                }
             } catch (Exception ex) {
                 throw new CodecExceptionLineNumber(ex, jsonObj.getValLineNumber(classField));
-            }
-            if (atype != null && atype != type) {
-                classInfo = getClassFieldMap(atype);
-                type = (Class<T>) atype;
             }
             if (classField != null) {
                 jsonObj.remove(classField);
