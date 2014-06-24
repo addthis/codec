@@ -301,17 +301,21 @@ public class CodecJSON extends Codec {
             CodableClassInfo classInfo = getClassFieldMap(type);
             String classField = classInfo.getClassField();
             String stype = jsonObj.optString(classField, null);
+            if ((stype == null) && Modifier.isAbstract(type.getModifiers()) &&
+                (jsonObj.length() == 1)) {
+                // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
+                stype = jsonObj.keySet().iterator().next();
+                jsonObj = jsonObj.getJSONObject(stype);
+            }
             try {
                 if (stype != null) {
                     Class<?> atype = classInfo.getClass(stype);
                     classInfo = getClassFieldMap(atype);
                     type = (Class<T>) atype;
+                    jsonObj.remove(classField);
                 }
             } catch (Exception ex) {
                 throw new CodecExceptionLineNumber(ex, jsonObj.getValLineNumber(classField));
-            }
-            if (classField != null) {
-                jsonObj.remove(classField);
             }
             try {
                 return decodeJSONInternal(classInfo, type.newInstance(), jsonObj, warnings);
