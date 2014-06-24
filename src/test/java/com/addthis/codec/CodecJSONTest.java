@@ -18,6 +18,7 @@ import com.addthis.maljson.JSONObject;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class CodecJSONTest {
@@ -30,10 +31,20 @@ public class CodecJSONTest {
         public A[] field4;
     }
 
+    @Codec.Set
+    public abstract static class AbstractLetter implements Codec.Codable {
+    }
+
+    public static class C extends AbstractLetter {
+        public int intField;
+    }
+
+    public static class Holder implements Codec.Codable {
+        public AbstractLetter thing;
+    }
 
     @Test
     public void testPrimitiveArrayTypeMismatch() {
-
         boolean caught = false;
         try {
             CodecJSON.decodeObject(A.class, new JSONObject("{field1: [\"1\",{},3]}"));
@@ -57,5 +68,12 @@ public class CodecJSONTest {
         assertTrue(caught);
     }
 
+    @Test
+    public void typeSugar() throws Exception {
+        Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(
+                "{thing: {com.addthis.codec.CodecJSONTest$C: {intField: 5}}}"));
+        C asC = (C) object.thing;
+        assertEquals(5, asC.intField);
+    }
 
 }
