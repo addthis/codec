@@ -223,14 +223,28 @@ public abstract class Codec {
         public ClassMap getClassMap();
     }
 
-    /* A bi-directional map between Strings and Classes.
-     */
+    /* A bi-directional map between Strings and Classes. */
     public static class ClassMap {
 
         private BiMap<String, Class<?>> map = HashBiMap.create();
+        private Class<?> arraySugar;
 
         public String getClassField() {
             return "class";
+        }
+
+        public Class<?> setArraySugar(Class<?> newArraySugar) {
+            Class<?> prev = this.arraySugar;
+            if (prev != null) {
+                log.warn("warning: overriding class map array sugar class {} with old type {} " +
+                         "and new type {}", prev, prev, newArraySugar);
+            }
+            this.arraySugar = newArraySugar;
+            return prev;
+        }
+
+        public Class<?> getArraySugar() {
+            return arraySugar;
         }
 
         public String getCategory() {
@@ -250,8 +264,13 @@ public abstract class Codec {
         }
 
         public ClassMap add(String name, Class<?> type) {
-            if (map.put(name, type) != null) {
-                log.warn("warning: overriding class map for " + name + " with " + type);
+            Class prev = map.put(name, type);
+            if (prev != null) {
+                log.warn("warning: overriding class map for key "
+                         + name + " with old type " + prev + " and new type " + type);
+            }
+            if (type.getAnnotation(ArraySugar.class) != null) {
+                setArraySugar(type);
             }
             return this;
         }
@@ -338,6 +357,11 @@ public abstract class Codec {
         }
     }
 
+
+    /** marker annotation suggesting this class is an array-wrapper over its fellows */
+    @Retention(RetentionPolicy.RUNTIME)
+    public static @interface ArraySugar {}
+
     /**
      * control coding parameters for fields. allows code to dictate non-codable
      * fields as codable
@@ -388,17 +412,35 @@ public abstract class Codec {
     }
 
     private static List<Type> collectTypes(List<Type> list, Class<?> type, Type node) {
-        if (type == null && node == null) {
+        if ((type == null) && (node == null)) {
             return list;
         }
         if (list == null) {
-            list = new LinkedList<Type>();
+            list = new LinkedList<>();
         }
-        collectTypes(list, node instanceof Class ? ((Class<?>) node).getSuperclass() : null, type != null ? type.getGenericSuperclass() : null);
+        if (node instanceof Class) {
+            if (type != null) {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), type.getGenericSuperclass());
+            } else {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), null);
+            }
+        } else {
+            if (type != null) {
+                collectTypes(list, null, type.getGenericSuperclass());
+            } else {
+                collectTypes(list, null, null);
+            }
+        }
         if (node instanceof ParameterizedType) {
             List<Type> tl = Arrays.asList(((ParameterizedType) node).getActualTypeArguments());
             for (Type t : tl) {
-                list.add((t instanceof Class) || (t instanceof GenericArrayType) ? t : null);
+                if ((t instanceof Class) || (t instanceof GenericArrayType)) {
+                    list.add(t);
+                } else if (t instanceof ParameterizedType) {
+                    list.add(((ParameterizedType) t).getRawType());
+                } else {
+                    list.add(null);
+                }
             }
         }
         return list;
