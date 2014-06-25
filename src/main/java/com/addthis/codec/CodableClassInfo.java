@@ -46,6 +46,10 @@ public final class CodableClassInfo {
         return classMap;
     }
 
+    public Class<?> getArraySugar() {
+        return (classMap != null) ? classMap.getArraySugar() : null;
+    }
+
     public String getClassField() {
         return classMap != null ? classMap.getClassField() : "class";
     }

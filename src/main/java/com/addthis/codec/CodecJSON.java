@@ -34,7 +34,12 @@ import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
 import com.addthis.maljson.LineNumberInfo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class CodecJSON extends Codec {
+
+    private static final Logger log = LoggerFactory.getLogger(CodecJSON.class);
 
     public static interface JSONCodable extends Codable {
 
@@ -62,7 +67,8 @@ public class CodecJSON extends Codec {
         return decodeString(shell, Bytes.toString(data));
     }
 
-    public <T> T decode(T shell, byte data[], List<CodecExceptionLineNumber> warnings) throws Exception {
+    public <T> T decode(T shell, byte data[], List<CodecExceptionLineNumber> warnings)
+            throws Exception {
         return decodeString(shell, Bytes.toString(data), warnings);
     }
 
@@ -249,83 +255,105 @@ public class CodecJSON extends Codec {
             LineNumberInfo info, List<CodecExceptionLineNumber> warnings)
             throws CodecExceptionLineNumber, JSONException {
 
-        if (json == null || json == JSONObject.NULL) {
+        if ((json == null) || (json == JSONObject.NULL)) {
             return null;
         }
-        if (isNative(type) || !(json instanceof JSONObject)) {
-            if (type != json.getClass()) {
-                if (Number.class.isAssignableFrom(type)) {
-                    Number num = (Number) json;
-                    if (type == Short.class) {
-                        json = new Short(num.shortValue());
-                    } else if (type == Integer.class) {
-                        json = new Integer(num.intValue());
-                    } else if (type == Long.class) {
-                        json = new Long(num.longValue());
-                    } else if (type == Float.class) {
-                        json = new Float(num.floatValue());
-                    } else if (type == Double.class) {
-                        json = new Double(num.doubleValue());
-                    } else if (type == AtomicInteger.class) {
-                        json = new AtomicInteger(num.intValue());
-                    } else if (type == AtomicLong.class) {
-                        json = new AtomicLong(num.longValue());
-                    }
-                } else if (type.isEnum()) {
-                    /**
-                     * Attempting to invoke {@link Enum#valueOf(Class, String)}
-                     * fails in the downstream assignment on
-                     * {@link Array#set(Object, int, Object)} so reflection is used
-                     * instead.
-                     */
-                    try {
-                        json = type.getMethod("valueOf", String.class).invoke(null, json.toString().toUpperCase());
-                    } catch (InvocationTargetException ex) {
-                        throw new CodecExceptionLineNumber("Could not convert the string \"" + json.toString() +
-                                                           "\" to the Enum type " + type.getName(), info);
-                    } catch (NoSuchMethodException ex) {
-                        throw new IllegalStateException("Attempted to decode enum type", ex);
-                    } catch (IllegalAccessException ex) {
-                        throw new IllegalStateException("Attempted to decode enum type", ex);
-                    }
-                }
+        if (type == json.getClass()) {
+            return (T) json;
+        }
+        if (Number.class.isAssignableFrom(type)) {
+            Number num = (Number) json;
+            if (type == Short.class) {
+                json = new Short(num.shortValue());
+            } else if (type == Integer.class) {
+                json = new Integer(num.intValue());
+            } else if (type == Long.class) {
+                json = new Long(num.longValue());
+            } else if (type == Float.class) {
+                json = new Float(num.floatValue());
+            } else if (type == Double.class) {
+                json = new Double(num.doubleValue());
+            } else if (type == AtomicInteger.class) {
+                json = new AtomicInteger(num.intValue());
+            } else if (type == AtomicLong.class) {
+                json = new AtomicLong(num.longValue());
             }
             return (T) json;
-        } else {
-            JSONObject jsonObj = (JSONObject) json;
-
-            if (info == LineNumberInfo.MissingInfo) {
-                info = jsonObj.getLineNumberInfo();
-            }
-
-            CodableClassInfo classInfo = getClassFieldMap(type);
-            String classField = classInfo.getClassField();
-            String stype = jsonObj.optString(classField, null);
-            if ((stype == null) && Modifier.isAbstract(type.getModifiers()) &&
-                (jsonObj.length() == 1)) {
-                // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
-                stype = jsonObj.keySet().iterator().next();
-                jsonObj = jsonObj.getJSONObject(stype);
-            }
+        } else if (type.isEnum()) {
+            /**
+             * Attempting to invoke {@link Enum#valueOf(Class, String)}
+             * fails in the downstream assignment on
+             * {@link Array#set(Object, int, Object)} so reflection is used
+             * instead.
+             */
             try {
-                if (stype != null) {
-                    Class<?> atype = classInfo.getClass(stype);
-                    classInfo = getClassFieldMap(atype);
-                    type = (Class<T>) atype;
-                    jsonObj.remove(classField);
+                json = type.getMethod("valueOf", String.class).invoke(null, json.toString().toUpperCase());
+            } catch (InvocationTargetException ex) {
+                throw new CodecExceptionLineNumber("Could not convert the string \"" + json.toString() +
+                                                   "\" to the Enum type " + type.getName(), info);
+            } catch (NoSuchMethodException | IllegalAccessException ex) {
+                throw new IllegalStateException("Attempted to decode enum type", ex);
+            }
+            return (T) json;
+        }
+        CodableClassInfo classInfo = getClassFieldMap(type);
+
+        // json config is "unexpectedly" an array; if the base class has registered a handler, use it
+        if (json instanceof JSONArray) {
+            Class<?> arrarySugar = classInfo.getArraySugar();
+            if (arrarySugar != null) {
+                classInfo = getClassFieldMap(arrarySugar);
+                for (CodableFieldInfo fieldInfo : classInfo.values()) {
+                    if (fieldInfo.isArray() && (fieldInfo.getType() == type)) {
+                        LineNumberInfo infoCopy = ((JSONArray) json).getMyLineNumberInfo();
+                        JSONObject magicWrapper = new JSONObject();
+                        magicWrapper.put(fieldInfo.getName(), json, infoCopy, infoCopy);
+                        json = magicWrapper;
+                        type = (Class<T>) arrarySugar;
+                        break;
+                    }
                 }
-            } catch (Exception ex) {
-                throw new CodecExceptionLineNumber(ex, jsonObj.getValLineNumber(classField));
+                if (json instanceof JSONArray) {
+                    log.warn("failed to find an appropriate array field for class marked as array" +
+                             "sugar: {}", arrarySugar);
+                }
             }
-            try {
-                return decodeJSONInternal(classInfo, type.newInstance(), jsonObj, warnings);
-            } catch (InstantiationException ex) {
-                CodecExceptionLineNumber celn = translateInstantiationException(type, info);
-                throw celn;
-            } catch (IllegalAccessException ex) {
-                throw new CodecExceptionLineNumber("Could not access either the type or the constructor of " +
-                                                   type.getName(), info);
+        }
+        if (!(json instanceof JSONObject)) {
+            return (T) json;
+        }
+        JSONObject jsonObj = (JSONObject) json;
+
+        if (info == LineNumberInfo.MissingInfo) {
+            info = jsonObj.getLineNumberInfo();
+        }
+
+        String classField = classInfo.getClassField();
+        String stype = jsonObj.optString(classField, null);
+        if ((stype == null) && Modifier.isAbstract(type.getModifiers()) &&
+            (jsonObj.length() == 1)) {
+            // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
+            stype = jsonObj.keySet().iterator().next();
+            jsonObj = jsonObj.getJSONObject(stype);
+        }
+        try {
+            if (stype != null) {
+                Class<?> atype = classInfo.getClass(stype);
+                classInfo = getClassFieldMap(atype);
+                type = (Class<T>) atype;
+                jsonObj.remove(classField);
             }
+        } catch (Exception ex) {
+            throw new CodecExceptionLineNumber(ex, jsonObj.getValLineNumber(classField));
+        }
+        try {
+            return decodeJSONInternal(classInfo, type.newInstance(), jsonObj, warnings);
+        } catch (InstantiationException ex) {
+            CodecExceptionLineNumber celn = translateInstantiationException(type, info);
+            throw celn;
+        } catch (IllegalAccessException ex) {
+            throw new CodecExceptionLineNumber("Could not access either the type or the constructor of " +
+                                               type.getName(), info);
         }
     }
 

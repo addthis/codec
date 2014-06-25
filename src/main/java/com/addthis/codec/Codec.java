@@ -216,14 +216,28 @@ public abstract class Codec {
         public ClassMap getClassMap();
     }
 
-    /* A bi-directional map between Strings and Classes.
-     */
+    /* A bi-directional map between Strings and Classes. */
     public static class ClassMap {
 
         private BiMap<String, Class<?>> map = HashBiMap.create();
+        private Class<?> arraySugar;
 
         public String getClassField() {
             return "class";
+        }
+
+        public Class<?> setArraySugar(Class<?> newArraySugar) {
+            Class<?> prev = this.arraySugar;
+            if (prev != null) {
+                log.warn("warning: overriding class map array sugar class {} with old type {} " +
+                         "and new type {}", prev, prev, newArraySugar);
+            }
+            this.arraySugar = newArraySugar;
+            return prev;
+        }
+
+        public Class<?> getArraySugar() {
+            return arraySugar;
         }
 
         public String getCategory() {
@@ -247,6 +261,9 @@ public abstract class Codec {
             if (prev != null) {
                 log.warn("warning: overriding class map for key "
                          + name + " with old type " + prev + " and new type " + type);
+            }
+            if (type.getAnnotation(ArraySugar.class) != null) {
+                setArraySugar(type);
             }
             return this;
         }
@@ -332,6 +349,11 @@ public abstract class Codec {
             return new Exception(builder.toString(), ex);
         }
     }
+
+
+    /** marker annotation suggesting this class is an array-wrapper over its fellows */
+    @Retention(RetentionPolicy.RUNTIME)
+    public static @interface ArraySugar {}
 
     /**
      * control coding parameters for fields. allows code to dictate non-codable
