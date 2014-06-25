@@ -37,11 +37,6 @@ public class CodecBasicsTest {
     }
 
     @Test
-    public void utestBin1() throws Exception {
-        assertTrue(testBin1());
-    }
-
-    @Test
     public void utestBin2() throws Exception {
         assertTrue(testBin2());
     }
@@ -112,15 +107,15 @@ public class CodecBasicsTest {
 
         protected boolean original;
 
-        public abstract boolean check1();
+        public abstract boolean check();
 
         @Override
         public boolean equals(Object o) {
             if (o instanceof X && o.getClass() == getClass()) {
                 if (((X) o).original) {
-                    return check1();
+                    return check();
                 } else {
-                    return ((X) o).check1();
+                    return ((X) o).check();
                 }
             }
             return false;
@@ -135,19 +130,19 @@ public class CodecBasicsTest {
         public AtomicInteger atomicInteger_d;
         public AtomicBoolean atomicBoolean_e;
 
-        public A set1() {
+        public A set() {
             int_a = 0xa;
-            obj_B_b = new B().set1();
+            obj_B_b = new B().set();
             atomicLong_c = new AtomicLong(3);
             atomicInteger_d = new AtomicInteger(4);
             atomicBoolean_e = new AtomicBoolean(true);
             return this;
         }
 
-        public boolean check1() {
+        public boolean check() {
             return
                     check(int_a, 0xa, "A.int_a") &&
-                    obj_B_b.check1() &&
+                    obj_B_b.check() &&
                     check(atomicLong_c, new AtomicLong(3), "C.atomicLong_c") &&
                     check(atomicInteger_d, new AtomicInteger(4), "D.atomicInteger_d") &&
                     check(atomicBoolean_e, new AtomicBoolean(true), "E.atomicBoolean_e");
@@ -173,13 +168,13 @@ public class CodecBasicsTest {
         public int int_a;
         public String str_b;
 
-        public B set1() {
+        public B set() {
             int_a = 0xa;
             str_b = "bbb";
             return this;
         }
 
-        public boolean check1() {
+        public boolean check() {
             return
                     check(int_a, 0xa, "B.int_a") &&
                     check(str_b, "bbb", "B.str_b");
@@ -221,7 +216,7 @@ public class CodecBasicsTest {
         public int x_int_a = 3;
 
         @Override
-        public boolean check1() {
+        public boolean check() {
             return check(x_int_a, 1, "CP.x_int_a");
         }
     }
@@ -264,7 +259,7 @@ public class CodecBasicsTest {
         public TheEnum theEnum;
         public TheEnum[] theEnumArray;
 
-        public CC set1() {
+        public CC set() {
             x_int_a = 1;
             x_int_b = 2;
             x_int_c = 3;
@@ -273,15 +268,15 @@ public class CodecBasicsTest {
             int_obj_e = 0xe;
             arr_int_f = new int[]{0xf, 0xf};
             str_g = "ggg";
-            obj_A_h = new A().set1();
-            arr_obj_B_i = new B[]{new B().set1(), new B().set1()};
+            obj_A_h = new A().set();
+            arr_obj_B_i = new B[]{new B().set(), new B().set()};
             arr_string_f = new String[]{"hello", "world"};
             list_str_j = new LinkedList<String>(Arrays.asList(new String[]{"jjj"}));
-            list_obj_k = new LinkedList<B>(Arrays.asList(new B().set1()));
+            list_obj_k = new LinkedList<B>(Arrays.asList(new B().set()));
             map_str_str_l = new HashMap<String, String>();
             map_str_str_l.put("lll", "111");
             map_str_B_m = new HashMap<String, B>();
-            map_str_B_m.put("mmm", new B().set1());
+            map_str_B_m.put("mmm", new B().set());
             boolean_o = true;
             short_p = 16;
             float_q = 17.171717f;
@@ -332,7 +327,7 @@ public class CodecBasicsTest {
                    null_string == null && null_string == otherCC.null_string;
         }
 
-        public boolean check1() {
+        public boolean check() {
             boolean success =
                     check(x_int_a, 1, "C.x_int_a") &&
                     check(x_int_b, 2, "C.x_int_b") &&
@@ -342,13 +337,13 @@ public class CodecBasicsTest {
                     check(int_obj_e, new Integer(0xe), "C.int_obj_e") &&
                     check(arr_int_f, new int[]{0xf, 0xf}, "C.arr_int_f") &&
                     check(str_g, "ggg", "C.str_g") &&
-                    obj_A_h.check1() &&
-                    check(arr_obj_B_i, new B[]{new B().set1(), new B().set1()}, "C.arr_obj_i") &&
+                    obj_A_h.check() &&
+                    check(arr_obj_B_i, new B[]{new B().set(), new B().set()}, "C.arr_obj_i") &&
                     check(arr_string_f, new String[]{"hello", "world"}, "C.arr_string_f") &&
                     check(list_str_j.get(0), "jjj", "C.list_str_j") &&
-                    check(list_obj_k.get(0), new B().set1(), "C.list_obj_k") &&
+                    check(list_obj_k.get(0), new B().set(), "C.list_obj_k") &&
                     check(map_str_str_l.get("lll"), "111", "C.map_str_str_l") &&
-                    check(map_str_B_m.get("mmm"), new B().set1(), "C.map_str_B_m") &&
+                    check(map_str_B_m.get("mmm"), new B().set(), "C.map_str_B_m") &&
                     check(boolean_o, true, "C.boolean_o") &&
                     check(short_p, (short) 16, "C.short_p") &&
                     check(float_q, 17.171717f, "C.float_q") &&
@@ -375,13 +370,13 @@ public class CodecBasicsTest {
                     check(int_obj_e, new Integer(0xe), "C.int_obj_e") &&
                     check(arr_int_f, new int[]{0xf, 0xf}, "C.arr_int_f") &&
                     check(str_g, "ggg", "C.str_g") &&
-                    obj_A_h.check1() &&
-                    check(arr_obj_B_i, new B[]{new B().set1(), new B().set1()}, "C.arr_obj_i") &&
+                    obj_A_h.check() &&
+                    check(arr_obj_B_i, new B[]{new B().set(), new B().set()}, "C.arr_obj_i") &&
                     check(arr_string_f, new String[]{"hello", "world"}, "C.arr_string_f") &&
                     check(list_str_j.get(0), "jjj", "C.list_str_j") &&
-                    check(list_obj_k.get(0), new B().set1(), "C.list_obj_k") &&
+                    check(list_obj_k.get(0), new B().set(), "C.list_obj_k") &&
                     check(map_str_str_l.get("lll"), "111", "C.map_str_str_l") &&
-                    check(map_str_B_m.get("mmm"), new B().set1(), "C.map_str_B_m") &&
+                    check(map_str_B_m.get("mmm"), new B().set(), "C.map_str_B_m") &&
                     check(boolean_o, true, "C.boolean_o") &&
                     check(short_p, (short) 16, "C.short_p") &&
                     check(float_q, 17.171717f, "C.float_q") &&
@@ -407,7 +402,7 @@ public class CodecBasicsTest {
 
         public String str_n;
 
-        public D set1() {
+        public D set() {
             str_n = "nnn";
             return this;
         }
@@ -417,7 +412,7 @@ public class CodecBasicsTest {
 
         public String str_o;
 
-        public E set1() {
+        public E set() {
             str_o = "this is e";
             return this;
         }
@@ -427,7 +422,7 @@ public class CodecBasicsTest {
 
         public String str_p;
 
-        public G set1() {
+        public G set() {
             str_p = "this is g";
             return this;
         }
@@ -438,14 +433,14 @@ public class CodecBasicsTest {
         public B b_field;
         public C c_field;
 
-        public F set1() {
+        public F set() {
             b_field = new E();
             c_field = new G();
             return this;
         }
 
         @Override
-        public boolean check1() {
+        public boolean check() {
             return
                     b_field != null && b_field instanceof E &&
                     c_field != null && c_field instanceof G;
@@ -473,12 +468,8 @@ public class CodecBasicsTest {
     }
 
     public static boolean test(Class<? extends Codec> type) throws Exception {
-        Codec codec = type.newInstance();
-        CC c = new CC().set1();
-        if (type == CodecBin1.class) {
-            c.theEnum = null;
-            c.theEnumArray = null;
-        }
+        Codec codec = (Codec) type.getMethod("getSingleton").invoke(null);
+        CC c = new CC().set();
         String cn = codec.getClass().getName();
         // encode
         byte bec[] = codec.encode(c);
@@ -491,7 +482,7 @@ public class CodecBasicsTest {
         String s3 = (cn + "->C = " + bytesToString(bde, false));
         String s4 = (cn + "->C = " + bytesToString(bde, true));
         // validation
-        boolean codes = Arrays.equals(bec, bde) && (type == CodecBin1.class ? bdc.check2() : bdc.check1());
+        boolean codes = Arrays.equals(bec, bde) && (bdc.check());
         boolean upgrades = true, downgrades = true;
         String s5 = "", s6 = "";
         // CodecBin2 does not support upgrades or downgrades
@@ -501,16 +492,16 @@ public class CodecBasicsTest {
             byte bdcue[] = codec.encode(bdcu);
             s5 = ("C->CC = " + bytesToString(bdcue, false));
             s6 = ("C->CC = " + bytesToString(bdcue, true));
-            upgrades = type == CodecBin1.class ? bdcu.check2() : bdcu.check1();
+            upgrades = bdcu.check();
             // downgrade on decode (C -> X)
             C bdcd = (C) codec.decode(new C(), bec);
-            downgrades = bdcd.check1();
+            downgrades = bdcd.check();
         }
         // check subclassing
-        F f = new F().set1();
+        F f = new F().set();
         bec = codec.encode(f);
         f = (F) codec.decode(F.class, bec);
-        boolean subclasses = f.check1();
+        boolean subclasses = f.check();
         // check validation
         boolean validates = false;
         String s7 = null;
@@ -555,10 +546,6 @@ public class CodecBasicsTest {
 
     private static boolean testKV() throws Exception {
         return test(CodecKV.class);
-    }
-
-    private static boolean testBin1() throws Exception {
-        return test(CodecBin1.class);
     }
 
     private static boolean testBin2() throws Exception {

@@ -30,7 +30,6 @@ public class CodecGenericsTest {
 
     @Test
     public void testAll() throws Exception {
-        test(CodecBin1.class);
         test(CodecBin2.class);
     }
 
@@ -43,7 +42,7 @@ public class CodecGenericsTest {
         input.h.put(stringArray, new D());
         // FIXME: this will cause the library to throw an exception
         // input.h.put(stringArray, null);
-        Codec codec = type.newInstance();
+        Codec codec = (Codec) type.getMethod("getSingleton").invoke(null);
         byte[] byteArray = codec.encode(input);
         D result = codec.decode(new D(), byteArray);
         assertFalse(result == null);

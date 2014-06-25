@@ -46,21 +46,28 @@ public abstract class Codec {
     private static final Logger log = LoggerFactory.getLogger(Codec.class);
     private static final ConcurrentHashMap<Class<?>, CodableClassInfo> fieldMaps = new ConcurrentHashMap<Class<?>, CodableClassInfo>();
 
+    @SuppressWarnings("unused")
+    public static Codec getSingleton() {
+        throw new IllegalStateException("getSingleton() must be overridden in the subclass.");
+    }
+
     public static enum TYPE {
-        BIN2(CodecBin2.class), BIN1(CodecBin1.class), JSON(CodecJSON.class), KV(CodecKV.class);
+        BIN2(CodecBin2.class), JSON(CodecJSON.class), KV(CodecKV.class);
 
         private TYPE(Class<?> type) {
             this.type = type;
+            try {
+                this.singleton = (Codec) type.getMethod("getSingleton").invoke(null);
+            } catch (Exception ex) {
+                log.error("Illegal state encountered: ", ex);
+            }
         }
 
         private Class<?> type;
+        private Codec singleton;
 
         public Codec getInstance() {
-            try {
-                return (Codec) type.newInstance();
-            } catch (Exception ex) {
-                return null;
-            }
+            return singleton;
         }
     }
 
@@ -104,7 +111,7 @@ public abstract class Codec {
      */
     public static interface ConcurrentCodable extends Codable {
 
-        public boolean encodeLock();
+        public void encodeLock();
 
         public void encodeUnlock();
     }

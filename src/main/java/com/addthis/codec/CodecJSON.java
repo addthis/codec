@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 
 public class CodecJSON extends Codec {
 
+    private static final CodecJSON singleton = new CodecJSON();
+
     private static final Logger log = LoggerFactory.getLogger(CodecJSON.class);
 
     public static interface JSONCodable extends Codable {
@@ -48,8 +50,10 @@ public class CodecJSON extends Codec {
         public void fromJSONObject(JSONObject jo) throws Exception;
     }
 
-    public CodecJSON() {
-    }
+    private CodecJSON() { }
+
+    @SuppressWarnings("unused")
+    public static CodecJSON getSingleton() { return singleton; }
 
     @Override
     public byte[] encode(Object obj) throws Exception {
@@ -121,8 +125,8 @@ public class CodecJSON extends Codec {
         }
         JSONObject obj = null;
         boolean lock = object instanceof Codec.ConcurrentCodable;
-        if (lock && !((Codec.ConcurrentCodable) object).encodeLock()) {
-            throw new Exception("Unable to acquire encoding lock on " + object);
+        if (lock) {
+            ((Codec.ConcurrentCodable) object).encodeLock();
         }
         try {
             if (object instanceof SuperCodable) {

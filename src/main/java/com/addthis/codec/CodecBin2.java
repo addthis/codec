@@ -50,7 +50,18 @@ public final class CodecBin2 extends Codec {
     private static final Logger log = LoggerFactory.getLogger(CodecBin2.class);
 
     private static final int CODEC_VERSION = 2;
-    private static final CodecBin2 defaultCodec = new CodecBin2();
+    private static final CodecBin2 singleton = new CodecBin2(false);
+    private static final CodecBin2 singletonCharstring = new CodecBin2(true);
+
+    private final boolean charstring;
+
+    private CodecBin2(boolean cs) { this.charstring = cs; }
+
+    @SuppressWarnings("unused")
+    public static CodecBin2 getSingleton() { return singleton; }
+
+    @SuppressWarnings("unused")
+    public static CodecBin2 getSingleton(boolean charstring) { return charstring ? singletonCharstring : singleton; }
 
     private static final class BufferOut {
 
@@ -111,16 +122,6 @@ public final class CodecBin2 extends Codec {
         }
     }
 
-    public CodecBin2() {
-        this(false);
-    }
-
-    public CodecBin2(boolean cs) {
-        this.charstring = cs;
-    }
-
-    private final boolean charstring;
-
     @Override
     public byte[] encode(Object obj) throws Exception {
         return encodeBytes(obj);
@@ -145,7 +146,7 @@ public final class CodecBin2 extends Codec {
         BufferOut buf = new BufferOut();
         Bytes.writeInt(CODEC_VERSION, buf.out());
         CodableStatistics statistics = new CodableStatistics();
-        defaultCodec.encodeObject(object, buf, statistics);
+        singleton.encodeObject(object, buf, statistics);
         statistics.setTotalSize(buf.out.size());
         statistics.export();
         return statistics;
@@ -154,7 +155,7 @@ public final class CodecBin2 extends Codec {
     public static byte[] encodeBytes(Object object) throws Exception {
         BufferOut buf = new BufferOut();
         Bytes.writeInt(CODEC_VERSION, buf.out());
-        defaultCodec.encodeObject(object, buf, null);
+        singleton.encodeObject(object, buf, null);
         return buf.out.toByteArray();
     }
 
@@ -163,7 +164,7 @@ public final class CodecBin2 extends Codec {
         BufferIn buf = new BufferIn(data);
         int ver = Bytes.readInt(buf.in);
         require(ver == CODEC_VERSION, "version mismatch " + ver + " != " + CODEC_VERSION);
-        return defaultCodec.decodeObject(getClassFieldMap(object.getClass()), object, buf);
+        return singleton.decodeObject(getClassFieldMap(object.getClass()), object, buf);
     }
 
     private void encodeObject(Object object, BufferOut buf, CodableStatistics statistics) throws Exception {
@@ -175,8 +176,8 @@ public final class CodecBin2 extends Codec {
             return;
         }
         boolean lock = object instanceof Codec.ConcurrentCodable;
-        if (lock && !((Codec.ConcurrentCodable) object).encodeLock()) {
-            throw new Exception("Unable to acquire encoding lock on " + object);
+        if (lock) {
+            ((Codec.ConcurrentCodable) object).encodeLock();
         }
         try {
             if (object instanceof Codec.SuperCodable) {
