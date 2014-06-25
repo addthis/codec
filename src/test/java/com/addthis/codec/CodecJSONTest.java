@@ -31,15 +31,31 @@ public class CodecJSONTest {
         public A[] field4;
     }
 
-    @Codec.Set
+    @Codec.Set(classMapFactory = LetterMapFactory.class)
     public abstract static class AbstractLetter implements Codec.Codable {
     }
 
+    private static final Codec.ClassMap letterMap = new Codec.ClassMap();
+
+    public static class LetterMapFactory implements Codec.ClassMapFactory {
+        public Codec.ClassMap getClassMap() {
+            return letterMap;
+        }
+    }
+
     public static class C extends AbstractLetter {
+
         public int intField;
     }
 
+    @Codec.ArraySugar
+    public static class D extends AbstractLetter {
+
+        public AbstractLetter[] letters;
+    }
+
     public static class Holder implements Codec.Codable {
+
         public AbstractLetter thing;
     }
 
@@ -48,8 +64,8 @@ public class CodecJSONTest {
         boolean caught = false;
         try {
             CodecJSON.decodeObject(A.class, new JSONObject("{field1: [\"1\",{},3]}"));
-        } catch(JSONException ex) {
-        } catch(CodecExceptionLineNumber ex) {
+        } catch (JSONException ex) {
+        } catch (CodecExceptionLineNumber ex) {
             caught = true;
         }
         assertTrue(caught);
@@ -61,8 +77,8 @@ public class CodecJSONTest {
         boolean caught = false;
         try {
             CodecJSON.decodeObject(B.class, new JSONObject("{field4: [[]]}"));
-        } catch(JSONException ex) {
-        } catch(CodecExceptionLineNumber ex) {
+        } catch (JSONException ex) {
+        } catch (CodecExceptionLineNumber ex) {
             caught = true;
         }
         assertTrue(caught);
@@ -74,6 +90,21 @@ public class CodecJSONTest {
                 "{thing: {com.addthis.codec.CodecJSONTest$C: {intField: 5}}}"));
         C asC = (C) object.thing;
         assertEquals(5, asC.intField);
+    }
+
+    @Test
+    public void arraySugar() throws Exception {
+        AbstractLetter.class.getAnnotation(Codec.Set.class)
+                            .classMapFactory().newInstance().getClassMap()
+                            .add(C.class).add(D.class);
+        Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(
+                "{thing: [" +
+                "{C: {intField: 5}}, " +
+                "{C: {intField: 6}}, " +
+                "{C: {intField: 7}}, " +
+                "]}"));
+        D asD = (D) object.thing;
+        assertEquals(6, ((C) asD.letters[1]).intField);
     }
 
 }
