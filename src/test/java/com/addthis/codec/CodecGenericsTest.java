@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import com.addthis.codec.binary.CodecBin2;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -30,10 +32,10 @@ public class CodecGenericsTest {
 
     @Test
     public void testAll() throws Exception {
-        test(CodecBin2.class);
+        test(CodecBin2.INSTANCE);
     }
 
-    public static void test(Class<? extends Codec> type) throws Exception {
+    public static void test(Codec codec) throws Exception {
         D input = new D();
         input.h = new HashMap<String[], D>();
         String[] stringArray = new String[2];
@@ -42,7 +44,6 @@ public class CodecGenericsTest {
         input.h.put(stringArray, new D());
         // FIXME: this will cause the library to throw an exception
         // input.h.put(stringArray, null);
-        Codec codec = (Codec) type.getMethod("getSingleton").invoke(null);
         byte[] byteArray = codec.encode(input);
         D result = codec.decode(new D(), byteArray);
         assertFalse(result == null);

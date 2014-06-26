@@ -13,6 +13,13 @@
  */
 package com.addthis.codec;
 
+import com.addthis.codec.annotations.ArraySugar;
+import com.addthis.codec.annotations.Field;
+import com.addthis.codec.codables.Codable;
+import com.addthis.codec.json.CodecExceptionLineNumber;
+import com.addthis.codec.json.CodecJSON;
+import com.addthis.codec.plugins.ClassMap;
+import com.addthis.codec.plugins.ClassMapFactory;
 import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
 
@@ -23,22 +30,23 @@ import static org.junit.Assert.assertTrue;
 
 public class CodecJSONTest {
 
-    public static class A implements Codec.Codable {
+    public static class A implements Codable {
         public String[] field1;
     }
 
-    public static class B implements Codec.Codable {
+    public static class B implements Codable {
         public A[] field4;
     }
 
-    @Codec.Set(classMapFactory = LetterMapFactory.class)
-    public abstract static class AbstractLetter implements Codec.Codable {
+    @Field(classMapFactory = LetterMapFactory.class)
+    public abstract static class AbstractLetter implements Codable {
     }
 
-    private static final Codec.ClassMap letterMap = new Codec.ClassMap();
+    private static final ClassMap letterMap = new ClassMap();
 
-    public static class LetterMapFactory implements Codec.ClassMapFactory {
-        public Codec.ClassMap getClassMap() {
+    public static class LetterMapFactory implements ClassMapFactory {
+
+        public ClassMap getClassMap() {
             return letterMap;
         }
     }
@@ -48,13 +56,13 @@ public class CodecJSONTest {
         public int intField;
     }
 
-    @Codec.ArraySugar
+    @ArraySugar
     public static class D extends AbstractLetter {
 
         public AbstractLetter[] letters;
     }
 
-    public static class Holder implements Codec.Codable {
+    public static class Holder implements Codable {
 
         public AbstractLetter thing;
     }
@@ -94,7 +102,7 @@ public class CodecJSONTest {
 
     @Test
     public void arraySugar() throws Exception {
-        AbstractLetter.class.getAnnotation(Codec.Set.class)
+        AbstractLetter.class.getAnnotation(Field.class)
                             .classMapFactory().newInstance().getClassMap()
                             .add(C.class).add(D.class);
         Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(

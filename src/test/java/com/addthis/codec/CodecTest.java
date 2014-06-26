@@ -21,6 +21,9 @@ import com.addthis.basis.kv.KVPairs;
 import com.addthis.basis.util.Bytes;
 import com.addthis.basis.util.Strings;
 
+import com.addthis.codec.kv.CodecKV;
+import com.addthis.codec.util.CodableStatistics;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

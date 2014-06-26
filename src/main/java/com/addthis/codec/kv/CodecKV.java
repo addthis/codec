@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.kv;
 
 import java.lang.reflect.Array;
 
@@ -21,24 +21,31 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.addthis.basis.kv.KVPair;
 import com.addthis.basis.kv.KVPairs;
 import com.addthis.basis.util.Base64;
 import com.addthis.basis.util.Bytes;
 
-public class CodecKV extends Codec {
+import com.addthis.codec.Codec;
+import com.addthis.codec.reflection.Fields;
+import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.reflection.CodableClassInfo;
+import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.util.CodableStatistics;
 
-    private static final CodecKV singleton = new CodecKV();
+public final class CodecKV extends Codec {
+    private CodecKV() {}
 
-    private CodecKV() { }
-
-    @SuppressWarnings("unused")
-    public static CodecKV getSingleton() { return singleton; }
+    public static final CodecKV INSTANCE = new CodecKV();
 
     @Override
     public Object decode(Object shell, byte[] data) throws Exception {
-        return decodeString(getClassFieldMap(shell.getClass()), shell, new KVPairs(Bytes.toString(data)));
+        return decodeString(Fields.getClassFieldMap(shell.getClass()), shell,
+                            new KVPairs(Bytes.toString(data)));
     }
 
     @Override
@@ -62,7 +69,7 @@ public class CodecKV extends Codec {
             ((SuperCodable) object).preEncode();
         }
         KVPairs kv = new KVPairs();
-        CodableClassInfo fieldMap = getClassFieldMap(object.getClass());
+        CodableClassInfo fieldMap = Fields.getClassFieldMap(object.getClass());
         if (fieldMap.size() == 0) {
             return object.toString();
         }
@@ -70,7 +77,7 @@ public class CodecKV extends Codec {
         if (stype != null) {
             kv.putValue(fieldMap.getClassField(), stype);
         }
-        for (Iterator<CodableFieldInfo> fields = fieldMap.values().iterator(); fields.hasNext();) {
+        for (Iterator<CodableFieldInfo> fields = fieldMap.values().iterator(); fields.hasNext(); ) {
             CodableFieldInfo field = fields.next();
             Object value = field.get(object);
             if (value == null) {
@@ -132,10 +139,10 @@ public class CodecKV extends Codec {
     }
 
     public static Object decodeString(Class<?> type, String kv) throws Exception {
-        if (isNative(type)) {
+        if (Fields.isNative(type)) {
             return decodeNative(type, kv);
         } else {
-            return decodeString(getClassFieldMap(type), type, kv);
+            return decodeString(Fields.getClassFieldMap(type), type, kv);
         }
     }
 
@@ -147,14 +154,14 @@ public class CodecKV extends Codec {
     }
 
     public static Object decodeKV(Class<?> type, KVPairs data) throws Exception {
-        return decodeString(getClassFieldMap(type), type, data);
+        return decodeString(Fields.getClassFieldMap(type), type, data);
     }
 
     public static Object decodeKV(CodableClassInfo fieldMap, Class<?> type, KVPairs data) throws Exception {
         String stype = data.getValue(fieldMap.getClassField());
         Class<?> atype = stype != null ? fieldMap.getClass(stype) : type;
         if (atype != null && atype != type) {
-            fieldMap = getClassFieldMap(atype);
+            fieldMap = Fields.getClassFieldMap(atype);
             type = atype;
         }
         Object object = type.newInstance();
@@ -191,7 +198,8 @@ public class CodecKV extends Codec {
             } else if (field.isCodable()) {
                 field.set(object, decodeString(field.getType(), data.getValue(name)));
             } else if (field.isEnum()) {
-                field.set(object, decodeEnum((Class<Enum>) field.getType(), data.getValue(name)));
+                field.set(object, decodeEnum((Class<Enum>) field.getType(),
+                                             data.getValue(name)));
             } else if (field.isNative()) {
                 field.set(object, decodeNative(field.getType(), data.getValue(name)));
             }
@@ -287,4 +295,37 @@ public class CodecKV extends Codec {
         return new String(c, 0, pos);
     }
 
+    public static Object decodeNative(Class<?> type, String text) {
+        if (type == String.class) {
+            return text;
+        } else if (type == Integer.class || type == int.class) {
+            return text != null ? Integer.parseInt(text) : 0;
+        } else if (type == Long.class || type == long.class) {
+            return text != null ? Long.parseLong(text) : 0L;
+        } else if (type == Boolean.class || type == boolean.class) {
+            return text != null && Boolean.parseBoolean(text);
+        } else if (type == Short.class || type == short.class) {
+            return text != null ? Short.parseShort(text) : 0;
+        } else if (type == Double.class || type == double.class) {
+            return text != null ? Double.parseDouble(text) : 0;
+        } else if (type == Float.class || type == float.class) {
+            return text != null ? Float.parseFloat(text) : 0;
+        } else if (type == AtomicLong.class) {
+            return text != null ? new AtomicLong(Long.parseLong(text)) : new AtomicLong(0);
+        } else if (type == AtomicInteger.class) {
+            return text != null ? new AtomicInteger(Integer.parseInt(text)) : new AtomicInteger(0);
+        } else if (type == AtomicBoolean.class) {
+            return text != null ?
+                   new AtomicBoolean(Boolean.parseBoolean(text)) :
+                   new AtomicBoolean(false);
+        } else if (type.isEnum()) {
+            return Enum.valueOf((Class<Enum>) type, text);
+        } else {
+            return text;
+        }
+    }
+
+    public static Object decodeEnum(Class<Enum> type, String text) {
+        return Enum.valueOf(type, text);
+    }
 }

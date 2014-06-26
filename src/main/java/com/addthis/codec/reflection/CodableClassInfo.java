@@ -11,23 +11,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.reflection;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import com.addthis.codec.Codec.ClassMap;
-import com.addthis.codec.Codec.ClassMapFactory;
-import com.addthis.codec.Codec.Codable;
-import com.addthis.codec.Codec.Set;
-import com.addthis.codec.Codec.Validator;
+import com.addthis.codec.plugins.ClassMap;
+import com.addthis.codec.plugins.ClassMapFactory;
+import com.addthis.codec.codables.Codable;
+import com.addthis.codec.annotations.Field;
+import com.addthis.codec.validation.Validator;
 
 import com.google.common.collect.ImmutableSortedMap;
 
@@ -70,7 +76,7 @@ public final class CodableClassInfo {
         SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<String, CodableFieldInfo>();
 
         // skip native classes
-        if (Codec.isNative(clazz)) {
+        if (Fields.isNative(clazz)) {
             classData = ImmutableSortedMap.
                     <String, CodableFieldInfo>naturalOrder().
                     putAll(buildClassData).build();
@@ -85,9 +91,9 @@ public final class CodableClassInfo {
         // get class annotations
         Class<?> ptr = clazz;
         while (ptr != null) {
-            Annotation classpolicy = ptr.getAnnotation(Set.class);
+            Annotation classpolicy = ptr.getAnnotation(Field.class);
             if (classpolicy != null) {
-                Class<? extends ClassMapFactory> cmf = ((Set) classpolicy).classMapFactory();
+                Class<? extends ClassMapFactory> cmf = ((Field) classpolicy).classMapFactory();
                 if (cmf != null && cmf != ClassMapFactory.class) {
                     try {
                         findClassMap = cmf.newInstance().getClassMap();
@@ -97,7 +103,7 @@ public final class CodableClassInfo {
                         e.printStackTrace();
                     }
                 }
-                Class<? extends ClassMap> cm = ((Set) classpolicy).classMap();
+                Class<? extends ClassMap> cm = ((Field) classpolicy).classMap();
                 if (cm != null) {
                     try {
                         findClassMap = cm.newInstance();
@@ -110,17 +116,17 @@ public final class CodableClassInfo {
             }
             ptr = ptr.getSuperclass();
         }
-        HashMap<String, Field> fields = new HashMap<String, Field>();
+        HashMap<String, java.lang.reflect.Field> fields = new HashMap<String, java.lang.reflect.Field>();
         Class<?> clazzptr = clazz;
         while (clazzptr != null) {
-            for (Field field : clazzptr.getDeclaredFields()) {
+            for (java.lang.reflect.Field field : clazzptr.getDeclaredFields()) {
                 if (fields.get(field.getName()) == null) {
                     fields.put(field.getName(), field);
                 }
             }
             clazzptr = clazzptr.getSuperclass();
         }
-        for (Field field : fields.values()) {
+        for (java.lang.reflect.Field field : fields.values()) {
             int mod = field.getModifiers();
             boolean store = ((mod & Modifier.FINAL) == 0 && (mod & Modifier.PUBLIC) != 0);
             boolean codable = false;
@@ -130,15 +136,15 @@ public final class CodableClassInfo {
             boolean intern = false;
             Class<? extends Validator> validator = null;
             // extract annotations
-            Annotation policy = field.getAnnotation(Set.class);
+            Annotation policy = field.getAnnotation(Field.class);
             if (policy != null) {
-                Set setPolicy = (Set) policy;
-                codable = setPolicy.codable();
-                readonly = setPolicy.readonly();
-                writeonly = setPolicy.writeonly();
-                required = setPolicy.required();
-                intern = setPolicy.intern();
-                validator = setPolicy.validator();
+                Field fieldPolicy = (Field) policy;
+                codable = fieldPolicy.codable();
+                readonly = fieldPolicy.readonly();
+                writeonly = fieldPolicy.writeonly();
+                required = fieldPolicy.required();
+                intern = fieldPolicy.intern();
+                validator = fieldPolicy.validator();
                 field.setAccessible(true);
                 if (!codable) {
                     continue;
@@ -184,7 +190,7 @@ public final class CodableClassInfo {
             if (Number.class.isAssignableFrom(type)) {
                 info.updateBits(CodableFieldInfo.NUMBER);
             }
-            if (Codec.isNative(type)) {
+            if (Fields.isNative(type)) {
                 info.updateBits(CodableFieldInfo.NATIVE);
             }
             if (required) {
@@ -202,8 +208,8 @@ public final class CodableClassInfo {
             }
             info.setType(type);
             // extract generics info
-            if (!Codec.isNative(type)) {
-                info.setGenericTypes(Codec.collectTypes(type, field.getGenericType()));
+            if (!Fields.isNative(type)) {
+                info.setGenericTypes(collectTypes(type, field.getGenericType()));
             }
             buildClassData.put(field.getName(), info);
         }
@@ -220,5 +226,65 @@ public final class CodableClassInfo {
 
     public Collection<CodableFieldInfo> values() {
         return classData.values();
+    }
+
+    public static Type[] collectTypes(Class<?> type, Type node) {
+        List<Type> l = collectTypes(new ArrayList<Type>(), type, node);
+        // System.out.println("collected: " +l);
+        while (l.size() > 0) {
+            int ni = l.lastIndexOf(null);
+            if (ni < 0) {
+                break;
+            }
+            if (ni >= l.size() - 1) {
+                l.remove(ni);
+            } else {
+                l.set(ni, l.get(l.size() - 1));
+                l.remove(l.size() - 1);
+            }
+        }
+        // System.out.println("returned: " +l);
+        if (l.size() == 0) {
+            return null;
+        } else {
+            Type t[] = new Type[l.size()];
+            l.toArray(t);
+            return t;
+        }
+    }
+
+    private static List<Type> collectTypes(List<Type> list, Class<?> type, Type node) {
+        if ((type == null) && (node == null)) {
+            return list;
+        }
+        if (list == null) {
+            list = new LinkedList<>();
+        }
+        if (node instanceof Class) {
+            if (type != null) {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), type.getGenericSuperclass());
+            } else {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), null);
+            }
+        } else {
+            if (type != null) {
+                collectTypes(list, null, type.getGenericSuperclass());
+            } else {
+                collectTypes(list, null, null);
+            }
+        }
+        if (node instanceof ParameterizedType) {
+            List<Type> tl = Arrays.asList(((ParameterizedType) node).getActualTypeArguments());
+            for (Type t : tl) {
+                if ((t instanceof Class) || (t instanceof GenericArrayType)) {
+                    list.add(t);
+                } else if (t instanceof ParameterizedType) {
+                    list.add(((ParameterizedType) t).getRawType());
+                } else {
+                    list.add(null);
+                }
+            }
+        }
+        return list;
     }
 }

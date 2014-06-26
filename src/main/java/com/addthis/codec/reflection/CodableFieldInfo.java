@@ -11,17 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.reflection;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 
+import com.addthis.codec.json.CodecExceptionLineNumber;
 import com.addthis.maljson.LineNumberInfo;
 
-import com.addthis.codec.Codec.RequiredFieldException;
-import com.addthis.codec.Codec.ValidationException;
-import com.addthis.codec.Codec.Validator;
+import com.addthis.codec.validation.ValidationException;
+import com.addthis.codec.validation.Validator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
