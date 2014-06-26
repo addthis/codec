@@ -22,7 +22,7 @@
   <groupId>com.addthis</groupId>
   <artifactId>codec</artifactId>
   <name>Codec</name>
-  <version>2.1.1-SNAPSHOT</version>
+  <version>3.0.0-SNAPSHOT</version>
   <description>Codec serialization library</description>
   <licenses>
     <license>
