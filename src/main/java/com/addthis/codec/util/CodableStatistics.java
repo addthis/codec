@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.util;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,13 +37,12 @@ public final class CodableStatistics {
     private Map<String, Long> statistics;
     private Map<String, Map<Object, Long>> mapStatistics;
 
-
-    CodableStatistics() {
+    public CodableStatistics() {
         this.data = new HashMap<String, Long>();
         this.mapData = new HashMap<String, Map<Object, Long>>();
     }
 
-    void export() {
+    public void export() {
         this.statistics = Collections.unmodifiableMap(data);
 
         Map<String, Map<Object, Long>> exportMapStatistics = new HashMap<String, Map<Object, Long>>();
@@ -55,15 +54,15 @@ public final class CodableStatistics {
         this.mapStatistics = Collections.unmodifiableMap(exportMapStatistics);
     }
 
-    Map<String, Long> getData() {
+    public Map<String, Long> getData() {
         return data;
     }
 
-    Map<String, Map<Object, Long>> getMapData() {
+    public Map<String, Map<Object, Long>> getMapData() {
         return mapData;
     }
 
-    void setTotalSize(long size) {
+    public void setTotalSize(long size) {
         totalSize = size;
     }
 

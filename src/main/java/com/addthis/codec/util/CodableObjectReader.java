@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.util;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +20,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.addthis.basis.util.Bytes;
+
+import com.addthis.codec.Codec;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

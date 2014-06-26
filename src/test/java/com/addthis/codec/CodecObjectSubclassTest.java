@@ -15,11 +15,18 @@ package com.addthis.codec;
 
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
 import com.addthis.basis.util.Bytes;
 
-import com.addthis.codec.Codec.Set;
-import com.addthis.codec.Codec.TYPE;
+import com.addthis.codec.annotations.Field;
+import com.addthis.codec.binary.CodecBin2;
+import com.addthis.codec.codables.Codable;
+import com.addthis.codec.json.CodecJSON;
+import com.addthis.codec.kv.CodecKV;
+import com.addthis.codec.plugins.ClassMap;
+
+import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
@@ -27,22 +34,23 @@ import static org.junit.Assert.assertTrue;
 
 public class CodecObjectSubclassTest {
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         new CodecObjectSubclassTest().testAll();
     }
 
     @Test
     public void testAll() throws Exception {
-        for (TYPE type : Codec.TYPE.values()) {
-            Codec c = type.getInstance();
+        List<Codec> codecs = Lists.newArrayList(
+                CodecBin2.INSTANCE, CodecJSON.INSTANCE, CodecKV.INSTANCE);
+        for (Codec c : codecs) {
             Bundle testBundle = new Bundle();
             testBundle.a.set();
             testBundle.b.set();
             testBundle.c.set();
             testBundle.d.set();
-            byte en1[] = c.encode(testBundle);
+            byte[] en1 = c.encode(testBundle);
             Bundle b = c.decode(Bundle.class, en1);
-            byte en2[] = c.encode(b);
+            byte[] en2 = c.encode(b);
             boolean passfail = Arrays.equals(en1, en2);
             System.out.println("en1[" + en1.length + "] -> " + Bytes.toString(en1));
             System.out.println("en2[" + en2.length + "] -> " + Bytes.toString(en2));
@@ -51,8 +59,8 @@ public class CodecObjectSubclassTest {
         }
     }
 
-    @Set(classMap = BundleMap.class)
-    public static class A implements Codec.Codable {
+    @Field(classMap = BundleMap.class)
+    public static class A implements Codable {
 
         public String field1 = "unset1";
 
@@ -103,7 +111,7 @@ public class CodecObjectSubclassTest {
         }
     }
 
-    public static class BundleMap extends Codec.ClassMap {
+    public static class BundleMap extends ClassMap {
 
         public BundleMap() {
             add(A.class).add(B.class).add(C.class).add(D.class);

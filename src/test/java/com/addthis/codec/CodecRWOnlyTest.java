@@ -13,7 +13,8 @@
  */
 package com.addthis.codec;
 
-import com.addthis.codec.Codec.Set;
+import com.addthis.codec.annotations.Field;
+import com.addthis.codec.json.CodecJSON;
 
 import org.junit.Test;
 
@@ -28,13 +29,13 @@ public class CodecRWOnlyTest {
 
     public static class A {
 
-        @Set(readonly = true)
+        @Field(readonly = true)
         public long read1;
-        @Set(readonly = true)
+        @Field(readonly = true)
         public long read2;
-        @Set(writeonly = true)
+        @Field(writeonly = true)
         public long write1;
-        @Set(writeonly = true)
+        @Field(writeonly = true)
         public long write2;
 
         public String toString() {

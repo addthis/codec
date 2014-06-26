@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.json;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
@@ -29,6 +29,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.addthis.basis.util.Bytes;
 
+import com.addthis.codec.Codec;
+import com.addthis.codec.reflection.Fields;
+import com.addthis.codec.codables.Codable;
+import com.addthis.codec.codables.ConcurrentCodable;
+import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.reflection.CodableClassInfo;
+import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.util.CodableStatistics;
 import com.addthis.maljson.JSONArray;
 import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
@@ -37,23 +45,12 @@ import com.addthis.maljson.LineNumberInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CodecJSON extends Codec {
-
-    private static final CodecJSON singleton = new CodecJSON();
+public final class CodecJSON extends Codec {
+    private CodecJSON() {}
 
     private static final Logger log = LoggerFactory.getLogger(CodecJSON.class);
 
-    public static interface JSONCodable extends Codable {
-
-        public JSONObject toJSONObject() throws Exception;
-
-        public void fromJSONObject(JSONObject jo) throws Exception;
-    }
-
-    private CodecJSON() { }
-
-    @SuppressWarnings("unused")
-    public static CodecJSON getSingleton() { return singleton; }
+    public static final CodecJSON INSTANCE = new CodecJSON();
 
     @Override
     public byte[] encode(Object obj) throws Exception {
@@ -124,15 +121,15 @@ public class CodecJSON extends Codec {
             return ((JSONCodable) object).toJSONObject();
         }
         JSONObject obj = null;
-        boolean lock = object instanceof Codec.ConcurrentCodable;
+        boolean lock = object instanceof ConcurrentCodable;
         if (lock) {
-            ((Codec.ConcurrentCodable) object).encodeLock();
+            ((ConcurrentCodable) object).encodeLock();
         }
         try {
             if (object instanceof SuperCodable) {
                 ((SuperCodable) object).preEncode();
             }
-            CodableClassInfo classInfo = getClassFieldMap(object.getClass());
+            CodableClassInfo classInfo = Fields.getClassFieldMap(object.getClass());
             if (classInfo.size() == 0 && !(object instanceof Codable)) {
                 return object;
             }
@@ -147,8 +144,8 @@ public class CodecJSON extends Codec {
                 if (value == null || value == JSONObject.NULL || field.isReadOnly()) {
                     continue;
                 }
-                if (CodecJSON.JSONCodable.class.isAssignableFrom(field.getType())) {
-                    value = ((CodecJSON.JSONCodable) value).toJSONObject();
+                if (JSONCodable.class.isAssignableFrom(field.getType())) {
+                    value = ((JSONCodable) value).toJSONObject();
                     obj.put(field.getName(), value);
                 } else if (field.isArray()) {
                     obj.put(field.getName(), encodeArray(value));
@@ -179,7 +176,7 @@ public class CodecJSON extends Codec {
             }
         } finally {
             if (lock) {
-                ((Codec.ConcurrentCodable) object).encodeUnlock();
+                ((ConcurrentCodable) object).encodeUnlock();
             }
         }
         return obj;
@@ -195,7 +192,7 @@ public class CodecJSON extends Codec {
             throws CodecExceptionLineNumber, JSONException {
 
         JSONObject jsonObj = new JSONObject(json);
-        return decodeJSONInternal(getClassFieldMap(object.getClass()), object, jsonObj, warnings);
+        return decodeJSONInternal(Fields.getClassFieldMap(object.getClass()), object, jsonObj, warnings);
     }
 
     public static <T> T decodeArray(Class<T> type, Object object)
@@ -300,13 +297,13 @@ public class CodecJSON extends Codec {
             }
             return (T) json;
         }
-        CodableClassInfo classInfo = getClassFieldMap(type);
+        CodableClassInfo classInfo = Fields.getClassFieldMap(type);
 
         // json config is "unexpectedly" an array; if the base class has registered a handler, use it
         if (json instanceof JSONArray) {
             Class<?> arrarySugar = classInfo.getArraySugar();
             if (arrarySugar != null) {
-                classInfo = getClassFieldMap(arrarySugar);
+                classInfo = Fields.getClassFieldMap(arrarySugar);
                 for (CodableFieldInfo fieldInfo : classInfo.values()) {
                     if (fieldInfo.isArray() && (fieldInfo.getType() == type)) {
                         LineNumberInfo infoCopy = ((JSONArray) json).getMyLineNumberInfo();
@@ -343,7 +340,7 @@ public class CodecJSON extends Codec {
         try {
             if (stype != null) {
                 Class<?> atype = classInfo.getClass(stype);
-                classInfo = getClassFieldMap(atype);
+                classInfo = Fields.getClassFieldMap(atype);
                 type = (Class<T>) atype;
                 jsonObj.remove(classField);
             }
@@ -378,7 +375,7 @@ public class CodecJSON extends Codec {
 
     @SuppressWarnings("unchecked")
     public static <T> T decodeJSON(T object, JSONObject json) throws CodecExceptionLineNumber, JSONException {
-        return decodeJSONInternal(getClassFieldMap(object.getClass()), object, json, null);
+        return decodeJSONInternal(Fields.getClassFieldMap(object.getClass()), object, json, null);
     }
 
     @SuppressWarnings("unchecked")
@@ -416,7 +413,7 @@ public class CodecJSON extends Codec {
             LineNumberInfo keyInfo = json.getKeyLineNumber(fieldName);
             LineNumberInfo valInfo = json.getValLineNumber(fieldName);
 
-            if (CodecJSON.JSONCodable.class.isAssignableFrom(type)) {
+            if (JSONCodable.class.isAssignableFrom(type)) {
                 Object oValue = value;
                 try {
                     value = type.newInstance();
@@ -428,7 +425,7 @@ public class CodecJSON extends Codec {
                                                        type.getName(), valInfo);
                 }
                 try {
-                    ((CodecJSON.JSONCodable) value).fromJSONObject(new JSONObject(oValue.toString()));
+                    ((JSONCodable) value).fromJSONObject(new JSONObject(oValue.toString()));
                 } catch (Exception ex) {
                     throw new CodecExceptionLineNumber(ex, valInfo);
                 }
@@ -574,5 +571,4 @@ public class CodecJSON extends Codec {
         }
         return object;
     }
-
 }

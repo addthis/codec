@@ -11,12 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.json;
 
 import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
 
-public class CodableJSONObject extends JSONObject implements CodecJSON.JSONCodable {
+public class CodableJSONObject extends JSONObject implements JSONCodable {
 
     public void fromJSONObject(JSONObject jo) throws Exception {
         mergeFrom(jo);

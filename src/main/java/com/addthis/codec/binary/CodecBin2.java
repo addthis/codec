@@ -11,11 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.binary;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -30,13 +27,21 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.addthis.basis.util.Bytes;
 import com.addthis.basis.util.Strings;
+
+import com.addthis.codec.Codec;
+import com.addthis.codec.reflection.Fields;
+import com.addthis.codec.codables.Codable;
+import com.addthis.codec.codables.ConcurrentCodable;
+import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.reflection.CodableClassInfo;
+import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.util.CodableStatistics;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,78 +54,13 @@ public final class CodecBin2 extends Codec {
 
     private static final Logger log = LoggerFactory.getLogger(CodecBin2.class);
 
-    private static final int CODEC_VERSION = 2;
-    private static final CodecBin2 singleton = new CodecBin2(false);
-    private static final CodecBin2 singletonCharstring = new CodecBin2(true);
+    public static final CodecBin2 INSTANCE            = new CodecBin2(false);
+    public static final CodecBin2 INSTANCE_CHARSTRING = new CodecBin2(true);
+    public static final int       CODEC_VERSION       = 2;
 
     private final boolean charstring;
 
     private CodecBin2(boolean cs) { this.charstring = cs; }
-
-    @SuppressWarnings("unused")
-    public static CodecBin2 getSingleton() { return singleton; }
-
-    @SuppressWarnings("unused")
-    public static CodecBin2 getSingleton(boolean charstring) { return charstring ? singletonCharstring : singleton; }
-
-    private static final class BufferOut {
-
-        private ByteArrayOutputStream out;
-        private Stack<ByteArrayOutputStream> stack;
-
-        BufferOut() {
-            stack = new Stack<ByteArrayOutputStream>();
-            push();
-        }
-
-        public OutputStream out() {
-            return out;
-        }
-
-        public void push() {
-            stack.push(new ByteArrayOutputStream());
-            out = stack.peek();
-        }
-
-        public void pop() throws IOException {
-            ByteArrayOutputStream last = stack.pop();
-            out = stack.peek();
-            Bytes.writeLength(last.size(), out());
-            last.writeTo(out());
-        }
-
-        @Override
-        public String toString() {
-            return "BufferOut:" + (out != null ? out.size() : -1);
-        }
-    }
-
-    private static final class BufferIn {
-
-        private ByteArrayInputStream in;
-        private Stack<ByteArrayInputStream> stack;
-
-        BufferIn(final byte data[]) throws IOException {
-            stack = new Stack<ByteArrayInputStream>();
-            in = new ByteArrayInputStream(data);
-        }
-
-        public void push() throws IOException {
-            int len = (int) Bytes.readLength(in);
-            byte ndat[] = Bytes.readBytes(in, len);
-            stack.push(in);
-            in = new ByteArrayInputStream(ndat);
-        }
-
-        public void pop() {
-            in = stack.pop();
-        }
-
-        @Override
-        public String toString() {
-            return "BufferIn:" + (in != null ? in.available() : -1);
-        }
-    }
 
     @Override
     public byte[] encode(Object obj) throws Exception {
@@ -133,12 +73,12 @@ public final class CodecBin2 extends Codec {
     }
 
     @Override
-    public Object decode(Object shell, byte data[]) throws Exception {
+    public Object decode(Object shell, byte[] data) throws Exception {
         return decodeBytes(shell, data);
     }
 
     @Override
-    public boolean storesNull(byte data[]) {
+    public boolean storesNull(byte[] data) {
         return (data.length == 5) && (data[4] == 0);
     }
 
@@ -146,7 +86,7 @@ public final class CodecBin2 extends Codec {
         BufferOut buf = new BufferOut();
         Bytes.writeInt(CODEC_VERSION, buf.out());
         CodableStatistics statistics = new CodableStatistics();
-        singleton.encodeObject(object, buf, statistics);
+        INSTANCE.encodeObject(object, buf, statistics);
         statistics.setTotalSize(buf.out.size());
         statistics.export();
         return statistics;
@@ -155,19 +95,20 @@ public final class CodecBin2 extends Codec {
     public static byte[] encodeBytes(Object object) throws Exception {
         BufferOut buf = new BufferOut();
         Bytes.writeInt(CODEC_VERSION, buf.out());
-        singleton.encodeObject(object, buf, null);
+        INSTANCE.encodeObject(object, buf, null);
         return buf.out.toByteArray();
     }
 
     @SuppressWarnings("unchecked")
-    public static Object decodeBytes(Object object, byte data[]) throws Exception {
+    public static Object decodeBytes(Object object, byte[] data) throws Exception {
         BufferIn buf = new BufferIn(data);
         int ver = Bytes.readInt(buf.in);
         require(ver == CODEC_VERSION, "version mismatch " + ver + " != " + CODEC_VERSION);
-        return singleton.decodeObject(getClassFieldMap(object.getClass()), object, buf);
+        return INSTANCE.decodeObject(Fields.getClassFieldMap(object.getClass()), object, buf);
     }
 
-    private void encodeObject(Object object, BufferOut buf, CodableStatistics statistics) throws Exception {
+    private void encodeObject(Object object, BufferOut buf, CodableStatistics statistics)
+            throws Exception {
         if (log.isTraceEnabled()) {
             log.trace("encodeObject: " + object + " " + buf);
         }
@@ -175,16 +116,16 @@ public final class CodecBin2 extends Codec {
             buf.out.write(0);
             return;
         }
-        boolean lock = object instanceof Codec.ConcurrentCodable;
+        boolean lock = object instanceof ConcurrentCodable;
         if (lock) {
-            ((Codec.ConcurrentCodable) object).encodeLock();
+            ((ConcurrentCodable) object).encodeLock();
         }
         try {
-            if (object instanceof Codec.SuperCodable) {
-                ((Codec.SuperCodable) object).preEncode();
+            if (object instanceof SuperCodable) {
+                ((SuperCodable) object).preEncode();
             }
             Class objectClass = object.getClass();
-            CodableClassInfo classInfo = Codec.getClassFieldMap(objectClass);
+            CodableClassInfo classInfo = Fields.getClassFieldMap(objectClass);
             if (objectClass.isArray()) {
                 encodeArray(object, objectClass, buf);
             } else if (classInfo.size() == 0 && !(object instanceof Codable)) {
@@ -204,7 +145,7 @@ public final class CodecBin2 extends Codec {
             }
         } finally {
             if (lock) {
-                ((Codec.ConcurrentCodable) object).encodeUnlock();
+                ((ConcurrentCodable) object).encodeUnlock();
             }
         }
     }
@@ -213,10 +154,10 @@ public final class CodecBin2 extends Codec {
         if (log.isTraceEnabled()) {
             log.trace("decodeObject: " + type + " " + buf);
         }
-        if (isNative(type)) {
+        if (Fields.isNative(type)) {
             return decodeNative(type, buf);
         } else {
-            CodableClassInfo classInfo = getClassFieldMap(type);
+            CodableClassInfo classInfo = Fields.getClassFieldMap(type);
             if (classInfo.size() == 0 && classInfo.getClassMap() == null) {
                 return decodeNative(type, buf);
             }
@@ -237,7 +178,7 @@ public final class CodecBin2 extends Codec {
         if (!Strings.isEmpty(stype)) {
             Class<?> atype = classInfo.getClass(stype);
             if (atype != null && type != atype) {
-                classInfo = getClassFieldMap(atype);
+                classInfo = Fields.getClassFieldMap(atype);
                 type = atype;
             }
         }
@@ -263,12 +204,12 @@ public final class CodecBin2 extends Codec {
         if (type == byte.class || type == Byte.class) {
             buf.out.write((byte[]) value);
         } else if (type == int.class || type == Integer.class) {
-            int val[] = (int[]) value;
+            int[] val = (int[]) value;
             for (int i = 0; i < len; i++) {
                 Bytes.writeInt(val[i], buf.out());
             }
         } else if (type == long.class || type == Long.class) {
-            long val[] = (long[]) value;
+            long[] val = (long[]) value;
             for (int i = 0; i < len; i++) {
                 Bytes.writeLong(val[i], buf.out());
             }
@@ -294,13 +235,13 @@ public final class CodecBin2 extends Codec {
             if (type == byte.class || type == Byte.class) {
                 buf.in.read((byte[]) value);
             } else if (type == int.class || type == Integer.class) {
-                int val[] = (int[]) value;
+                int[] val = (int[]) value;
                 for (int i = 0; i < len; i++) {
                     val[i] = Bytes.readInt(buf.in);
                 }
                 value = val;
             } else if (type == long.class || type == Long.class) {
-                long val[] = (long[]) value;
+                long[] val = (long[]) value;
                 for (int i = 0; i < len; i++) {
                     val[i] = Bytes.readLong(buf.in);
                 }
@@ -318,8 +259,8 @@ public final class CodecBin2 extends Codec {
         return value;
     }
 
-    private final void addMapStatistics(CodableStatistics statistics, CodableFieldInfo field,
-            Object key, long size) {
+    private static void addMapStatistics(CodableStatistics statistics, CodableFieldInfo field,
+                                         Object key, long size) {
         if (statistics == null) {
             return;
         }

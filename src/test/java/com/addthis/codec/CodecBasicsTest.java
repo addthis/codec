@@ -20,10 +20,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.addthis.codec.Codec.RequiredFieldException;
-import com.addthis.codec.Codec.Set;
-import com.addthis.codec.Codec.ValidationException;
-import com.addthis.codec.Codec.Validator;
+import com.addthis.codec.binary.CodecBin2;
+import com.addthis.codec.reflection.RequiredFieldException;
+import com.addthis.codec.annotations.Field;
+import com.addthis.codec.validation.ValidationException;
+import com.addthis.codec.json.CodecJSON;
+import com.addthis.codec.kv.CodecKV;
+import com.addthis.codec.plugins.ClassMap;
+import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.validation.Validator;
+import com.addthis.codec.codables.Codable;
 
 import org.junit.Test;
 
@@ -46,21 +52,21 @@ public class CodecBasicsTest {
         assertTrue(testKV());
     }
 
-    public abstract static class X implements Codec.Codable {
+    public abstract static class X implements Codable {
 
-        public boolean check(byte a[], byte b[], String msg) {
+        public boolean check(byte[] a, byte[] b, String msg) {
             return !Arrays.equals(a, b) ? fail(msg, a, b) : true;
         }
 
-        public boolean check(Integer a[], Integer b[], String msg) {
+        public boolean check(Integer[] a, Integer[] b, String msg) {
             return !Arrays.equals(a, b) ? fail(msg, a, b) : true;
         }
 
-        public boolean check(int a[], int b[], String msg) {
+        public boolean check(int[] a, int[] b, String msg) {
             return !Arrays.equals(a, b) ? fail(msg, a, b) : true;
         }
 
-        public boolean check(Object a[], Object b[], String msg) {
+        public boolean check(Object[] a, Object[] b, String msg) {
             return !Arrays.equals(a, b) ? fail(msg, a, b) : true;
         }
 
@@ -162,7 +168,7 @@ public class CodecBasicsTest {
         }
     }
 
-    @Set()
+    @Field()
     public static class B extends X {
 
         public int int_a;
@@ -193,7 +199,7 @@ public class CodecBasicsTest {
         }
     }
 
-    public static class CCM extends Codec.ClassMap {
+    public static class CCM extends ClassMap {
 
         @Override
         public Class<?> getClass(String type) throws ClassNotFoundException {
@@ -210,7 +216,7 @@ public class CodecBasicsTest {
         }
     }
 
-    @Set(classMap = CCM.class)
+    @Field(classMap = CCM.class)
     public static class C extends X {
 
         public int x_int_a = 3;
@@ -227,37 +233,37 @@ public class CodecBasicsTest {
 
     public static class CC extends C {
 
-        @Set(codable = true)
-        private int x_int_a;
-        @Set(codable = true)
+        @Field(codable = true)
+        private   int x_int_a;
+        @Field(codable = true)
         protected int x_int_b;
-        @Set(codable = true)
+        @Field(codable = true)
         int x_int_c;
-        public byte[] byte_d;
-        public int int_e;
-        public int[] arr_int_f;
-        public String str_g;
-        public A obj_A_h;
-        public String[] arr_string_f;
-        public B[] arr_obj_B_i;
-        public LinkedList<String> list_str_j;
-        public LinkedList<B> list_obj_k;
+        public byte[]                  byte_d;
+        public int                     int_e;
+        public int[]                   arr_int_f;
+        public String                  str_g;
+        public A                       obj_A_h;
+        public String[]                arr_string_f;
+        public B[]                     arr_obj_B_i;
+        public LinkedList<String>      list_str_j;
+        public LinkedList<B>           list_obj_k;
         public HashMap<String, String> map_str_str_l;
-        public HashMap<String, B> map_str_B_m;
-        public LinkedList<byte[]> list_bytearray_n;
-        public boolean boolean_o;
-        public short short_p;
-        public float float_q;
-        public double double_r;
-        public Integer int_obj_e;
-        public Boolean boolean_obj_o;
-        public Short short_obj_p;
-        public Float float_obj_q;
-        public Double double_obj_r;
-        public String empty_string;
-        public String null_string;
-        public TheEnum theEnum;
-        public TheEnum[] theEnumArray;
+        public HashMap<String, B>      map_str_B_m;
+        public LinkedList<byte[]>      list_bytearray_n;
+        public boolean                 boolean_o;
+        public short                   short_p;
+        public float                   float_q;
+        public double                  double_r;
+        public Integer                 int_obj_e;
+        public Boolean                 boolean_obj_o;
+        public Short                   short_obj_p;
+        public Float                   float_obj_q;
+        public Double                  double_obj_r;
+        public String                  empty_string;
+        public String                  null_string;
+        public TheEnum                 theEnum;
+        public TheEnum[]               theEnumArray;
 
         public CC set() {
             x_int_a = 1;
@@ -449,13 +455,13 @@ public class CodecBasicsTest {
 
     public static class EC {
 
-        @Set(validator = EmailChecker.class)
+        @Field(validator = EmailChecker.class)
         public String email = "myemail";
     }
 
     public static class RC {
 
-        @Set(required = true)
+        @Field(required = true)
         public String required;
         public String crap = "crap";
     }
@@ -467,18 +473,17 @@ public class CodecBasicsTest {
         }
     }
 
-    public static boolean test(Class<? extends Codec> type) throws Exception {
-        Codec codec = (Codec) type.getMethod("getSingleton").invoke(null);
+    public static boolean test(Codec codec) throws Exception {
         CC c = new CC().set();
         String cn = codec.getClass().getName();
         // encode
-        byte bec[] = codec.encode(c);
+        byte[] bec = codec.encode(c);
         String s1 = ("C->" + cn + " = " + bytesToString(bec, false));
         String s2 = ("C->" + cn + " = " + bytesToString(bec, true));
         // decode
         CC bdc = (CC) codec.decode(new CC(), bec);
         boolean encodeDecode = c.equals(bdc);
-        byte bde[] = codec.encode(bdc);
+        byte[] bde = codec.encode(bdc);
         String s3 = (cn + "->C = " + bytesToString(bde, false));
         String s4 = (cn + "->C = " + bytesToString(bde, true));
         // validation
@@ -486,10 +491,10 @@ public class CodecBasicsTest {
         boolean upgrades = true, downgrades = true;
         String s5 = "", s6 = "";
         // CodecBin2 does not support upgrades or downgrades
-        if (type != CodecBin2.class) {
+        if (codec != CodecBin2.INSTANCE) {
             // upgrade on decode (C -> CC)
             CCC bdcu = (CCC) codec.decode(new CCC(), bec);
-            byte bdcue[] = codec.encode(bdcu);
+            byte[] bdcue = codec.encode(bdcu);
             s5 = ("C->CC = " + bytesToString(bdcue, false));
             s6 = ("C->CC = " + bytesToString(bdcue, true));
             upgrades = bdcu.check();
@@ -507,7 +512,7 @@ public class CodecBasicsTest {
         String s7 = null;
         try {
             EC ec = new EC();
-            byte ec1[] = codec.encode(ec);
+            byte[] ec1 = codec.encode(ec);
             ec = (EC) codec.decode(ec, ec1);
         } catch (Exception ex) {
             s7 = ex.toString();
@@ -523,36 +528,39 @@ public class CodecBasicsTest {
             RC rc = new RC();
             codec.decode(rc, codec.encode(rc));
         } catch (Exception ex) {
-            if (ex instanceof RequiredFieldException || ex.getCause() instanceof RequiredFieldException) {
+            if (ex instanceof RequiredFieldException ||
+                ex.getCause() instanceof RequiredFieldException) {
                 requireds = true;
             }
         }
-        boolean ok = encodeDecode && codes && validates && upgrades && downgrades && requireds && subclasses;
+        boolean ok = encodeDecode && codes && validates && upgrades && downgrades && requireds &&
+                     subclasses;
         if (!ok) {
             System.out.println("encodeDecode=" + encodeDecode +
                                " codes=" + codes + " validates=" + validates +
                                " upgrades=" + upgrades + " downgrades=" + downgrades +
                                " requireds=" + requireds + " subclasses=" + subclasses
             );
-            System.out.println(s1 + "\n" + s2 + "\n" + s3 + "\n" + s4 + "\n" + s5 + "\n" + s6 + "\n" + s7);
+            System.out.println(
+                    s1 + "\n" + s2 + "\n" + s3 + "\n" + s4 + "\n" + s5 + "\n" + s6 + "\n" + s7);
         }
         System.out.println(cn + " Codec Test : " + (ok ? "PASSED" : "FAILED") + " " + bec.length);
         return ok;
     }
 
     private static boolean testJSON() throws Exception {
-        return test(CodecJSON.class);
+        return test(CodecJSON.INSTANCE);
     }
 
     private static boolean testKV() throws Exception {
-        return test(CodecKV.class);
+        return test(CodecKV.INSTANCE);
     }
 
     private static boolean testBin2() throws Exception {
-        return test(CodecBin2.class);
+        return test(CodecBin2.INSTANCE);
     }
 
-    static String bytesToString(byte data[], boolean printable) {
+    static String bytesToString(byte[] data, boolean printable) {
         StringBuilder sb = new StringBuilder();
         for (byte b : data) {
             String hex = Integer.toHexString((int) b);
