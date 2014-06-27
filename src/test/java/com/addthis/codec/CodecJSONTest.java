@@ -14,7 +14,7 @@
 package com.addthis.codec;
 
 import com.addthis.codec.annotations.ArraySugar;
-import com.addthis.codec.annotations.Field;
+import com.addthis.codec.annotations.ClassConfig;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecExceptionLineNumber;
 import com.addthis.codec.json.CodecJSON;
@@ -38,7 +38,7 @@ public class CodecJSONTest {
         public A[] field4;
     }
 
-    @Field(classMapFactory = LetterMapFactory.class)
+    @ClassConfig(classMapFactory = LetterMapFactory.class)
     public abstract static class AbstractLetter implements Codable {
     }
 
@@ -102,7 +102,7 @@ public class CodecJSONTest {
 
     @Test
     public void arraySugar() throws Exception {
-        AbstractLetter.class.getAnnotation(Field.class)
+        AbstractLetter.class.getAnnotation(ClassConfig.class)
                             .classMapFactory().newInstance().getClassMap()
                             .add(C.class).add(D.class);
         Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(

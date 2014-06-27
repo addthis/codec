@@ -17,6 +17,7 @@ import com.addthis.codec.reflection.CodableFieldInfo;
 
 public class Truthinator implements Validator {
 
+    @Override
     public boolean validate(CodableFieldInfo field, Object value) {
         return true;
     }

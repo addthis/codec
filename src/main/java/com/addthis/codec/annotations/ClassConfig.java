@@ -13,32 +13,17 @@
  */
 package com.addthis.codec.annotations;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 import com.addthis.codec.plugins.ClassMap;
 import com.addthis.codec.plugins.ClassMapFactory;
-import com.addthis.codec.validation.Truthinator;
-import com.addthis.codec.validation.Validator;
 
-/**
- * control coding parameters for fields. allows code to dictate non-codable
- * fields as codable
- */
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Field {
-
-    boolean codable() default true;
-
-    boolean readonly() default false;
-
-    boolean writeonly() default false;
-
-    boolean required() default false;
-
-    boolean intern() default false;
-
-    Class<? extends Validator> validator() default Truthinator.class;
+@Target(ElementType.TYPE)
+public @interface ClassConfig {
 
     Class<? extends ClassMap> classMap() default ClassMap.class;
 

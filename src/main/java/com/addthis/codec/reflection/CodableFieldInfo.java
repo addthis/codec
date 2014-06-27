@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * information about a field in a class - expensive to get so runs and gets
  * cached
  */
-public final class CodableFieldInfo<T> {
+public final class CodableFieldInfo {
 
     private static final Logger log = LoggerFactory.getLogger(CodableFieldInfo.class);
 
@@ -48,7 +48,7 @@ public final class CodableFieldInfo<T> {
     public static final int INTERN     = 1 << 11;
 
     private Field     field;
-    private Class<T>  type;
+    private Class<?>  type;
     private int       bits;
     private Validator validator;
     private Type[]    genTypes;
@@ -70,11 +70,11 @@ public final class CodableFieldInfo<T> {
         return field.getName();
     }
 
-    public void setType(Class<T> type) {
+    public void setType(Class<?> type) {
         this.type = type;
     }
 
-    public Class<T> getType() {
+    public Class<?> getType() {
         return type;
     }
 

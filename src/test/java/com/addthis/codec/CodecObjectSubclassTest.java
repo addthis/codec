@@ -19,7 +19,7 @@ import java.util.List;
 
 import com.addthis.basis.util.Bytes;
 
-import com.addthis.codec.annotations.Field;
+import com.addthis.codec.annotations.ClassConfig;
 import com.addthis.codec.binary.CodecBin2;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecJSON;
@@ -59,7 +59,7 @@ public class CodecObjectSubclassTest {
         }
     }
 
-    @Field(classMap = BundleMap.class)
+    @ClassConfig(classMap = BundleMap.class)
     public static class A implements Codable {
 
         public String field1 = "unset1";

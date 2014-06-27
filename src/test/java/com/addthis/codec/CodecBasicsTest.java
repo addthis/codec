@@ -20,9 +20,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.addthis.codec.annotations.ClassConfig;
+import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.binary.CodecBin2;
 import com.addthis.codec.reflection.RequiredFieldException;
-import com.addthis.codec.annotations.Field;
 import com.addthis.codec.validation.ValidationException;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.kv.CodecKV;
@@ -168,7 +169,7 @@ public class CodecBasicsTest {
         }
     }
 
-    @Field()
+    @ClassConfig
     public static class B extends X {
 
         public int int_a;
@@ -203,7 +204,11 @@ public class CodecBasicsTest {
 
         @Override
         public Class<?> getClass(String type) throws ClassNotFoundException {
-            return type.equals("1") ? G.class : C.class;
+            if (type.equals("1")) {
+                return G.class;
+            } else {
+                return C.class;
+            }
         }
 
         @Override
@@ -216,7 +221,7 @@ public class CodecBasicsTest {
         }
     }
 
-    @Field(classMap = CCM.class)
+    @ClassConfig(classMap = CCM.class)
     public static class C extends X {
 
         public int x_int_a = 3;
@@ -233,11 +238,11 @@ public class CodecBasicsTest {
 
     public static class CC extends C {
 
-        @Field(codable = true)
+        @FieldConfig(codable = true)
         private   int x_int_a;
-        @Field(codable = true)
+        @FieldConfig(codable = true)
         protected int x_int_b;
-        @Field(codable = true)
+        @FieldConfig(codable = true)
         int x_int_c;
         public byte[]                  byte_d;
         public int                     int_e;
@@ -455,13 +460,13 @@ public class CodecBasicsTest {
 
     public static class EC {
 
-        @Field(validator = EmailChecker.class)
+        @FieldConfig(validator = EmailChecker.class)
         public String email = "myemail";
     }
 
     public static class RC {
 
-        @Field(required = true)
+        @FieldConfig(required = true)
         public String required;
         public String crap = "crap";
     }

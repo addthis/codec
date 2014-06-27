@@ -14,6 +14,7 @@
 package com.addthis.codec.reflection;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -29,10 +30,11 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import com.addthis.codec.annotations.ClassConfig;
+import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.plugins.ClassMap;
 import com.addthis.codec.plugins.ClassMapFactory;
 import com.addthis.codec.codables.Codable;
-import com.addthis.codec.annotations.Field;
 import com.addthis.codec.validation.Validator;
 
 import com.google.common.collect.ImmutableSortedMap;
@@ -73,7 +75,7 @@ public final class CodableClassInfo {
     }
 
     public CodableClassInfo(Class<?> clazz) {
-        SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<String, CodableFieldInfo>();
+        SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
 
         // skip native classes
         if (Fields.isNative(clazz)) {
@@ -91,10 +93,10 @@ public final class CodableClassInfo {
         // get class annotations
         Class<?> ptr = clazz;
         while (ptr != null) {
-            Annotation classpolicy = ptr.getAnnotation(Field.class);
+            ClassConfig classpolicy = ptr.getAnnotation(ClassConfig.class);
             if (classpolicy != null) {
-                Class<? extends ClassMapFactory> cmf = ((Field) classpolicy).classMapFactory();
-                if (cmf != null && cmf != ClassMapFactory.class) {
+                Class<? extends ClassMapFactory> cmf = classpolicy.classMapFactory();
+                if ((cmf != null) && (cmf != ClassMapFactory.class)) {
                     try {
                         findClassMap = cmf.newInstance().getClassMap();
                         findBaseClass = ptr;
@@ -103,7 +105,7 @@ public final class CodableClassInfo {
                         e.printStackTrace();
                     }
                 }
-                Class<? extends ClassMap> cm = ((Field) classpolicy).classMap();
+                Class<? extends ClassMap> cm = classpolicy.classMap();
                 if (cm != null) {
                     try {
                         findClassMap = cm.newInstance();
@@ -116,17 +118,17 @@ public final class CodableClassInfo {
             }
             ptr = ptr.getSuperclass();
         }
-        HashMap<String, java.lang.reflect.Field> fields = new HashMap<String, java.lang.reflect.Field>();
+        Map<String, Field> fields = new HashMap<>();
         Class<?> clazzptr = clazz;
         while (clazzptr != null) {
-            for (java.lang.reflect.Field field : clazzptr.getDeclaredFields()) {
+            for (Field field : clazzptr.getDeclaredFields()) {
                 if (fields.get(field.getName()) == null) {
                     fields.put(field.getName(), field);
                 }
             }
             clazzptr = clazzptr.getSuperclass();
         }
-        for (java.lang.reflect.Field field : fields.values()) {
+        for (Field field : fields.values()) {
             int mod = field.getModifiers();
             boolean store = ((mod & Modifier.FINAL) == 0 && (mod & Modifier.PUBLIC) != 0);
             boolean codable = false;
@@ -136,15 +138,14 @@ public final class CodableClassInfo {
             boolean intern = false;
             Class<? extends Validator> validator = null;
             // extract annotations
-            Annotation policy = field.getAnnotation(Field.class);
-            if (policy != null) {
-                Field fieldPolicy = (Field) policy;
-                codable = fieldPolicy.codable();
-                readonly = fieldPolicy.readonly();
-                writeonly = fieldPolicy.writeonly();
-                required = fieldPolicy.required();
-                intern = fieldPolicy.intern();
-                validator = fieldPolicy.validator();
+            FieldConfig fieldConfigPolicy = field.getAnnotation(FieldConfig.class);
+            if (fieldConfigPolicy != null) {
+                codable = fieldConfigPolicy.codable();
+                readonly = fieldConfigPolicy.readonly();
+                writeonly = fieldConfigPolicy.writeonly();
+                required = fieldConfigPolicy.required();
+                intern = fieldConfigPolicy.intern();
+                validator = fieldConfigPolicy.validator();
                 field.setAccessible(true);
                 if (!codable) {
                     continue;

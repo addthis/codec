@@ -50,7 +50,7 @@ public final class CodecConfig {
     }
 
     /** called when the expected type hasn't been inspected yet */
-    private static Object hydrateField(CodableFieldInfo<?> field, Config config) {
+    static Object hydrateField(CodableFieldInfo field, Config config) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String   fieldName    = field.getName();
@@ -64,11 +64,12 @@ public final class CodecConfig {
             return hydrateCollection(field, config);
         } else if (expectedType.isAssignableFrom(String.class)) {
             return config.getString(fieldName);
-        } else if (expectedType == boolean.class || expectedType == Boolean.class) {
+        } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {
             return config.getBoolean(fieldName);
         } else if (expectedType == AtomicBoolean.class) {
             return new AtomicBoolean(config.getBoolean(fieldName));
-        } else if (Number.class.isAssignableFrom(expectedType)) {
+        } else if (Number.class.isAssignableFrom(expectedType) || expectedType.isPrimitive()) {
+            // primitive numeric types are not subclasses of Number, so just catch all non-booleans
             return hydrateNumber(expectedType, fieldName, config);
         } else if (expectedType.isEnum()) {
             return Enum.valueOf((Class<? extends Enum>) expectedType,
@@ -80,27 +81,47 @@ public final class CodecConfig {
         }
     }
 
-    /** called when the expected type is a number */
-    static <T> T hydrateNumber(Class<T> type, String fieldName, Config config) {
-        Number num;
-        if (type == Short.class) {
-            num = config.getNumber(fieldName).shortValue();
-        } else if (type == Integer.class) {
-            num = config.getInt(fieldName);
-        } else if (type == Long.class) {
-            num = config.getLong(fieldName);
-        } else if (type == Float.class) {
-            num = config.getNumber(fieldName).floatValue();
-        } else if (type == Double.class) {
-            num = config.getDouble(fieldName);
-        } else if (type == AtomicInteger.class) {
-            num = new AtomicInteger(config.getInt(fieldName));
-        } else if (type == AtomicLong.class) {
-            num = new AtomicLong(config.getLong(fieldName));
+    /** variant to get around CodableInfo/ CodecJSON edge cases. Only works for certain types */
+    static Object hydrateField(Class<?> expectedType, String fieldName, Config config) {
+        if ((config == null) || !config.hasPath(fieldName)) {
+            return null;
+        } else if (expectedType.isAssignableFrom(String.class)) {
+            return config.getString(fieldName);
+        } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {
+            return config.getBoolean(fieldName);
+        } else if (expectedType == AtomicBoolean.class) {
+            return new AtomicBoolean(config.getBoolean(fieldName));
+        } else if (Number.class.isAssignableFrom(expectedType) || expectedType.isPrimitive()) {
+            // primitive numeric types are not subclasses of Number, so just catch all non-booleans
+            return hydrateNumber(expectedType, fieldName, config);
+        } else if (expectedType.isEnum()) {
+            return Enum.valueOf((Class<? extends Enum>) expectedType,
+                                config.getString(fieldName).toUpperCase());
         } else {
-            num = null;
+            // assume codable instead of checking
+            return hydrateCustom(expectedType, config.getValue(fieldName));
         }
-        return (T) num;
+    }
+
+    /** called when the expected type is a number */
+    static Object hydrateNumber(Class<?> type, String fieldName, Config config) {
+        if ((type == Short.class) || (type == short.class)) {
+            return config.getNumber(fieldName).shortValue();
+        } else if ((type == Integer.class) || (type == int.class)) {
+            return config.getInt(fieldName);
+        } else if ((type == Long.class) || (type == long.class)) {
+            return config.getLong(fieldName);
+        } else if ((type == Float.class) || (type == float.class)) {
+            return config.getNumber(fieldName).floatValue();
+        } else if ((type == Double.class) || (type == double.class)) {
+            return config.getDouble(fieldName);
+        } else if (type == AtomicInteger.class) {
+            return new AtomicInteger(config.getInt(fieldName));
+        } else if (type == AtomicLong.class) {
+            return new AtomicLong(config.getLong(fieldName));
+        } else {
+            throw new RuntimeException("unsupported numeric or primitive type");
+        }
     }
 
     /** called when the expected type is a non-standard object */
@@ -159,15 +180,11 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is an array */
-    private static Object[] hydrateArray(Class<?> componentType,
-                                             String fieldName,
-                                             Config config) {
+    static Object hydrateArray(Class<?> componentType, String fieldName, Config config) {
         if ((config == null) || !config.hasPath(fieldName)) {
             return null;
         } else if (componentType.isAssignableFrom(String.class)) {
             return config.getStringList(fieldName).toArray();
-        } else if (Number.class.isAssignableFrom(componentType)) {
-            return hydrateNumberArray((Class<? extends Number>) componentType, fieldName, config);
         } else if (componentType.isEnum()) {
             List<String> nameList = config.getStringList(fieldName);
             Enum[] enums = new Enum[nameList.size()];
@@ -177,8 +194,20 @@ public final class CodecConfig {
                                               name.toUpperCase());
             }
             return enums;
-        } else if ((componentType == boolean.class) || (componentType == Boolean.class)) {
-            return config.getBooleanList(fieldName).toArray();
+        } else if (componentType == Boolean.class) {
+            List<Boolean> booleanList = config.getBooleanList(fieldName);
+            return booleanList.toArray(new Boolean[booleanList.size()]);
+        } else if (componentType == boolean.class) {
+            List<Boolean> booleanList = config.getBooleanList(fieldName);
+            boolean[]  booleanArray = new boolean[booleanList.size()];
+            int index = 0;
+            for (Boolean bool : booleanList) {
+                booleanArray[index++] = bool;
+            }
+            return booleanArray;
+        } else if (Number.class.isAssignableFrom(componentType)  || componentType.isPrimitive()) {
+            // primitive numeric types are not subclasses of Number, so just catch all non-booleans
+            return hydrateNumberArray(componentType, fieldName, config);
         } else {
             ConfigList configValues = config.getList(fieldName);
             Object[] customs = new Object[configValues.size()];
@@ -194,9 +223,8 @@ public final class CodecConfig {
         }
     }
 
-    /** called when the expected type is a number */
-    static Number[] hydrateNumberArray(Class<? extends Number> type, String fieldName, Config config) {
-        Number[] num;
+    /** called when the expected type is a numeric array */
+    static Object hydrateNumberArray(Class<?> type, String fieldName, Config config) {
         if (type == Short.class) {
             List<Integer> integerList = config.getIntList(fieldName);
             Short[] shorts = new Short[integerList.size()];
@@ -204,16 +232,48 @@ public final class CodecConfig {
             for (Integer integer : integerList) {
                 shorts[index++] = integer.shortValue();
             }
-            num = shorts;
+            return shorts;
+        } else if (type == short.class) {
+            List<Integer> integerList = config.getIntList(fieldName);
+            short[] shorts = new short[integerList.size()];
+            int index = 0;
+            for (Integer integer : integerList) {
+                shorts[index++] = integer.shortValue();
+            }
+            return shorts;
         } else if (type == Integer.class) {
             List<Integer> integerList = config.getIntList(fieldName);
-            num = integerList.toArray(new Integer[integerList.size()]);
+            return integerList.toArray(new Integer[integerList.size()]);
+        } else if (type == int.class) {
+            List<Integer> integerList = config.getIntList(fieldName);
+            int[] ints = new int[integerList.size()];
+            int index = 0;
+            for (Integer integer : integerList) {
+                ints[index++] = integer;
+            }
+            return ints;
         } else if (type == Long.class) {
             List<Long> longList = config.getLongList(fieldName);
-            num = longList.toArray(new Long[longList.size()]);
+            return longList.toArray(new Long[longList.size()]);
+        } else if (type == long.class) {
+            List<Long> longList = config.getLongList(fieldName);
+            long[] longs = new long[longList.size()];
+            int index = 0;
+            for (Long l : longList) {
+                longs[index++] = l;
+            }
+            return longs;
         } else if (type == Double.class) {
             List<Double> doubleList = config.getDoubleList(fieldName);
-            num = doubleList.toArray(new Double[doubleList.size()]);
+            return doubleList.toArray(new Double[doubleList.size()]);
+        } else if (type == double.class) {
+            List<Double> doubleList = config.getDoubleList(fieldName);
+            double[] doubles = new double[doubleList.size()];
+            int index = 0;
+            for (Double doub : doubleList) {
+                doubles[index++] = doub;
+            }
+            return doubles;
         } else if (type == Float.class) {
             List<Double> doubleList = config.getDoubleList(fieldName);
             Float[] floats = new Float[doubleList.size()];
@@ -221,7 +281,15 @@ public final class CodecConfig {
             for (Double doub : doubleList) {
                 floats[index++] = doub.floatValue();
             }
-            num = floats;
+            return floats;
+        } else if (type == float.class) {
+            List<Double> doubleList = config.getDoubleList(fieldName);
+            float[] floats = new float[doubleList.size()];
+            int index = 0;
+            for (Double doub : doubleList) {
+                floats[index++] = doub.floatValue();
+            }
+            return floats;
         } else if (type == AtomicInteger.class) {
             List<Integer> integerList = config.getIntList(fieldName);
             AtomicInteger[] atomicIntegers = new AtomicInteger[integerList.size()];
@@ -229,7 +297,7 @@ public final class CodecConfig {
             for (Integer integer : integerList) {
                 atomicIntegers[index++] = new AtomicInteger(integer);
             }
-            num = atomicIntegers;
+            return atomicIntegers;
         } else if (type == AtomicLong.class) {
             List<Long> longList = config.getLongList(fieldName);
             AtomicLong[] atomicLongs = new AtomicLong[longList.size()];
@@ -237,14 +305,13 @@ public final class CodecConfig {
             for (Long l : longList) {
                 atomicLongs[index++] = new AtomicLong(l);
             }
-            num = atomicLongs;
+            return atomicLongs;
         } else {
-            num = null;
+            throw new RuntimeException("unsupported numeric type");
         }
-        return num;
     }
 
-    static Map hydrateMap(CodableFieldInfo<?> field, Config config) {
+    static Map hydrateMap(CodableFieldInfo field, Config config) {
         Map map;
         try {
             map = (Map) field.getType().newInstance();
@@ -261,13 +328,13 @@ public final class CodecConfig {
             if (va) {
                 map.put(key, hydrateArray(vc, key, configMap));
             } else {
-                map.put(key, hydrateCustom(vc, configMap.getValue(key)));
+                map.put(key, hydrateField(vc, key, configMap));
             }
         }
         return map;
     }
 
-    static Collection hydrateCollection(CodableFieldInfo<?> field, Config config) {
+    static Collection hydrateCollection(CodableFieldInfo field, Config config) {
         Collection col;
         try {
             col = (Collection) field.getType().newInstance();
@@ -277,13 +344,13 @@ public final class CodecConfig {
         Class vc = field.getCollectionClass();
         boolean ar = field.isCollectionArray();
         if (!ar) {
-            Object[] asArray = hydrateArray(vc, field.getName(), config);
+            Object[] asArray = (Object[]) hydrateArray(vc, field.getName(), config);
             Collections.addAll(col, asArray);
         } else {
             ConfigList configValues = config.getList(field.getName());
             for (ConfigValue configValue : configValues) {
                 Config arrayContainer = configValue.atKey("array");
-                Object[] arrayValue = hydrateArray(vc, "array", arrayContainer);
+                Object[] arrayValue = (Object[]) hydrateArray(vc, "array", arrayContainer);
                 col.add(arrayValue);
             }
         }
