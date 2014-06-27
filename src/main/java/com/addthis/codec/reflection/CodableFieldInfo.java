@@ -30,29 +30,29 @@ import org.slf4j.LoggerFactory;
  * information about a field in a class - expensive to get so runs and gets
  * cached
  */
-public final class CodableFieldInfo {
+public final class CodableFieldInfo<T> {
 
     private static final Logger log = LoggerFactory.getLogger(CodableFieldInfo.class);
 
-    public static final int ARRAY = 1 << 0;
-    public static final int CODABLE = 1 << 1;
+    public static final int ARRAY      = 1 << 0;
+    public static final int CODABLE    = 1 << 1;
     public static final int COLLECTION = 1 << 2;
-    public static final int GENERIC = 1 << 3;
-    public static final int NATIVE = 1 << 4;
-    public static final int MAP = 1 << 5;
-    public static final int NUMBER = 1 << 6;
-    public static final int REQUIRED = 1 << 7;
-    public static final int READONLY = 1 << 8;
-    public static final int WRITEONLY = 1 << 9;
-    public static final int ENUM = 1 << 10;
-    public static final int INTERN = 1 << 11;
+    public static final int GENERIC    = 1 << 3;
+    public static final int NATIVE     = 1 << 4;
+    public static final int MAP        = 1 << 5;
+    public static final int NUMBER     = 1 << 6;
+    public static final int REQUIRED   = 1 << 7;
+    public static final int READONLY   = 1 << 8;
+    public static final int WRITEONLY  = 1 << 9;
+    public static final int ENUM       = 1 << 10;
+    public static final int INTERN     = 1 << 11;
 
-    private Field field;
-    private Class<?> type;
-    private int bits;
+    private Field     field;
+    private Class<T>  type;
+    private int       bits;
     private Validator validator;
-    private Type genTypes[];
-    private boolean genArray[];
+    private Type[]    genTypes;
+    private boolean[] genArray;
 
     public void setField(Field field) {
         this.field = field;
@@ -70,11 +70,11 @@ public final class CodableFieldInfo {
         return field.getName();
     }
 
-    public void setType(Class<?> type) {
+    public void setType(Class<T> type) {
         this.type = type;
     }
 
-    public Class<?> getType() {
+    public Class<T> getType() {
         return type;
     }
 
@@ -86,7 +86,7 @@ public final class CodableFieldInfo {
         if (genTypes == null) {
             return;
         }
-        boolean gen[] = new boolean[genTypes.length];
+        boolean[] gen = new boolean[genTypes.length];
         for (int i = 0; i < genTypes.length; i++) {
             Type currentType = genTypes[i];
             if (currentType instanceof GenericArrayType) {
@@ -139,8 +139,12 @@ public final class CodableFieldInfo {
         return validator != null ? validator.validate(this, value) : true;
     }
 
-    public Object get(Object src) throws Exception {
-        return field.get(src);
+    public Object get(Object src) {
+        try {
+            return field.get(src);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -179,7 +183,7 @@ public final class CodableFieldInfo {
         }
     }
 
-    public void set(Object dst, Object value) throws Exception {
+    public void set(Object dst, Object value) {
         if (value == null) {
             if (isRequired() && get(dst) == null) {
                 throw new RequiredFieldException("missing required field '" +
@@ -196,10 +200,12 @@ public final class CodableFieldInfo {
                 value = ((String) value).intern();
             }
             field.set(dst, value);
+        } catch (RuntimeException ex) {
+            throw ex;
         } catch (Exception ex) {
             log.warn("error setting (" + value + ")(" + value.getClass() +
                 ") on (" + dst + ") in " + toString());
-            throw ex;
+            throw new RuntimeException(ex);
         }
     }
 

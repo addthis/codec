@@ -11,12 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.reflection;
+package com.addthis.codec.config;
 
-@SuppressWarnings("serial")
-public class PolicyException extends RuntimeException {
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
 
-    public PolicyException(String msg) {
-        super(msg);
+import org.junit.Assert;
+import org.junit.Test;
+
+public class CodecConfigTest {
+
+    @Test
+    public void hydrateNumber() throws Exception {
+        ConfigValue longValue = ConfigValueFactory.fromAnyRef(12L);
+        Config valueHolder = longValue.atKey("value");
+        short shortValue = CodecConfig.hydrateNumber(Short.class, "value", valueHolder);
+        Assert.assertEquals((short) 12, shortValue);
     }
 }
