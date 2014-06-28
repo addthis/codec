@@ -13,6 +13,7 @@
  */
 package com.addthis.codec.config;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Modifier;
 
 import java.util.Collection;
@@ -33,7 +34,6 @@ import com.addthis.maljson.JSONArray;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
@@ -77,6 +77,14 @@ public final class CodecConfig {
         if ((config == null) || !config.hasPath(fieldName)) {
             return null;
         } else if (field.isArray()) { // check CodableFieldInfo instead of expectedType
+            ConfigValue configValue = config.root().get(fieldName);
+            if ((configValue.valueType() != ConfigValueType.LIST) &&
+                field.autoArrayEnabled()) {
+                Object singleArrayValue = hydrateField(expectedType, fieldName, config);
+                Object wrappingArray    = Array.newInstance(expectedType, 1);
+                Array.set(wrappingArray, 0, singleArrayValue);
+                return wrappingArray;
+            }
             return hydrateArray(expectedType, fieldName, config);
         } else if (field.isMap()) {
             return hydrateMap(field, config);
@@ -124,6 +132,7 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is a number */
+    @SuppressWarnings("MethodMayBeStatic")
     Object hydrateNumber(Class<?> type, String fieldName, Config config) {
         if ((type == Short.class) || (type == short.class)) {
             return config.getNumber(fieldName).shortValue();
@@ -166,8 +175,11 @@ public final class CodecConfig {
                 }
             }
         }
-        ConfigObject configObject = (ConfigObject) configValue;
+        return hydrateObject(classInfo, type, (ConfigObject) configValue);
+    }
 
+    /** called when the expected type is a non-standard object */
+    private <T> T hydrateObject(CodableClassInfo classInfo, Class<T> type, ConfigObject configObject) {
         String classField = classInfo.getClassField();
         ConfigValue typeValue = configObject.get(classField);
         String stype = null;
@@ -264,6 +276,7 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is a numeric array */
+    @SuppressWarnings("MethodMayBeStatic")
     Object hydrateNumberArray(Class<?> type, String fieldName, Config config) {
         if (type == Short.class) {
             List<Integer> integerList = config.getIntList(fieldName);

@@ -19,7 +19,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.addthis.codec.validation.Truthinator;
 import com.addthis.codec.validation.Validator;
 
 /**
@@ -41,5 +40,7 @@ public @interface FieldConfig {
 
     boolean intern() default false;
 
-    Class<? extends Validator> validator() default Truthinator.class;
+    boolean autoarray() default false;
+
+    Class<? extends Validator> validator() default Validator.class;
 }

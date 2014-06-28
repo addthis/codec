@@ -33,10 +33,8 @@ import java.util.TreeMap;
 
 import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.annotations.Pluggable;
-import com.addthis.codec.codables.Codable;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
-import com.addthis.codec.validation.Validator;
 
 import com.google.common.collect.ImmutableSortedMap;
 
@@ -137,30 +135,15 @@ public final class CodableClassInfo {
         }
         for (Field field : fields.values()) {
             int mod = field.getModifiers();
-            boolean store = ((mod & Modifier.FINAL) == 0 && (mod & Modifier.PUBLIC) != 0);
-            boolean codable = false;
-            boolean readonly = false;
-            boolean writeonly = false;
-            boolean required = false;
-            boolean intern = false;
-            Class<? extends Validator> validator = null;
+            boolean store = ((mod & Modifier.FINAL) == 0) && ((mod & Modifier.PUBLIC) != 0);
             // extract annotations
             FieldConfig fieldConfigPolicy = field.getAnnotation(FieldConfig.class);
             if (fieldConfigPolicy != null) {
-                codable = fieldConfigPolicy.codable();
-                readonly = fieldConfigPolicy.readonly();
-                writeonly = fieldConfigPolicy.writeonly();
-                required = fieldConfigPolicy.required();
-                intern = fieldConfigPolicy.intern();
-                validator = fieldConfigPolicy.validator();
                 field.setAccessible(true);
-                if (!codable) {
-                    continue;
-                }
+                store |= fieldConfigPolicy.codable();
             }
-            // field must be public and non-final or annotated with a store
-            // policy
-            if (!(store || codable)) {
+            // field must be public and non-final or annotated with a store policy
+            if (!store) {
                 continue;
             }
             Class<?> type = field.getType();
@@ -171,50 +154,11 @@ public final class CodableClassInfo {
                     System.out.println("!! null array type for " + field + " !!");
                 }
             }
-            CodableFieldInfo info = new CodableFieldInfo();
-            info.setField(field);
+            CodableFieldInfo info = new CodableFieldInfo(field, type, fieldConfigPolicy);
             // extract info bits
             if (array) {
                 info.updateBits(CodableFieldInfo.ARRAY);
             }
-            if (readonly) {
-                info.updateBits(CodableFieldInfo.READONLY);
-            }
-            if (writeonly) {
-                info.updateBits(CodableFieldInfo.WRITEONLY);
-            }
-            if (codable || Codable.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.CODABLE);
-            }
-            if (Collection.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.COLLECTION);
-            }
-            if (Map.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.MAP);
-            }
-            if (type.isEnum()) {
-                info.updateBits(CodableFieldInfo.ENUM);
-            }
-            if (Number.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.NUMBER);
-            }
-            if (Fields.isNative(type)) {
-                info.updateBits(CodableFieldInfo.NATIVE);
-            }
-            if (required) {
-                info.updateBits(CodableFieldInfo.REQUIRED);
-            }
-            if (intern) {
-                info.updateBits(CodableFieldInfo.INTERN);
-            }
-            if (validator != null) {
-                try {
-                    info.setValidator(validator.newInstance());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            info.setType(type);
             // extract generics info
             if (!Fields.isNative(type)) {
                 info.setGenericTypes(collectTypes(type, field.getGenericType()));

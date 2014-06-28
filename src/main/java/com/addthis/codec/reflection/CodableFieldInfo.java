@@ -13,15 +13,21 @@
  */
 package com.addthis.codec.reflection;
 
+import javax.annotation.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 
-import com.addthis.codec.json.CodecExceptionLineNumber;
-import com.addthis.maljson.LineNumberInfo;
+import java.util.Collection;
+import java.util.Map;
 
+import com.addthis.codec.annotations.FieldConfig;
+import com.addthis.codec.codables.Codable;
+import com.addthis.codec.json.CodecExceptionLineNumber;
 import com.addthis.codec.validation.ValidationException;
 import com.addthis.codec.validation.Validator;
+import com.addthis.maljson.LineNumberInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,15 +53,66 @@ public final class CodableFieldInfo {
     public static final int ENUM       = 1 << 10;
     public static final int INTERN     = 1 << 11;
 
-    private Field     field;
-    private Class<?>  type;
-    private int       bits;
-    private Validator validator;
-    private Type[]    genTypes;
-    private boolean[] genArray;
+    private final Field       field;
+    private final FieldConfig fieldConfig;
+    private final Validator   validator;
+    private final Class<?>    type;
+    private       int         bits;
+    private       Type[]      genTypes;
+    private       boolean[]   genArray;
 
-    public void setField(Field field) {
+    public CodableFieldInfo(Field field, Class<?> type, @Nullable FieldConfig fieldConfig) {
         this.field = field;
+        this.type  = type;
+        this.fieldConfig = fieldConfig;
+        Validator tryValidator = null;
+        if ((fieldConfig != null) && (fieldConfig.validator() != Validator.class)) {
+            try {
+                tryValidator = fieldConfig.validator().newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        validator = tryValidator;
+        cacheFlags();
+    }
+
+    private void cacheFlags() {
+        if (Codable.class.isAssignableFrom(type)) {
+            updateBits(CodableFieldInfo.CODABLE);
+        }
+        if (Collection.class.isAssignableFrom(type)) {
+            updateBits(CodableFieldInfo.COLLECTION);
+        }
+        if (Map.class.isAssignableFrom(type)) {
+            updateBits(CodableFieldInfo.MAP);
+        }
+        if (type.isEnum()) {
+            updateBits(CodableFieldInfo.ENUM);
+        }
+        if (Number.class.isAssignableFrom(type)) {
+            updateBits(CodableFieldInfo.NUMBER);
+        }
+        if (Fields.isNative(type)) {
+            updateBits(CodableFieldInfo.NATIVE);
+        }
+        if (fieldConfig != null) {
+            if (fieldConfig.readonly()) {
+                updateBits(CodableFieldInfo.READONLY);
+            }
+            if (fieldConfig.writeonly()) {
+                updateBits(CodableFieldInfo.WRITEONLY);
+            }
+            if (fieldConfig.codable()) {
+                updateBits(CodableFieldInfo.CODABLE);
+            }
+            if (fieldConfig.required()) {
+                updateBits(CodableFieldInfo.REQUIRED);
+            }
+            if (fieldConfig.intern()) {
+                updateBits(CodableFieldInfo.INTERN);
+            }
+        }
     }
 
     public Field getField() {
@@ -68,10 +125,6 @@ public final class CodableFieldInfo {
 
     public String getName() {
         return field.getName();
-    }
-
-    public void setType(Class<?> type) {
-        this.type = type;
     }
 
     public Class<?> getType() {
@@ -101,10 +154,6 @@ public final class CodableFieldInfo {
         }
         this.genTypes = genTypes;
         this.genArray = gen;
-    }
-
-    public void setValidator(Validator validator) {
-        this.validator = validator;
     }
 
     public Object newInstance() throws Exception {
@@ -207,6 +256,10 @@ public final class CodableFieldInfo {
                 ") on (" + dst + ") in " + toString());
             throw new RuntimeException(ex);
         }
+    }
+
+    public boolean autoArrayEnabled() {
+        return (fieldConfig != null) && fieldConfig.autoarray();
     }
 
     public boolean isArray() {
