@@ -18,6 +18,6 @@ public class SimpleGreet implements Greeter {
     public String suffix;
 
     @Override public String greet() {
-        return "Hello World";
+        return "Hello World" + suffix;
     }
 }

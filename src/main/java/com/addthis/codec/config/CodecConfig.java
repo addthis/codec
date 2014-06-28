@@ -82,7 +82,7 @@ public final class CodecConfig {
         if (pluginMap == null) {
             throw new IllegalArgumentException("top level key must be a valid category");
         }
-        return hydrateObject(pluginMap, config.root());
+        return hydrateObject(null, pluginMap, null, config.root().get(category));
     }
 
     /** called when the expected type hasn't been inspected yet */
@@ -119,7 +119,7 @@ public final class CodecConfig {
             return Enum.valueOf((Class<? extends Enum>) expectedType,
                                 config.getString(fieldName).toUpperCase());
         } else if (field.isCodable()) {
-            return hydrateCustom(expectedType, config.getValue(fieldName));
+            return hydrateObject(expectedType, config.getValue(fieldName));
         } else {
             return null;
         }
@@ -143,7 +143,7 @@ public final class CodecConfig {
                                 config.getString(fieldName).toUpperCase());
         } else {
             // assume codable instead of checking
-            return hydrateCustom(expectedType, config.getValue(fieldName));
+            return hydrateObject(expectedType, config.getValue(fieldName));
         }
     }
 
@@ -170,26 +170,29 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is a non-standard object */
-    private <T> T hydrateCustom(Class<T> type, ConfigValue configValue) {
+    private <T> T hydrateObject(Class<T> type, ConfigValue configValue) {
         CodableClassInfo info = getOrCreateClassInfo(type);
         PluginMap pluginMap = info.getPluginMap();
+        return hydrateObject(info, pluginMap, type, configValue);
+    }
 
+    /** called when the expected type is a non-standard object */
+    private <T> T hydrateObject(@Nullable CodableClassInfo info,
+                                PluginMap pluginMap,
+                                @Nullable Class<T> type,
+                                ConfigValue configValue) {
         // config is "unexpectedly" a list; if the base class has registered a handler, use it
         if (configValue.valueType() == ConfigValueType.LIST) {
             Class<?> arrarySugar = pluginMap.arraySugar();
             if (arrarySugar != null) {
                 // plugin map assumed to be the same (not enforced atm)
-                info = null;
-                configValue = configValue.atKey(pluginMap.arrayField()).root();
                 type = (Class<T>) arrarySugar;
+                info = getOrCreateClassInfo(type);
+                configValue = configValue.atKey(pluginMap.arrayField()).root();
+                return createAndPopulate(info, type, (ConfigObject) configValue);
             }
         }
         return hydrateObject(info, pluginMap, type, (ConfigObject) configValue);
-    }
-
-    /** called when the expected type is a non-standard object */
-    private <T> T hydrateObject(PluginMap pluginMap, ConfigObject configObject) {
-        return hydrateObject(null, pluginMap, null, configObject);
     }
 
     /** called when the expected type is a non-standard object */
@@ -237,6 +240,10 @@ public final class CodecConfig {
         if (info == null) {
             info = getOrCreateClassInfo(type);
         }
+        return createAndPopulate(info, type, configObject);
+    }
+
+    private <T> T createAndPopulate(CodableClassInfo info, Class<T> type, ConfigObject configObject) {
         try {
             T objectShell = type.newInstance();
             String className = type.getName();
@@ -284,13 +291,13 @@ public final class CodecConfig {
             return hydrateNumberArray(componentType, fieldName, config);
         } else {
             ConfigList configValues = config.getList(fieldName);
-            Object[] customs = new Object[configValues.size()];
+            Object[] customs = (Object[]) Array.newInstance(componentType, configValues.size());
             int index = 0;
             for (ConfigValue value : configValues) {
                 if ((value == null) || (value.valueType() == ConfigValueType.NULL)) {
                     customs[index++] = null;
                 } else {
-                    customs[index++] = hydrateCustom(componentType, value);
+                    customs[index++] = hydrateObject(componentType, value);
                 }
             }
             return customs;

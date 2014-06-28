@@ -13,15 +13,31 @@
  */
 package com.addthis.codec.config;
 
+import com.addthis.codec.plugins.Greeter;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class FeatureTest {
 
     @Test
-    public void hydraGreeter() throws Exception {
-        Config mapHolder = ConfigFactory.parseString("map { a: 1, b: 2, c: 14 }");
+    public void greetDefault() throws Exception {
+        Config greet = ConfigFactory.parseResources("config/defaultgreeter.conf");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
+                            greeterObject.greet());
+    }
+
+    @Test
+    public void greetArray() throws Exception {
+        Config greet = ConfigFactory.parseResources("config/arraygreet.conf");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        System.out.println(greeterObject.greet());
+
+//        Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
+//                            greeterObject.greet());
     }
 }
