@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.json;
 
 import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.codables.Codable;
@@ -82,7 +82,7 @@ public class CodecJSONTest {
     @Test
     public void typeSugar() throws Exception {
         Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(
-                "{thing: {com.addthis.codec.CodecJSONTest$C: {intField: 5}}}"));
+                "{thing: {com.addthis.codec.json.CodecJSONTest$C: {intField: 5}}}"));
         C asC = (C) object.thing;
         assertEquals(5, asC.intField);
     }

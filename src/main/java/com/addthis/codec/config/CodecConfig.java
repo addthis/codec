@@ -174,21 +174,34 @@ public final class CodecConfig {
         if ((typeValue != null) && (typeValue.valueType() == ConfigValueType.STRING)) {
             stype = (String) typeValue.unwrapped();
         }
-        if ((stype == null) && Modifier.isAbstract(type.getModifiers()) &&
-            (configObject.size() == 1)) {
-            // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
-            stype = configObject.keySet().iterator().next();
-            configObject = (ConfigObject) configObject.get(stype);
-        }
-        try {
-            if (stype != null) {
-                Class<?> atype = classInfo.getClass(stype);
-                classInfo = getOrCreateClassInfo(atype);
-                type = (Class<T>) atype;
-                configObject = configObject.withoutKey(classField);
+        // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
+        if ((stype == null) && (configObject.size() == 1) &&
+            (Modifier.isAbstract(type.getModifiers()) ||
+             Modifier.isInterface(type.getModifiers()))) {
+            String sugarType = configObject.keySet().iterator().next();
+            try {
+                if (classInfo.getClass(sugarType) != null) {
+                    configObject = (ConfigObject) configObject.get(sugarType);
+                    stype = sugarType;
+                }
+            } catch (ClassNotFoundException ignored) {
             }
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
+        }
+        Class<?> subType;
+        if (stype == null) {
+            // if no type field is set, then try using the default (if any)
+            subType = classInfo.getDefaultSugar();
+        } else {
+            try {
+                subType = classInfo.getClass(stype);
+                configObject = configObject.withoutKey(classField);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        if (subType != null) {
+            classInfo = getOrCreateClassInfo(subType);
+            type = (Class<T>) subType;
         }
         try {
             T objectShell = type.newInstance();

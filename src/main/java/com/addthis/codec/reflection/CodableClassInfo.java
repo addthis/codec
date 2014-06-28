@@ -64,6 +64,14 @@ public final class CodableClassInfo {
         }
     }
 
+    @Nullable public Class<?> getDefaultSugar() {
+        if (classMap != null) {
+            return classMap.defaultSugar();
+        } else {
+            return null;
+        }
+    }
+
     public String getClassField() {
         if (classMap != null) {
             return classMap.classField();
@@ -80,7 +88,7 @@ public final class CodableClassInfo {
         }
     }
 
-    public Class<?> getClass(String name) throws Exception {
+    public Class<?> getClass(String name) throws ClassNotFoundException {
         return classMap != null ? classMap.getClass(name) : null;
     }
 
