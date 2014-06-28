@@ -66,21 +66,30 @@ public final class CodecConfig {
         this.pluginRegistry = pluginRegistry;
     }
 
-    /** public facing end point */
+    /**
+     * Instantiate an object of the requested type using the provided config.
+     */
     public <T> T decodeObject(Class<T> type, Config config) {
         CodableClassInfo classInfo = getOrCreateClassInfo(type);
         return hydrateObject(classInfo, classInfo.getPluginMap(), type, config.root()) ;
     }
 
-    /** public facing end point */
+    /**
+     * Instantiate an object without a compile time expected type. This expects a config of the
+     * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
+     * key should be a valid, loaded, plug-in category.
+     */
     public <T> T decodeObject(Config config) {
         if (config.root().size() != 1) {
-            throw new IllegalArgumentException("config must have exactly one key representing the category");
+            throw new ConfigException.Parse(config.root().origin(),
+                                            "config root must have exactly one key");
         }
         String category = config.root().keySet().iterator().next();
         PluginMap pluginMap = pluginRegistry.asMap().get(category);
         if (pluginMap == null) {
-            throw new IllegalArgumentException("top level key must be a valid category");
+            throw new ConfigException.BadValue(config.root().get(category).origin(),
+                                               category,
+                                               "top level key must be a valid category");
         }
         return hydrateObject(null, pluginMap, null, config.root().get(category));
     }
@@ -165,7 +174,8 @@ public final class CodecConfig {
         } else if (type == AtomicLong.class) {
             return new AtomicLong(config.getLong(fieldName));
         } else {
-            throw new RuntimeException("unsupported numeric or primitive type");
+            throw new ConfigException.BadValue(config.origin(), fieldName,
+                                               "unsupported numeric or primitive type");
         }
     }
 
@@ -230,12 +240,16 @@ public final class CodecConfig {
                 type = (Class<T>) pluginMap.getClass(stype);
                 configObject = configObject.withoutKey(classField);
                 info = null;
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
+            } catch (ClassNotFoundException e) {
+                throw new ConfigException
+                        .UnresolvedSubstitution(configObject.origin(),
+                                                pluginMap.category() + " could not resolve " + stype,
+                                                e);
             }
         }
         if (type == null) {
-            throw new IllegalArgumentException("expected type must either be a valid pluggable or concrete class");
+            throw new ConfigException.Parse(configObject.origin(),
+                                            "expected type must either be a valid pluggable or concrete class");
         }
         if (info == null) {
             info = getOrCreateClassInfo(type);
@@ -256,7 +270,8 @@ public final class CodecConfig {
             populateObjectFields(info, objectShell, objectConfig);
             return objectShell;
         } catch (InstantiationException | IllegalAccessException ex) {
-            throw new RuntimeException(ex);
+            throw new ConfigException.BadValue(configObject.origin(), type.getName(),
+                                               "failed to get a concrete, working pluggable", ex);
         }
     }
 
@@ -389,7 +404,8 @@ public final class CodecConfig {
             }
             return atomicLongs;
         } else {
-            throw new RuntimeException("unsupported numeric type");
+            throw new ConfigException.BadValue(config.origin(), fieldName,
+                                               "unsupported numeric or primitive type");
         }
     }
 
@@ -398,7 +414,8 @@ public final class CodecConfig {
         try {
             map = (Map) field.getType().newInstance();
         } catch (IllegalAccessException | InstantiationException ex) {
-            throw new RuntimeException(ex);
+            throw new ConfigException.BadValue(config.origin(), field.getName(),
+                                               "failed to get a concrete, working class", ex);
         }
         Class vc = (Class) field.getGenericTypes()[1];
         boolean va = field.isMapValueArray();
@@ -421,7 +438,8 @@ public final class CodecConfig {
         try {
             col = (Collection) field.getType().newInstance();
         } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new ConfigException.BadValue(config.origin(), field.getName(),
+                                               "failed to get a concrete, working class", ex);
         }
         Class vc = field.getCollectionClass();
         boolean ar = field.isCollectionArray();

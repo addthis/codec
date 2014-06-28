@@ -35,9 +35,16 @@ public class FeatureTest {
     public void greetArray() throws Exception {
         Config greet = ConfigFactory.parseResources("config/arraygreet.conf");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
-        System.out.println(greeterObject.greet());
+        String expected = "Hello World! What a pleasant default suffix we are having!";
+        expected = expected + expected;
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
 
-//        Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
-//                            greeterObject.greet());
+    @Test
+    public void autoArray() throws Exception {
+        Config greet = ConfigFactory.parseResources("config/autoarraygreet.conf");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello World! Where are all my friends?";
+        Assert.assertEquals(expected, greeterObject.greet());
     }
 }
