@@ -85,6 +85,10 @@ public final class CodableClassInfo {
     }
 
     public CodableClassInfo(Class<?> clazz) {
+        this(clazz, PluginRegistry.defaultRegistry());
+    }
+
+    public CodableClassInfo(Class<?> clazz, PluginRegistry pluginRegistry) {
         SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
 
         // skip native classes
@@ -105,7 +109,7 @@ public final class CodableClassInfo {
             Pluggable pluggable = ptr.getAnnotation(Pluggable.class);
             if (pluggable != null) {
                 String category = pluggable.value();
-                findPluginMap = PluginRegistry.defaultRegistry().asMap().get(category);
+                findPluginMap = pluginRegistry.asMap().get(category);
                 if (findPluginMap != null) {
                     findBaseClass = ptr;
                     break;

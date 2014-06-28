@@ -19,17 +19,21 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
-import com.addthis.codec.reflection.Fields;
 import com.addthis.maljson.JSONArray;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
@@ -40,20 +44,36 @@ import org.slf4j.LoggerFactory;
 
 /** Decodes {@link Config} and associated classes into runtime objects. */
 public final class CodecConfig {
-    private CodecConfig() {}
 
     private static final Logger log = LoggerFactory.getLogger(CodecConfig.class);
 
+    public static CodecConfig getDefault() {
+        return DefaultCodecConfig.DEFAULT;
+    }
+
+    private final Config         globalConfig;
+    private final PluginRegistry pluginRegistry;
+    private final ConcurrentMap<Class<?>, CodableClassInfo> fieldMaps = new ConcurrentHashMap<>();
+
+    public CodecConfig(Config globalConfig) {
+        this(globalConfig, new PluginRegistry(globalConfig));
+    }
+
+    public CodecConfig(Config globalConfig, PluginRegistry pluginRegistry) {
+        this.globalConfig = globalConfig;
+        this.pluginRegistry = pluginRegistry;
+    }
+
     /** public facing end point */
-    public static <T> T decodeObject(Class<T> type, ConfigValue configValue) {
+    public <T> T decodeObject(Class<T> type, ConfigValue configValue) {
         return hydrateCustom(type, configValue);
     }
 
     /** called when the expected type hasn't been inspected yet */
-    static Object hydrateField(CodableFieldInfo field, Config config) {
+    Object hydrateField(CodableFieldInfo field, Config config) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
-        String   fieldName    = field.getName();
+        String fieldName = field.getName();
         if ((config == null) || !config.hasPath(fieldName)) {
             return null;
         } else if (field.isArray()) { // check CodableFieldInfo instead of expectedType
@@ -82,7 +102,7 @@ public final class CodecConfig {
     }
 
     /** variant to get around CodableInfo/ CodecJSON edge cases. Only works for certain types */
-    static Object hydrateField(Class<?> expectedType, String fieldName, Config config) {
+    Object hydrateField(Class<?> expectedType, String fieldName, Config config) {
         if ((config == null) || !config.hasPath(fieldName)) {
             return null;
         } else if (expectedType.isAssignableFrom(String.class)) {
@@ -104,7 +124,7 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is a number */
-    static Object hydrateNumber(Class<?> type, String fieldName, Config config) {
+    Object hydrateNumber(Class<?> type, String fieldName, Config config) {
         if ((type == Short.class) || (type == short.class)) {
             return config.getNumber(fieldName).shortValue();
         } else if ((type == Integer.class) || (type == int.class)) {
@@ -125,14 +145,14 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is a non-standard object */
-    private static <T> T hydrateCustom(Class<T> type, ConfigValue configValue) {
-        CodableClassInfo classInfo = Fields.getClassFieldMap(type);
+    private <T> T hydrateCustom(Class<T> type, ConfigValue configValue) {
+        CodableClassInfo classInfo = getOrCreateClassInfo(type);
 
         // config is "unexpectedly" a list; if the base class has registered a handler, use it
         if (configValue.valueType() == ConfigValueType.LIST) {
             Class<?> arrarySugar = classInfo.getArraySugar();
             if (arrarySugar != null) {
-                classInfo = Fields.getClassFieldMap(arrarySugar);
+                classInfo = getOrCreateClassInfo(arrarySugar);
                 for (CodableFieldInfo fieldInfo : classInfo.values()) {
                     if (fieldInfo.isArray() && (fieldInfo.getType() == type)) {
                         configValue = configValue.atKey(fieldInfo.getName()).root();
@@ -163,7 +183,7 @@ public final class CodecConfig {
         try {
             if (stype != null) {
                 Class<?> atype = classInfo.getClass(stype);
-                classInfo = Fields.getClassFieldMap(atype);
+                classInfo = getOrCreateClassInfo(atype);
                 type = (Class<T>) atype;
                 configObject = configObject.withoutKey(classField);
             }
@@ -172,7 +192,14 @@ public final class CodecConfig {
         }
         try {
             T objectShell = type.newInstance();
-            populateObjectFields(classInfo, objectShell, configObject);
+            String className = type.getName();
+            Config objectConfig = configObject.toConfig();
+            try {
+                objectConfig = objectConfig.withFallback(globalConfig.getConfig(className));
+            } catch (ConfigException logged) {
+                log.debug("failed to get defaults for {}", className, logged);
+            }
+            populateObjectFields(classInfo, objectShell, objectConfig);
             return objectShell;
         } catch (InstantiationException | IllegalAccessException ex) {
             throw new RuntimeException(ex);
@@ -180,7 +207,7 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is an array */
-    static Object hydrateArray(Class<?> componentType, String fieldName, Config config) {
+    Object hydrateArray(Class<?> componentType, String fieldName, Config config) {
         if ((config == null) || !config.hasPath(fieldName)) {
             return null;
         } else if (componentType.isAssignableFrom(String.class)) {
@@ -224,7 +251,7 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is a numeric array */
-    static Object hydrateNumberArray(Class<?> type, String fieldName, Config config) {
+    Object hydrateNumberArray(Class<?> type, String fieldName, Config config) {
         if (type == Short.class) {
             List<Integer> integerList = config.getIntList(fieldName);
             Short[] shorts = new Short[integerList.size()];
@@ -311,7 +338,7 @@ public final class CodecConfig {
         }
     }
 
-    static Map hydrateMap(CodableFieldInfo field, Config config) {
+    Map hydrateMap(CodableFieldInfo field, Config config) {
         Map map;
         try {
             map = (Map) field.getType().newInstance();
@@ -334,7 +361,7 @@ public final class CodecConfig {
         return map;
     }
 
-    static Collection hydrateCollection(CodableFieldInfo field, Config config) {
+    Collection hydrateCollection(CodableFieldInfo field, Config config) {
         Collection col;
         try {
             col = (Collection) field.getType().newInstance();
@@ -358,13 +385,12 @@ public final class CodecConfig {
     }
 
     /** given a class, instance, and config.. turn config values into field values */
-    private static void populateObjectFields(CodableClassInfo classInfo, Object objectShell,
-                                              ConfigObject configObject) {
+    private void populateObjectFields(CodableClassInfo classInfo, Object objectShell,
+                                              Config config) {
         if (objectShell instanceof ConfigCodable) {
-            ((ConfigCodable) objectShell).fromConfigObject(configObject);
+            ((ConfigCodable) objectShell).fromConfigObject(config.root());
             return;
         }
-        Config config = configObject.toConfig();
         for (CodableFieldInfo field : classInfo.values()) {
             if (field.isWriteOnly()) {
                 continue;
@@ -377,5 +403,15 @@ public final class CodecConfig {
         if (objectShell instanceof SuperCodable) {
             ((SuperCodable) objectShell).postDecode();
         }
+    }
+
+    // like the one in Fields.java, but non-static and using a possibly non-default registry
+    private CodableClassInfo getOrCreateClassInfo(Class<?> clazz) {
+        CodableClassInfo fieldMap = fieldMaps.get(clazz);
+        if (fieldMap == null) {
+            fieldMap = new CodableClassInfo(clazz, pluginRegistry);
+            fieldMaps.put(clazz, fieldMap);
+        }
+        return fieldMap;
     }
 }

@@ -33,7 +33,8 @@ public class CodecConfigTest {
     public void hydrateNumber() throws Exception {
         ConfigValue longValue = ConfigValueFactory.fromAnyRef(12L);
         Config valueHolder = longValue.atKey("value");
-        short shortValue = (short) CodecConfig.hydrateNumber(Short.class, "value", valueHolder);
+        short shortValue = (short) CodecConfig.getDefault()
+                                              .hydrateNumber(Short.class, "value", valueHolder);
         Assert.assertEquals((short) 12, shortValue);
     }
 
@@ -41,7 +42,8 @@ public class CodecConfigTest {
     public void hydrateNumberPrimitive() throws Exception {
         ConfigValue longValue = ConfigValueFactory.fromAnyRef(12L);
         Config valueHolder = longValue.atKey("value");
-        short shortValue = (short) CodecConfig.hydrateNumber(short.class, "value", valueHolder);
+        short shortValue = (short) CodecConfig.getDefault()
+                                              .hydrateNumber(short.class, "value", valueHolder);
         Assert.assertEquals((short) 12, shortValue);
     }
 
@@ -50,7 +52,8 @@ public class CodecConfigTest {
         short[] expected = {1, 2, 3};
         Config arrayHolder = ConfigFactory.parseString("array: [1, 2, 3]");
         short[] shortPrimitiveArray =
-                (short[]) CodecConfig.hydrateNumberArray(short.class, "array", arrayHolder);
+                (short[]) CodecConfig.getDefault()
+                                     .hydrateNumberArray(short.class, "array", arrayHolder);
         Assert.assertArrayEquals(shortPrimitiveArray, expected);
     }
 
@@ -59,7 +62,7 @@ public class CodecConfigTest {
         short[] expected = {1, 2, 3};
         Config arrayHolder = ConfigFactory.parseString("array: [1, 2, 3]");
         short[] shortPrimitiveArray =
-                (short[]) CodecConfig.hydrateArray(short.class, "array", arrayHolder);
+                (short[]) CodecConfig.getDefault().hydrateArray(short.class, "array", arrayHolder);
         Assert.assertArrayEquals(shortPrimitiveArray, expected);
     }
 
@@ -67,7 +70,7 @@ public class CodecConfigTest {
     public void hydrateBoolean() throws Exception {
         ConfigValue longValue = ConfigValueFactory.fromAnyRef(true);
         Config valueHolder = longValue.atKey("value");
-        Boolean booleanValue = (Boolean) CodecConfig.hydrateField(Boolean.class, "value", valueHolder);
+        Boolean booleanValue = (Boolean) CodecConfig.getDefault().hydrateField(Boolean.class, "value", valueHolder);
         Assert.assertEquals(true, booleanValue);
     }
 
@@ -80,7 +83,7 @@ public class CodecConfigTest {
         CodableFieldInfo mapField =
                 Fields.getClassFieldMap(MapHolder.class).values().iterator().next();
         Config mapHolder = ConfigFactory.parseString("map { a: 1, b: 2, c: 14 }");
-        Map<String, Integer> actual = CodecConfig.hydrateMap(mapField, mapHolder);
+        Map<String, Integer> actual = CodecConfig.getDefault().hydrateMap(mapField, mapHolder);
         Map<String, Integer> expected = new HashMap<>();
         expected.put("a", 1);
         expected.put("b", 2);
