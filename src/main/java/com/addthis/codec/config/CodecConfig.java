@@ -20,6 +20,7 @@ import java.lang.reflect.Modifier;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,7 @@ import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.reflection.RequiredFieldException;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -464,12 +466,23 @@ public final class CodecConfig {
             ((ConfigCodable) objectShell).fromConfigObject(config.root());
             return;
         }
+        Collection<String> unusedKeys = new HashSet<>(config.root().keySet());
         for (CodableFieldInfo field : classInfo.values()) {
             if (field.isWriteOnly()) {
                 continue;
             }
+            unusedKeys.remove(field.getName());
             Object value = hydrateField(field, config);
-            field.set(objectShell, value);
+            try {
+                field.set(objectShell, value);
+            } catch (RequiredFieldException ex) {
+                throw new ConfigException.Null(config.origin(), field.getName(),
+                                               field.toString(), ex);
+            }
+        }
+        if (!unusedKeys.isEmpty()) {
+            throw new ConfigException.UnresolvedSubstitution(
+                    config.origin(),"unrecognized key(s) " + unusedKeys.toString());
         }
         if (objectShell instanceof SuperCodable) {
             ((SuperCodable) objectShell).postDecode();
