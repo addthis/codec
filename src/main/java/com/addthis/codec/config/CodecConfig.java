@@ -165,7 +165,7 @@ public final class CodecConfig {
                 Class<?> atype = classInfo.getClass(stype);
                 classInfo = Fields.getClassFieldMap(atype);
                 type = (Class<T>) atype;
-                configObject.remove(classField);
+                configObject = configObject.withoutKey(classField);
             }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
