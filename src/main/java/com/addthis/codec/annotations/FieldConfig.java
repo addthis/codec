@@ -13,8 +13,11 @@
  */
 package com.addthis.codec.annotations;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 import com.addthis.codec.validation.Truthinator;
 import com.addthis.codec.validation.Validator;
@@ -23,7 +26,9 @@ import com.addthis.codec.validation.Validator;
  * control coding parameters for fields. allows code to dictate non-codable
  * fields as codable
  */
+@Documented
 @Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
 public @interface FieldConfig {
 
     boolean codable() default true;

@@ -23,6 +23,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.CoreMatchers.isA;
+
 public class PluginRegistryTest {
 
     @Rule
@@ -30,7 +32,7 @@ public class PluginRegistryTest {
 
     @Test
     public void loadSimple() {
-        Config testPluginConfig = ConfigFactory.load("greet-good");
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-good");
         PluginRegistry pluginRegistry = new PluginRegistry(testPluginConfig);
         Map<String, PluginMap> mapping = pluginRegistry.asMap();
         Assert.assertEquals(1, mapping.size());
@@ -39,9 +41,9 @@ public class PluginRegistryTest {
 
     @Test
     public void loadError() {
-        thrown.expect(RuntimeException.class);
-        Config testPluginConfig = ConfigFactory.load("greet-bad");
-        PluginRegistry pluginRegistry = new PluginRegistry(testPluginConfig);
+        thrown.expectCause(isA(ClassNotFoundException.class));
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-bad");
+        PluginRegistry shouldFail = new PluginRegistry(testPluginConfig);
     }
 
 }

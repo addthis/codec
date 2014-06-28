@@ -13,7 +13,8 @@
  */
 package com.addthis.codec.reflection;
 
-import java.lang.annotation.Annotation;
+import javax.annotation.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Modifier;
@@ -30,11 +31,11 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import com.addthis.codec.annotations.ClassConfig;
 import com.addthis.codec.annotations.FieldConfig;
-import com.addthis.codec.plugins.ClassMap;
-import com.addthis.codec.plugins.ClassMapFactory;
+import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.codables.Codable;
+import com.addthis.codec.plugins.PluginMap;
+import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.validation.Validator;
 
 import com.google.common.collect.ImmutableSortedMap;
@@ -42,28 +43,37 @@ import com.google.common.collect.ImmutableSortedMap;
 @SuppressWarnings("serial")
 public final class CodableClassInfo {
 
-    private final Class<?> baseClass;
-    private final ClassMap classMap;
+    private final Class<?>  baseClass;
+    private final PluginMap classMap;
+
     private final ImmutableSortedMap<String, CodableFieldInfo> classData;
 
     public Class<?> getBaseClass() {
         return baseClass;
     }
 
-    public ClassMap getClassMap() {
+    public PluginMap getPluginMap() {
         return classMap;
     }
 
-    public Class<?> getArraySugar() {
-        return (classMap != null) ? classMap.getArraySugar() : null;
+    @Nullable public Class<?> getArraySugar() {
+        if (classMap != null) {
+            return classMap.arraySugar();
+        } else {
+            return null;
+        }
     }
 
     public String getClassField() {
-        return classMap != null ? classMap.getClassField() : "class";
+        if (classMap != null) {
+            return classMap.classField();
+        } else {
+            return "class";
+        }
     }
 
     public String getClassName(Object val) {
-        if (classMap != null && val.getClass() != baseClass) {
+        if ((classMap != null) && (val.getClass() != baseClass)) {
             return classMap.getClassName(val.getClass());
         } else {
             return null;
@@ -79,41 +89,26 @@ public final class CodableClassInfo {
 
         // skip native classes
         if (Fields.isNative(clazz)) {
-            classData = ImmutableSortedMap.
-                    <String, CodableFieldInfo>naturalOrder().
-                    putAll(buildClassData).build();
+            classData = ImmutableSortedMap.<String, CodableFieldInfo>naturalOrder()
+                                          .putAll(buildClassData).build();
             baseClass = null;
             classMap = null;
             return;
         }
 
         Class<?> findBaseClass = clazz;
-        ClassMap findClassMap = null;
+        PluginMap findPluginMap = null;
 
         // get class annotations
         Class<?> ptr = clazz;
         while (ptr != null) {
-            ClassConfig classpolicy = ptr.getAnnotation(ClassConfig.class);
-            if (classpolicy != null) {
-                Class<? extends ClassMapFactory> cmf = classpolicy.classMapFactory();
-                if ((cmf != null) && (cmf != ClassMapFactory.class)) {
-                    try {
-                        findClassMap = cmf.newInstance().getClassMap();
-                        findBaseClass = ptr;
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                Class<? extends ClassMap> cm = classpolicy.classMap();
-                if (cm != null) {
-                    try {
-                        findClassMap = cm.newInstance();
-                        findBaseClass = ptr;
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+            Pluggable pluggable = ptr.getAnnotation(Pluggable.class);
+            if (pluggable != null) {
+                String category = pluggable.value();
+                findPluginMap = PluginRegistry.defaultRegistry().asMap().get(category);
+                if (findPluginMap != null) {
+                    findBaseClass = ptr;
+                    break;
                 }
             }
             ptr = ptr.getSuperclass();
@@ -218,7 +213,7 @@ public final class CodableClassInfo {
                 <String, CodableFieldInfo>naturalOrder().
                 putAll(buildClassData).build();
         baseClass = findBaseClass;
-        classMap = findClassMap;
+        classMap = findPluginMap;
     }
 
     public int size() {
@@ -248,7 +243,7 @@ public final class CodableClassInfo {
         if (l.size() == 0) {
             return null;
         } else {
-            Type t[] = new Type[l.size()];
+            Type[] t = new Type[l.size()];
             l.toArray(t);
             return t;
         }

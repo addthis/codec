@@ -13,13 +13,10 @@
  */
 package com.addthis.codec;
 
-import com.addthis.codec.annotations.ArraySugar;
-import com.addthis.codec.annotations.ClassConfig;
+import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecExceptionLineNumber;
 import com.addthis.codec.json.CodecJSON;
-import com.addthis.codec.plugins.ClassMap;
-import com.addthis.codec.plugins.ClassMapFactory;
 import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
 
@@ -38,17 +35,8 @@ public class CodecJSONTest {
         public A[] field4;
     }
 
-    @ClassConfig(classMapFactory = LetterMapFactory.class)
+    @Pluggable("letter")
     public abstract static class AbstractLetter implements Codable {
-    }
-
-    private static final ClassMap letterMap = new ClassMap();
-
-    public static class LetterMapFactory implements ClassMapFactory {
-
-        public ClassMap getClassMap() {
-            return letterMap;
-        }
     }
 
     public static class C extends AbstractLetter {
@@ -56,7 +44,6 @@ public class CodecJSONTest {
         public int intField;
     }
 
-    @ArraySugar
     public static class D extends AbstractLetter {
 
         public AbstractLetter[] letters;
@@ -102,9 +89,6 @@ public class CodecJSONTest {
 
     @Test
     public void arraySugar() throws Exception {
-        AbstractLetter.class.getAnnotation(ClassConfig.class)
-                            .classMapFactory().newInstance().getClassMap()
-                            .add(C.class).add(D.class);
         Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(
                 "{thing: [" +
                 "{C: {intField: 5}}, " +

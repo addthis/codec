@@ -13,6 +13,9 @@
  */
 package com.addthis.codec.plugins;
 
+import com.addthis.codec.annotations.Pluggable;
+
+@Pluggable("greet")
 public interface Greeter {
 
     // return a greeting

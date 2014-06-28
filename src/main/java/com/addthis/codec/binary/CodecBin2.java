@@ -158,7 +158,7 @@ public final class CodecBin2 extends Codec {
             return decodeNative(type, buf);
         } else {
             CodableClassInfo classInfo = Fields.getClassFieldMap(type);
-            if (classInfo.size() == 0 && classInfo.getClassMap() == null) {
+            if (classInfo.size() == 0 && classInfo.getPluginMap() == null) {
                 return decodeNative(type, buf);
             }
             return decodeObject(classInfo, null, buf);

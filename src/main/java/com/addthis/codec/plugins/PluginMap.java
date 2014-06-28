@@ -41,19 +41,21 @@ public class PluginMap {
     @Nullable private final Class<?>       arraySugar;
     @Nullable private final PluginRegistry typoRegistry;
 
-    public PluginMap(String category, Config pluginRoot) {
-        this(category, pluginRoot, null);
+    public PluginMap(String category, Config config) {
+        this(category, config, null);
     }
 
-    public PluginMap(String category, Config pluginRoot, @Nullable PluginRegistry registry) {
+    public PluginMap(String category, Config config, @Nullable PluginRegistry registry) {
         this.category = category;
-        classField           = pluginRoot.getString("field");
-        boolean errorMissing = pluginRoot.getBoolean("strict");
-        Config aliasConfig   = pluginRoot.getConfig("aliases");
-        Set<String> labels   = aliasConfig.root().keySet();
+        classField           = config.getString("_field");
+        boolean errorMissing = config.getBoolean("_strict");
+        Set<String> labels   = config.root().keySet();
         BiMap<String, Class<?>> mutableMap = HashBiMap.create(labels.size());
         for (String label : labels) {
-            String value = aliasConfig.getString(label);
+            if (label.charAt(0) == '_') {
+                continue;
+            }
+            String value = config.getString(label);
             try {
                 Class<?> classValue = Class.forName(value);
                 mutableMap.put(label, classValue);
@@ -67,14 +69,14 @@ public class PluginMap {
             }
         }
         map = Maps.unmodifiableBiMap(mutableMap);
-        if (pluginRoot.hasPath("arraySugar")) {
-            String arraySugarName = pluginRoot.getString("arraySugar");
+        if (config.hasPath("_array")) {
+            String arraySugarName = config.getString("_array");
             arraySugar = map.get(arraySugarName);
         } else {
             arraySugar = null;
         }
-        if (pluginRoot.hasPath("default")) {
-            String defaultName = pluginRoot.getString("default");
+        if (config.hasPath("_default")) {
+            String defaultName = config.getString("_default");
             defaultSugar = map.get(defaultName);
         } else {
             defaultSugar = null;

@@ -20,17 +20,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.addthis.codec.annotations.ClassConfig;
 import com.addthis.codec.annotations.FieldConfig;
+import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.binary.CodecBin2;
-import com.addthis.codec.reflection.RequiredFieldException;
-import com.addthis.codec.validation.ValidationException;
+import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.kv.CodecKV;
-import com.addthis.codec.plugins.ClassMap;
 import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.reflection.RequiredFieldException;
+import com.addthis.codec.validation.ValidationException;
 import com.addthis.codec.validation.Validator;
-import com.addthis.codec.codables.Codable;
 
 import org.junit.Test;
 
@@ -169,7 +168,7 @@ public class CodecBasicsTest {
         }
     }
 
-    @ClassConfig
+    @Pluggable("empty")
     public static class B extends X {
 
         public int int_a;
@@ -200,28 +199,7 @@ public class CodecBasicsTest {
         }
     }
 
-    public static class CCM extends ClassMap {
-
-        @Override
-        public Class<?> getClass(String type) throws ClassNotFoundException {
-            if (type.equals("1")) {
-                return G.class;
-            } else {
-                return C.class;
-            }
-        }
-
-        @Override
-        public String getClassName(Class<?> type) {
-            if (type == G.class) {
-                return "1";
-            } else {
-                return "0";
-            }
-        }
-    }
-
-    @ClassConfig(classMap = CCM.class)
+    @Pluggable("ccm")
     public static class C extends X {
 
         public int x_int_a = 3;

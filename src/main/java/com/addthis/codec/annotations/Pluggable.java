@@ -13,9 +13,16 @@
  */
 package com.addthis.codec.annotations;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-/** marker annotation suggesting this class is an array-wrapper over its fellows */
+@Documented
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ArraySugar {}
+@Target(ElementType.TYPE)
+public @interface Pluggable {
+
+    String value();
+}
