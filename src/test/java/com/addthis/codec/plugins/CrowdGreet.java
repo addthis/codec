@@ -13,11 +13,19 @@
  */
 package com.addthis.codec.plugins;
 
-public class SimpleGreet implements Greeter {
+import com.addthis.codec.annotations.FieldConfig;
 
-    public String suffix;
+public class CrowdGreet implements Greeter {
 
-    @Override public String greet() {
-        return "Hello World";
+    @FieldConfig(autoarray = true)
+    public Greeter[] crowd;
+
+    @Override
+    public String greet() {
+        StringBuilder greetAThon = new StringBuilder();
+        for (Greeter greeter : crowd) {
+            greetAThon.append(greeter.greet());
+        }
+        return greetAThon.toString();
     }
 }

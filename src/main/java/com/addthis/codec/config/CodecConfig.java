@@ -13,6 +13,8 @@
  */
 package com.addthis.codec.config;
 
+import javax.annotation.Nullable;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Modifier;
 
@@ -27,10 +29,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
-import com.addthis.maljson.JSONArray;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -65,8 +67,22 @@ public final class CodecConfig {
     }
 
     /** public facing end point */
-    public <T> T decodeObject(Class<T> type, ConfigValue configValue) {
-        return hydrateCustom(type, configValue);
+    public <T> T decodeObject(Class<T> type, Config config) {
+        CodableClassInfo classInfo = getOrCreateClassInfo(type);
+        return hydrateObject(classInfo, classInfo.getPluginMap(), type, config.root()) ;
+    }
+
+    /** public facing end point */
+    public <T> T decodeObject(Config config) {
+        if (config.root().size() != 1) {
+            throw new IllegalArgumentException("config must have exactly one key representing the category");
+        }
+        String category = config.root().keySet().iterator().next();
+        PluginMap pluginMap = pluginRegistry.asMap().get(category);
+        if (pluginMap == null) {
+            throw new IllegalArgumentException("top level key must be a valid category");
+        }
+        return hydrateObject(pluginMap, config.root());
     }
 
     /** called when the expected type hasn't been inspected yet */
@@ -155,32 +171,33 @@ public final class CodecConfig {
 
     /** called when the expected type is a non-standard object */
     private <T> T hydrateCustom(Class<T> type, ConfigValue configValue) {
-        CodableClassInfo classInfo = getOrCreateClassInfo(type);
+        CodableClassInfo info = getOrCreateClassInfo(type);
+        PluginMap pluginMap = info.getPluginMap();
 
         // config is "unexpectedly" a list; if the base class has registered a handler, use it
         if (configValue.valueType() == ConfigValueType.LIST) {
-            Class<?> arrarySugar = classInfo.getArraySugar();
+            Class<?> arrarySugar = pluginMap.arraySugar();
             if (arrarySugar != null) {
-                classInfo = getOrCreateClassInfo(arrarySugar);
-                for (CodableFieldInfo fieldInfo : classInfo.values()) {
-                    if (fieldInfo.isArray() && (fieldInfo.getType() == type)) {
-                        configValue = configValue.atKey(fieldInfo.getName()).root();
-                        type = (Class<T>) arrarySugar;
-                        break;
-                    }
-                }
-                if (configValue instanceof JSONArray) {
-                    log.warn("failed to find an appropriate array field for class marked as array" +
-                             "sugar: {}", arrarySugar);
-                }
+                // plugin map assumed to be the same (not enforced atm)
+                info = null;
+                configValue = configValue.atKey(pluginMap.arrayField()).root();
+                type = (Class<T>) arrarySugar;
             }
         }
-        return hydrateObject(classInfo, type, (ConfigObject) configValue);
+        return hydrateObject(info, pluginMap, type, (ConfigObject) configValue);
     }
 
     /** called when the expected type is a non-standard object */
-    private <T> T hydrateObject(CodableClassInfo classInfo, Class<T> type, ConfigObject configObject) {
-        String classField = classInfo.getClassField();
+    private <T> T hydrateObject(PluginMap pluginMap, ConfigObject configObject) {
+        return hydrateObject(null, pluginMap, null, configObject);
+    }
+
+    /** called when the expected type is a non-standard object */
+    private <T> T hydrateObject(@Nullable CodableClassInfo info,
+                                PluginMap pluginMap,
+                                @Nullable Class<T> type,
+                                ConfigObject configObject) {
+        String classField = pluginMap.classField();
         ConfigValue typeValue = configObject.get(classField);
         String stype = null;
         if ((typeValue != null) && (typeValue.valueType() == ConfigValueType.STRING)) {
@@ -188,32 +205,37 @@ public final class CodecConfig {
         }
         // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
         if ((stype == null) && (configObject.size() == 1) &&
-            (Modifier.isAbstract(type.getModifiers()) ||
+            ((type == null) || Modifier.isAbstract(type.getModifiers()) ||
              Modifier.isInterface(type.getModifiers()))) {
             String sugarType = configObject.keySet().iterator().next();
             try {
-                if (classInfo.getClass(sugarType) != null) {
+                if (pluginMap.getClass(sugarType) != null) {
                     configObject = (ConfigObject) configObject.get(sugarType);
                     stype = sugarType;
                 }
             } catch (ClassNotFoundException ignored) {
             }
         }
-        Class<?> subType;
         if (stype == null) {
             // if no type field is set, then try using the default (if any)
-            subType = classInfo.getDefaultSugar();
+            if (pluginMap.defaultSugar() != null) {
+                type = (Class<T>) pluginMap.defaultSugar();
+                info = null;
+            }
         } else {
             try {
-                subType = classInfo.getClass(stype);
+                type = (Class<T>) pluginMap.getClass(stype);
                 configObject = configObject.withoutKey(classField);
+                info = null;
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
         }
-        if (subType != null) {
-            classInfo = getOrCreateClassInfo(subType);
-            type = (Class<T>) subType;
+        if (type == null) {
+            throw new IllegalArgumentException("expected type must either be a valid pluggable or concrete class");
+        }
+        if (info == null) {
+            info = getOrCreateClassInfo(type);
         }
         try {
             T objectShell = type.newInstance();
@@ -224,7 +246,7 @@ public final class CodecConfig {
             } catch (ConfigException logged) {
                 log.debug("failed to get defaults for {}", className, logged);
             }
-            populateObjectFields(classInfo, objectShell, objectConfig);
+            populateObjectFields(info, objectShell, objectConfig);
             return objectShell;
         } catch (InstantiationException | IllegalAccessException ex) {
             throw new RuntimeException(ex);
@@ -421,9 +443,7 @@ public final class CodecConfig {
             if (field.isWriteOnly()) {
                 continue;
             }
-
             Object value = hydrateField(field, config);
-
             field.set(objectShell, value);
         }
         if (objectShell instanceof SuperCodable) {

@@ -15,12 +15,15 @@ package com.addthis.codec.plugins;
 
 import javax.annotation.Nullable;
 
+import java.lang.reflect.Field;
+
 import java.util.Iterator;
 import java.util.Set;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Maps;
 
 import com.typesafe.config.Config;
@@ -32,6 +35,8 @@ public class PluginMap {
 
     private static final Logger log = LoggerFactory.getLogger(PluginMap.class);
 
+    public static final PluginMap EMPTY = new PluginMap();
+
     private final BiMap<String, Class<?>> map;
 
     private final String category;
@@ -39,6 +44,7 @@ public class PluginMap {
 
     @Nullable private final Class<?>       defaultSugar;
     @Nullable private final Class<?>       arraySugar;
+    @Nullable private final String         arrayField;
     @Nullable private final PluginRegistry typoRegistry;
 
     public PluginMap(String category, Config config) {
@@ -47,9 +53,9 @@ public class PluginMap {
 
     public PluginMap(String category, Config config, @Nullable PluginRegistry registry) {
         this.category = category;
-        classField           = config.getString("_field");
+        classField = config.getString("_field");
         boolean errorMissing = config.getBoolean("_strict");
-        Set<String> labels   = config.root().keySet();
+        Set<String> labels = config.root().keySet();
         BiMap<String, Class<?>> mutableMap = HashBiMap.create(labels.size());
         for (String label : labels) {
             if (label.charAt(0) == '_') {
@@ -71,9 +77,16 @@ public class PluginMap {
         map = Maps.unmodifiableBiMap(mutableMap);
         if (config.hasPath("_array")) {
             String arraySugarName = config.getString("_array");
-            arraySugar = map.get(arraySugarName);
+            Class<?> configuredArraySugar = map.get(arraySugarName);
+            arrayField = searchArraySugarFieldName(configuredArraySugar);
+            if (arrayField != null) {
+                arraySugar = configuredArraySugar;
+            } else {
+                arraySugar = null;
+            }
         } else {
             arraySugar = null;
+            arrayField = null;
         }
         if (config.hasPath("_default")) {
             String defaultName = config.getString("_default");
@@ -82,6 +95,16 @@ public class PluginMap {
             defaultSugar = null;
         }
         this.typoRegistry = registry;
+    }
+
+    private PluginMap() {
+        map = ImmutableBiMap.of();
+        classField = "class";
+        category = "unknown";
+        defaultSugar = null;
+        arraySugar = null;
+        arrayField = null;
+        typoRegistry = null;
     }
 
     /** A thread safe, immutable bi-map view of this plugin map. */
@@ -99,6 +122,10 @@ public class PluginMap {
 
     @Nullable public Class<?> arraySugar() {
         return arraySugar;
+    }
+
+    @Nullable public String arrayField() {
+        return arrayField;
     }
 
     @Nullable public Class<?> defaultSugar() {
@@ -182,5 +209,22 @@ public class PluginMap {
                       .add("typoRegistry", typoRegistry)
                       .add("map", map)
                       .toString();
+    }
+
+    private static String searchArraySugarFieldName(Class<?> arraySugar) {
+        Class<?> clazzptr = arraySugar;
+        while (clazzptr != null) {
+            for (Field field : clazzptr.getDeclaredFields()) {
+                Class<?> fieldType = field.getType();
+                if (fieldType.isArray()
+                    && fieldType.getComponentType().isAssignableFrom(arraySugar)) {
+                    return field.getName();
+                }
+            }
+            clazzptr = clazzptr.getSuperclass();
+        }
+        log.warn("failed to find an appropriate array field for class marked as array" +
+                 "sugar: {}", arraySugar);
+        return null;
     }
 }

@@ -38,11 +38,16 @@ import com.addthis.codec.plugins.PluginRegistry;
 
 import com.google.common.collect.ImmutableSortedMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @SuppressWarnings("serial")
 public final class CodableClassInfo {
 
+    private static final Logger log = LoggerFactory.getLogger(CodableClassInfo.class);
+
     private final Class<?>  baseClass;
-    private final PluginMap classMap;
+    private final PluginMap pluginMap;
 
     private final ImmutableSortedMap<String, CodableFieldInfo> classData;
 
@@ -51,43 +56,31 @@ public final class CodableClassInfo {
     }
 
     public PluginMap getPluginMap() {
-        return classMap;
+        return pluginMap;
     }
 
     @Nullable public Class<?> getArraySugar() {
-        if (classMap != null) {
-            return classMap.arraySugar();
-        } else {
-            return null;
-        }
+        return pluginMap.arraySugar();
     }
 
     @Nullable public Class<?> getDefaultSugar() {
-        if (classMap != null) {
-            return classMap.defaultSugar();
-        } else {
-            return null;
-        }
+        return pluginMap.defaultSugar();
     }
 
     public String getClassField() {
-        if (classMap != null) {
-            return classMap.classField();
-        } else {
-            return "class";
-        }
+        return pluginMap.classField();
     }
 
     public String getClassName(Object val) {
-        if ((classMap != null) && (val.getClass() != baseClass)) {
-            return classMap.getClassName(val.getClass());
+        if ((baseClass != null) && (val.getClass() != baseClass)) {
+            return pluginMap.getClassName(val.getClass());
         } else {
             return null;
         }
     }
 
     public Class<?> getClass(String name) throws ClassNotFoundException {
-        return classMap != null ? classMap.getClass(name) : null;
+        return pluginMap.getClass(name);
     }
 
     public CodableClassInfo(Class<?> clazz) {
@@ -102,12 +95,12 @@ public final class CodableClassInfo {
             classData = ImmutableSortedMap.<String, CodableFieldInfo>naturalOrder()
                                           .putAll(buildClassData).build();
             baseClass = null;
-            classMap = null;
+            pluginMap = PluginMap.EMPTY;
             return;
         }
 
         Class<?> findBaseClass = clazz;
-        PluginMap findPluginMap = null;
+        PluginMap findPluginMap = PluginMap.EMPTY;
 
         // get class annotations
         Class<?> ptr = clazz;
@@ -119,6 +112,9 @@ public final class CodableClassInfo {
                 if (findPluginMap != null) {
                     findBaseClass = ptr;
                     break;
+                } else {
+                    log.warn("missing plugin map for {}, reached from {}", ptr, clazz);
+                    findPluginMap = PluginMap.EMPTY;
                 }
             }
             ptr = ptr.getSuperclass();
@@ -169,7 +165,7 @@ public final class CodableClassInfo {
                 <String, CodableFieldInfo>naturalOrder().
                 putAll(buildClassData).build();
         baseClass = findBaseClass;
-        classMap = findPluginMap;
+        pluginMap = findPluginMap;
     }
 
     public int size() {

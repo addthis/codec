@@ -303,21 +303,12 @@ public final class CodecJSON extends Codec {
         if (json instanceof JSONArray) {
             Class<?> arrarySugar = classInfo.getArraySugar();
             if (arrarySugar != null) {
+                LineNumberInfo infoCopy = ((JSONArray) json).getMyLineNumberInfo();
+                JSONObject magicWrapper = new JSONObject();
+                magicWrapper.put(classInfo.getPluginMap().arrayField(), json, infoCopy, infoCopy);
                 classInfo = Fields.getClassFieldMap(arrarySugar);
-                for (CodableFieldInfo fieldInfo : classInfo.values()) {
-                    if (fieldInfo.isArray() && (fieldInfo.getType() == type)) {
-                        LineNumberInfo infoCopy = ((JSONArray) json).getMyLineNumberInfo();
-                        JSONObject magicWrapper = new JSONObject();
-                        magicWrapper.put(fieldInfo.getName(), json, infoCopy, infoCopy);
-                        json = magicWrapper;
-                        type = (Class<T>) arrarySugar;
-                        break;
-                    }
-                }
-                if (json instanceof JSONArray) {
-                    log.warn("failed to find an appropriate array field for class marked as array" +
-                             "sugar: {}", arrarySugar);
-                }
+                json = magicWrapper;
+                type = (Class<T>) arrarySugar;
             }
         }
         if (!(json instanceof JSONObject)) {

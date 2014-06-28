@@ -27,7 +27,7 @@ import com.typesafe.config.ConfigValueFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class CodecConfigTest {
+public class CodecConfigComponentTest {
 
     @Test
     public void hydrateNumber() throws Exception {

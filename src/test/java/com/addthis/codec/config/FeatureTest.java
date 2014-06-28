@@ -11,13 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.plugins;
+package com.addthis.codec.config;
 
-public class SimpleGreet implements Greeter {
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
-    public String suffix;
+import org.junit.Test;
 
-    @Override public String greet() {
-        return "Hello World";
+public class FeatureTest {
+
+    @Test
+    public void hydraGreeter() throws Exception {
+        Config mapHolder = ConfigFactory.parseString("map { a: 1, b: 2, c: 14 }");
     }
 }
