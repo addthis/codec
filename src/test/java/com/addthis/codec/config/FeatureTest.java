@@ -47,4 +47,12 @@ public class FeatureTest {
         String expected = "Hello World! Where are all my friends?";
         Assert.assertEquals(expected, greeterObject.greet());
     }
+
+    @Test
+    public void autoCollection() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.list {}");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello World! Where are all my friends?";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
 }

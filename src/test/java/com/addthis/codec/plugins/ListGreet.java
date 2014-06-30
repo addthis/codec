@@ -13,12 +13,14 @@
  */
 package com.addthis.codec.plugins;
 
+import java.util.ArrayList;
+
 import com.addthis.codec.annotations.FieldConfig;
 
-public class CrowdGreet implements Greeter {
+public class ListGreet implements Greeter {
 
     @FieldConfig(autocollection = true)
-    public Greeter[] crowd;
+    public ArrayList<Greeter> crowd;
 
     @Override
     public String greet() {

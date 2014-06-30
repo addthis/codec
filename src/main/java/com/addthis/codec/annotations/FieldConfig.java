@@ -40,7 +40,7 @@ public @interface FieldConfig {
 
     boolean intern() default false;
 
-    boolean autoarray() default false;
+    boolean autocollection() default false;
 
     Class<? extends Validator> validator() default Validator.class;
 }

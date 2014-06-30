@@ -259,7 +259,7 @@ public final class CodableFieldInfo {
     }
 
     public boolean autoArrayEnabled() {
-        return (fieldConfig != null) && fieldConfig.autoarray();
+        return (fieldConfig != null) && fieldConfig.autocollection();
     }
 
     public boolean isArray() {

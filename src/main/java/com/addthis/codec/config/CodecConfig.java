@@ -436,9 +436,9 @@ public final class CodecConfig {
     }
 
     Collection hydrateCollection(CodableFieldInfo field, Config config) {
-        Collection col;
+        Collection<Object> col;
         try {
-            col = (Collection) field.getType().newInstance();
+            col = (Collection<Object>) field.getType().newInstance();
         } catch (Exception ex) {
             throw new ConfigException.BadValue(config.origin(), field.getName(),
                                                "failed to get a concrete, working class", ex);
@@ -446,13 +446,21 @@ public final class CodecConfig {
         Class vc = field.getCollectionClass();
         boolean ar = field.isCollectionArray();
         if (!ar) {
-            Object[] asArray = (Object[]) hydrateArray(vc, field.getName(), config);
-            Collections.addAll(col, asArray);
+            // check for autocollection wrapping
+            ConfigValueType configValueType = config.root().get(field.getName()).valueType();
+            if ((configValueType != ConfigValueType.LIST) && field.autoArrayEnabled()) {
+                Object singleObject = hydrateField(vc, field.getName(), config);
+                col.add(singleObject);
+            } else {
+                Object asArray = hydrateArray(vc, field.getName(), config);
+                Collections.addAll(col, asArray);
+            }
         } else {
+            // autocollection is a little ambiguous for nested lists, so just don't support
             ConfigList configValues = config.getList(field.getName());
             for (ConfigValue configValue : configValues) {
                 Config arrayContainer = configValue.atKey("array");
-                Object[] arrayValue = (Object[]) hydrateArray(vc, "array", arrayContainer);
+                Object arrayValue = hydrateArray(vc, "array", arrayContainer);
                 col.add(arrayValue);
             }
         }
