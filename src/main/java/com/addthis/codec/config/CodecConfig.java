@@ -29,12 +29,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.addthis.codec.annotations.Bytes;
+import com.addthis.codec.annotations.Time;
 import com.addthis.codec.codables.SuperCodable;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.RequiredFieldException;
+
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Shorts;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -125,7 +130,7 @@ public final class CodecConfig {
             return new AtomicBoolean(config.getBoolean(fieldName));
         } else if (Number.class.isAssignableFrom(expectedType) || expectedType.isPrimitive()) {
             // primitive numeric types are not subclasses of Number, so just catch all non-booleans
-            return hydrateNumber(expectedType, fieldName, config);
+            return hydrateNumber(field, expectedType, fieldName, config);
         } else if (expectedType.isEnum()) {
             return Enum.valueOf((Class<? extends Enum>) expectedType,
                                 config.getString(fieldName).toUpperCase());
@@ -160,9 +165,45 @@ public final class CodecConfig {
 
     /** called when the expected type is a number */
     @SuppressWarnings("MethodMayBeStatic")
+    Object hydrateNumber(CodableFieldInfo fieldInfo, Class<?> type, String fieldName, Config config) {
+        // handle floating points
+        if ((type == Float.class) || (type == float.class)) {
+            return config.getNumber(fieldName).floatValue();
+        } else if ((type == Double.class) || (type == double.class)) {
+            return config.getDouble(fieldName);
+        }
+
+        Time time = fieldInfo.getField().getAnnotation(Time.class);
+        Long asLong;
+        if (time != null) {
+            asLong = config.getDuration(fieldName, time.value());
+        } else if (fieldInfo.getField().getAnnotation(Bytes.class) != null) {
+            asLong = config.getBytes(fieldName);
+        } else {
+            asLong = config.getLong(fieldName);
+        }
+
+        if ((type == Short.class) || (type == short.class)) {
+            return Shorts.checkedCast(asLong);
+        } else if ((type == Integer.class) || (type == int.class)) {
+            return Ints.checkedCast(asLong);
+        } else if ((type == Long.class) || (type == long.class)) {
+            return asLong;
+        } else if (type == AtomicInteger.class) {
+            return new AtomicInteger(Ints.checkedCast(asLong));
+        } else if (type == AtomicLong.class) {
+            return new AtomicLong(asLong);
+        } else {
+            throw new ConfigException.BadValue(config.origin(), fieldName,
+                                               "unsupported numeric or primitive type");
+        }
+    }
+
+    /** called when the expected type is a number */
+    @SuppressWarnings("MethodMayBeStatic")
     Object hydrateNumber(Class<?> type, String fieldName, Config config) {
         if ((type == Short.class) || (type == short.class)) {
-            return config.getNumber(fieldName).shortValue();
+            return Shorts.checkedCast(config.getLong(fieldName));
         } else if ((type == Integer.class) || (type == int.class)) {
             return config.getInt(fieldName);
         } else if ((type == Long.class) || (type == long.class)) {
@@ -329,7 +370,7 @@ public final class CodecConfig {
             Short[] shorts = new Short[integerList.size()];
             int index = 0;
             for (Integer integer : integerList) {
-                shorts[index++] = integer.shortValue();
+                shorts[index++] = Shorts.checkedCast(integer);
             }
             return shorts;
         } else if (type == short.class) {
@@ -337,7 +378,7 @@ public final class CodecConfig {
             short[] shorts = new short[integerList.size()];
             int index = 0;
             for (Integer integer : integerList) {
-                shorts[index++] = integer.shortValue();
+                shorts[index++] = Shorts.checkedCast(integer);
             }
             return shorts;
         } else if (type == Integer.class) {

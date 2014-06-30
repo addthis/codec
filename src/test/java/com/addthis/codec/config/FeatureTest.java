@@ -55,4 +55,12 @@ public class FeatureTest {
         String expected = "Hello World! Where are all my friends?";
         Assert.assertEquals(expected, greeterObject.greet());
     }
+
+    @Test
+    public void bytesAndTime() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.parse {bytes: 1G, millis: 5s}");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "bytes: 1073741824 millis: 5000";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
 }
