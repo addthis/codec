@@ -68,8 +68,7 @@ public class FeatureTest {
     public void enums() throws Exception {
         Config greet = ConfigFactory.parseString("greet.enum {timeUnit: [milliseconds, hours]}");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
-        System.out.println(greeterObject.greet());
-//        String expected = "bytes: 1073741824 millis: 5000";
-//        Assert.assertEquals(expected, greeterObject.greet());
+        String expected = "[MILLISECONDS, HOURS]";
+        Assert.assertEquals(expected, greeterObject.greet());
     }
 }
