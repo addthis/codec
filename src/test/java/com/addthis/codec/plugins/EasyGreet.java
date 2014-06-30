@@ -11,14 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.validation;
+package com.addthis.codec.plugins;
 
-import com.addthis.codec.reflection.CodableFieldInfo;
+public class EasyGreet implements Greeter {
 
-public class Truthinator implements Validator {
-
-    @Override
-    public boolean validate(CodableFieldInfo field, Object value) {
-        return true;
+    @Override public String greet() {
+        return "yoyoyo";
     }
 }

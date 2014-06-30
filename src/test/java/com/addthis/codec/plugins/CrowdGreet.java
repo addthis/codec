@@ -11,11 +11,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.annotations;
+package com.addthis.codec.plugins;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import com.addthis.codec.annotations.FieldConfig;
 
-/** marker annotation suggesting this class is an array-wrapper over its fellows */
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ArraySugar {}
+public class CrowdGreet implements Greeter {
+
+    @FieldConfig(autoarray = true)
+    public Greeter[] crowd;
+
+    @Override
+    public String greet() {
+        StringBuilder greetAThon = new StringBuilder();
+        for (Greeter greeter : crowd) {
+            greetAThon.append(greeter.greet());
+        }
+        return greetAThon.toString();
+    }
+}

@@ -11,14 +11,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.validation;
+package com.addthis.codec.annotations;
 
-import com.addthis.codec.reflection.CodableFieldInfo;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class Truthinator implements Validator {
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface Pluggable {
 
-    @Override
-    public boolean validate(CodableFieldInfo field, Object value) {
-        return true;
-    }
+    String value();
 }

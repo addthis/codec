@@ -11,14 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.validation;
+package com.addthis.codec.config;
 
-import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.plugins.PluginRegistry;
 
-public class Truthinator implements Validator {
+import com.typesafe.config.ConfigFactory;
 
-    @Override
-    public boolean validate(CodableFieldInfo field, Object value) {
-        return true;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+final class DefaultCodecConfig {
+
+    private static final Logger      log;
+    static final         CodecConfig DEFAULT;
+
+    static {
+        log = LoggerFactory.getLogger(DefaultCodecConfig.class);
+        DEFAULT = new CodecConfig(ConfigFactory.load(), PluginRegistry.defaultRegistry());
+        log.debug("initialized default codec config {}", DEFAULT);
     }
 }

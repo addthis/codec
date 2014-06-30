@@ -13,7 +13,9 @@
  */
 package com.addthis.codec.reflection;
 
-import java.lang.annotation.Annotation;
+import javax.annotation.Nullable;
+
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -29,130 +31,115 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import com.addthis.codec.plugins.ClassMap;
-import com.addthis.codec.plugins.ClassMapFactory;
-import com.addthis.codec.codables.Codable;
-import com.addthis.codec.annotations.Field;
-import com.addthis.codec.validation.Validator;
+import com.addthis.codec.annotations.FieldConfig;
+import com.addthis.codec.annotations.Pluggable;
+import com.addthis.codec.plugins.PluginMap;
+import com.addthis.codec.plugins.PluginRegistry;
 
 import com.google.common.collect.ImmutableSortedMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
 public final class CodableClassInfo {
 
-    private final Class<?> baseClass;
-    private final ClassMap classMap;
+    private static final Logger log = LoggerFactory.getLogger(CodableClassInfo.class);
+
+    private final Class<?>  baseClass;
+    private final PluginMap pluginMap;
+
     private final ImmutableSortedMap<String, CodableFieldInfo> classData;
 
     public Class<?> getBaseClass() {
         return baseClass;
     }
 
-    public ClassMap getClassMap() {
-        return classMap;
+    public PluginMap getPluginMap() {
+        return pluginMap;
     }
 
-    public Class<?> getArraySugar() {
-        return (classMap != null) ? classMap.getArraySugar() : null;
+    @Nullable public Class<?> getArraySugar() {
+        return pluginMap.arraySugar();
+    }
+
+    @Nullable public Class<?> getDefaultSugar() {
+        return pluginMap.defaultSugar();
     }
 
     public String getClassField() {
-        return classMap != null ? classMap.getClassField() : "class";
+        return pluginMap.classField();
     }
 
     public String getClassName(Object val) {
-        if (classMap != null && val.getClass() != baseClass) {
-            return classMap.getClassName(val.getClass());
+        if ((baseClass != null) && (val.getClass() != baseClass)) {
+            return pluginMap.getClassName(val.getClass());
         } else {
             return null;
         }
     }
 
-    public Class<?> getClass(String name) throws Exception {
-        return classMap != null ? classMap.getClass(name) : null;
+    public Class<?> getClass(String name) throws ClassNotFoundException {
+        return pluginMap.getClass(name);
     }
 
     public CodableClassInfo(Class<?> clazz) {
-        SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<String, CodableFieldInfo>();
+        this(clazz, PluginRegistry.defaultRegistry());
+    }
+
+    public CodableClassInfo(Class<?> clazz, PluginRegistry pluginRegistry) {
+        SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
 
         // skip native classes
         if (Fields.isNative(clazz)) {
-            classData = ImmutableSortedMap.
-                    <String, CodableFieldInfo>naturalOrder().
-                    putAll(buildClassData).build();
+            classData = ImmutableSortedMap.<String, CodableFieldInfo>naturalOrder()
+                                          .putAll(buildClassData).build();
             baseClass = null;
-            classMap = null;
+            pluginMap = PluginMap.EMPTY;
             return;
         }
 
         Class<?> findBaseClass = clazz;
-        ClassMap findClassMap = null;
+        PluginMap findPluginMap = PluginMap.EMPTY;
 
         // get class annotations
         Class<?> ptr = clazz;
         while (ptr != null) {
-            Annotation classpolicy = ptr.getAnnotation(Field.class);
-            if (classpolicy != null) {
-                Class<? extends ClassMapFactory> cmf = ((Field) classpolicy).classMapFactory();
-                if (cmf != null && cmf != ClassMapFactory.class) {
-                    try {
-                        findClassMap = cmf.newInstance().getClassMap();
-                        findBaseClass = ptr;
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                Class<? extends ClassMap> cm = ((Field) classpolicy).classMap();
-                if (cm != null) {
-                    try {
-                        findClassMap = cm.newInstance();
-                        findBaseClass = ptr;
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+            Pluggable pluggable = ptr.getAnnotation(Pluggable.class);
+            if (pluggable != null) {
+                String category = pluggable.value();
+                findPluginMap = pluginRegistry.asMap().get(category);
+                if (findPluginMap != null) {
+                    findBaseClass = ptr;
+                    break;
+                } else {
+                    log.warn("missing plugin map for {}, reached from {}", ptr, clazz);
+                    findPluginMap = PluginMap.EMPTY;
                 }
             }
             ptr = ptr.getSuperclass();
         }
-        HashMap<String, java.lang.reflect.Field> fields = new HashMap<String, java.lang.reflect.Field>();
+        Map<String, Field> fields = new HashMap<>();
         Class<?> clazzptr = clazz;
         while (clazzptr != null) {
-            for (java.lang.reflect.Field field : clazzptr.getDeclaredFields()) {
+            for (Field field : clazzptr.getDeclaredFields()) {
                 if (fields.get(field.getName()) == null) {
                     fields.put(field.getName(), field);
                 }
             }
             clazzptr = clazzptr.getSuperclass();
         }
-        for (java.lang.reflect.Field field : fields.values()) {
+        for (Field field : fields.values()) {
             int mod = field.getModifiers();
-            boolean store = ((mod & Modifier.FINAL) == 0 && (mod & Modifier.PUBLIC) != 0);
-            boolean codable = false;
-            boolean readonly = false;
-            boolean writeonly = false;
-            boolean required = false;
-            boolean intern = false;
-            Class<? extends Validator> validator = null;
+            boolean store = ((mod & Modifier.FINAL) == 0) && ((mod & Modifier.PUBLIC) != 0);
             // extract annotations
-            Annotation policy = field.getAnnotation(Field.class);
-            if (policy != null) {
-                Field fieldPolicy = (Field) policy;
-                codable = fieldPolicy.codable();
-                readonly = fieldPolicy.readonly();
-                writeonly = fieldPolicy.writeonly();
-                required = fieldPolicy.required();
-                intern = fieldPolicy.intern();
-                validator = fieldPolicy.validator();
+            FieldConfig fieldConfigPolicy = field.getAnnotation(FieldConfig.class);
+            if (fieldConfigPolicy != null) {
                 field.setAccessible(true);
-                if (!codable) {
-                    continue;
-                }
+                store |= fieldConfigPolicy.codable();
             }
-            // field must be public and non-final or annotated with a store
-            // policy
-            if (!(store || codable)) {
+            // field must be public and non-final or annotated with a store policy
+            if (!store) {
                 continue;
             }
             Class<?> type = field.getType();
@@ -163,50 +150,11 @@ public final class CodableClassInfo {
                     System.out.println("!! null array type for " + field + " !!");
                 }
             }
-            CodableFieldInfo info = new CodableFieldInfo();
-            info.setField(field);
+            CodableFieldInfo info = new CodableFieldInfo(field, type, fieldConfigPolicy);
             // extract info bits
             if (array) {
                 info.updateBits(CodableFieldInfo.ARRAY);
             }
-            if (readonly) {
-                info.updateBits(CodableFieldInfo.READONLY);
-            }
-            if (writeonly) {
-                info.updateBits(CodableFieldInfo.WRITEONLY);
-            }
-            if (codable || Codable.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.CODABLE);
-            }
-            if (Collection.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.COLLECTION);
-            }
-            if (Map.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.MAP);
-            }
-            if (type.isEnum()) {
-                info.updateBits(CodableFieldInfo.ENUM);
-            }
-            if (Number.class.isAssignableFrom(type)) {
-                info.updateBits(CodableFieldInfo.NUMBER);
-            }
-            if (Fields.isNative(type)) {
-                info.updateBits(CodableFieldInfo.NATIVE);
-            }
-            if (required) {
-                info.updateBits(CodableFieldInfo.REQUIRED);
-            }
-            if (intern) {
-                info.updateBits(CodableFieldInfo.INTERN);
-            }
-            if (validator != null) {
-                try {
-                    info.setValidator(validator.newInstance());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            info.setType(type);
             // extract generics info
             if (!Fields.isNative(type)) {
                 info.setGenericTypes(collectTypes(type, field.getGenericType()));
@@ -217,7 +165,7 @@ public final class CodableClassInfo {
                 <String, CodableFieldInfo>naturalOrder().
                 putAll(buildClassData).build();
         baseClass = findBaseClass;
-        classMap = findClassMap;
+        pluginMap = findPluginMap;
     }
 
     public int size() {
@@ -247,7 +195,7 @@ public final class CodableClassInfo {
         if (l.size() == 0) {
             return null;
         } else {
-            Type t[] = new Type[l.size()];
+            Type[] t = new Type[l.size()];
             l.toArray(t);
             return t;
         }

@@ -14,7 +14,7 @@
 package com.addthis.codec.reflection;
 
 @SuppressWarnings("serial")
-public class PolicyException extends Exception {
+public class PolicyException extends RuntimeException {
 
     public PolicyException(String msg) {
         super(msg);

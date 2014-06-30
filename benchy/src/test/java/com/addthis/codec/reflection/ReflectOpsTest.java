@@ -11,9 +11,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec.plugins;
+package com.addthis.codec.reflection;
 
-public interface ClassMapFactory {
+import org.junit.Test;
 
-    public ClassMap getClassMap();
+public class ReflectOpsTest {
+
+    @Test
+    public void testMakeTypeObjects() throws Exception {
+        new ReflectOps().makeTypeObjects();
+    }
 }

@@ -1,6 +1,7 @@
 package com.addthis.codec.reflection;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /*
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class Fields {
     private Fields() {}
 
-    private static final ConcurrentHashMap<Class<?>, CodableClassInfo> fieldMaps =
+    private static final ConcurrentMap<Class<?>, CodableClassInfo> fieldMaps =
             new ConcurrentHashMap<>();
 
     public static CodableClassInfo getClassFieldMap(Class<?> clazz) {

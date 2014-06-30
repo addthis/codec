@@ -19,12 +19,11 @@ import java.util.List;
 
 import com.addthis.basis.util.Bytes;
 
-import com.addthis.codec.annotations.Field;
+import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.binary.CodecBin2;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.kv.CodecKV;
-import com.addthis.codec.plugins.ClassMap;
 
 import com.google.common.collect.Lists;
 
@@ -59,7 +58,7 @@ public class CodecObjectSubclassTest {
         }
     }
 
-    @Field(classMap = BundleMap.class)
+    @Pluggable("bundle")
     public static class A implements Codable {
 
         public String field1 = "unset1";
@@ -108,18 +107,6 @@ public class CodecObjectSubclassTest {
             list4.add(new B().set());
             list4.add(new C().set());
             return this;
-        }
-    }
-
-    public static class BundleMap extends ClassMap {
-
-        public BundleMap() {
-            add(A.class).add(B.class).add(C.class).add(D.class);
-        }
-
-        @Override
-        public String getClassField() {
-            return "type";
         }
     }
 
