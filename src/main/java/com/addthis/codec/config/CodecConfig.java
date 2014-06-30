@@ -326,7 +326,7 @@ public final class CodecConfig {
             return config.getStringList(fieldName).toArray();
         } else if (componentType.isEnum()) {
             List<String> nameList = config.getStringList(fieldName);
-            Enum[] enums = new Enum[nameList.size()];
+            Enum[] enums = (Enum[]) Array.newInstance(componentType, nameList.size());
             int index = 0;
             for (String name : nameList) {
                 enums[index++] = Enum.valueOf((Class<? extends Enum>) componentType,
@@ -493,7 +493,8 @@ public final class CodecConfig {
                 Object singleObject = hydrateField(vc, field.getName(), config);
                 col.add(singleObject);
             } else {
-                Object asArray = hydrateArray(vc, field.getName(), config);
+                // safe to cast to Object[] since cannot have collections of primitives
+                Object[] asArray = (Object[]) hydrateArray(vc, field.getName(), config);
                 Collections.addAll(col, asArray);
             }
         } else {
