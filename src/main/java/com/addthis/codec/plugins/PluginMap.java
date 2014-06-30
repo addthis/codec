@@ -27,6 +27,9 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Maps;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +64,12 @@ public class PluginMap {
             if (label.charAt(0) == '_') {
                 continue;
             }
-            String value = config.getString(label);
+            ConfigValue configValue = config.root().get(label);
+            if (configValue.valueType() != ConfigValueType.STRING) {
+                throw new ConfigException.WrongType(configValue.origin(), label,
+                                                    "STRING", configValue.valueType().toString());
+            }
+            String value = (String) configValue.unwrapped();
             try {
                 Class<?> classValue = Class.forName(value);
                 mutableMap.put(label, classValue);
