@@ -45,6 +45,7 @@ public class PluginMap {
     private final String category;
     private final String classField;
 
+    @Nullable private final Class<?>       baseClass;
     @Nullable private final Class<?>       defaultSugar;
     @Nullable private final Class<?>       arraySugar;
     @Nullable private final String         arrayField;
@@ -58,6 +59,18 @@ public class PluginMap {
         this.category = category;
         classField = config.getString("_field");
         boolean errorMissing = config.getBoolean("_strict");
+        if (config.hasPath("_class")) {
+            String baseClassName = config.getString("_class");
+            try {
+                baseClass = Class.forName(baseClassName);
+            } catch (ClassNotFoundException e) {
+                log.error("could not find specified base class {} for category {}",
+                          baseClassName, category);
+                throw new RuntimeException(e);
+            }
+        } else {
+            baseClass = null;
+        }
         Set<String> labels = config.root().keySet();
         BiMap<String, Class<?>> mutableMap = HashBiMap.create(labels.size());
         for (String label : labels) {
@@ -69,16 +82,16 @@ public class PluginMap {
                 throw new ConfigException.WrongType(configValue.origin(), label,
                                                     "STRING", configValue.valueType().toString());
             }
-            String value = (String) configValue.unwrapped();
+            String className = (String) configValue.unwrapped();
             try {
-                Class<?> classValue = Class.forName(value);
-                mutableMap.put(label, classValue);
+                Class<?> foundClass = findAndValidateClass(className);
+                mutableMap.put(label, foundClass);
             } catch (ClassNotFoundException maybeSwallowed) {
                 if (errorMissing) {
                     throw new RuntimeException(maybeSwallowed);
                 } else {
                     log.warn("plugin category {} with alias {} is pointing to missing class {}",
-                             category, label, value);
+                             category, label, className);
                 }
             }
         }
@@ -110,6 +123,7 @@ public class PluginMap {
         classField = "class";
         category = "unknown";
         defaultSugar = null;
+        baseClass = null;
         arraySugar = null;
         arrayField = null;
         typoRegistry = null;
@@ -140,6 +154,10 @@ public class PluginMap {
         return defaultSugar;
     }
 
+    @Nullable public Class<?> baseClass() {
+        return baseClass;
+    }
+
     public String getClassName(Class<?> type) {
         String alt = map.inverse().get(type);
         if (alt != null) {
@@ -155,10 +173,42 @@ public class PluginMap {
             return alt;
         }
         try {
-            return Class.forName(type);
+            return findAndValidateClass(type);
         } catch (ClassNotFoundException ex) {
             throw classNameSuggestions(type, ex);
         }
+    }
+
+    private Class<?> findAndValidateClass(String className)
+            throws ClassNotFoundException {
+        Class<?> classValue = null;
+        // if baseClass is defined, support shared parent package omission
+        if (baseClass != null) {
+            @Nullable String packageName = baseClass.getPackage().getName();
+            while ((packageName != null) && (classValue == null)) {
+                String packageSugaredName = packageName + '.' + className;
+                try {
+                    classValue = Class.forName(packageSugaredName);
+                } catch (ClassNotFoundException ignored) {
+                    int lastDotIndex = packageName.lastIndexOf('.');
+                    if (lastDotIndex >= 0) {
+                        packageName = packageName.substring(0, lastDotIndex);
+                    } else {
+                        packageName = null;
+                    }
+                }
+            }
+        }
+        if (classValue == null) {
+            classValue = Class.forName(className);
+        }
+        // if baseClass is defined, validate all aliased classes as being valid subtypes
+        if ((baseClass != null) && !baseClass.isAssignableFrom(classValue)) {
+            throw new ClassCastException(String.format(
+                    "plugin %s specified a base class %s and '%s: %s', is not a valid subtype",
+                    category, baseClass.getName(), classField, classValue.getName()));
+        }
+        return classValue;
     }
 
     private ClassNotFoundException classNameSuggestions(String type, ClassNotFoundException ex) {
@@ -185,7 +235,7 @@ public class PluginMap {
                     builder.append(pluginMap.category());
                     builder.append(" and I am expecting a ");
                     builder.append(category);
-                    builder.append(".");
+                    builder.append('.');
                     return new ClassNotFoundException(builder.toString(), ex);
                 }
             }
@@ -202,7 +252,7 @@ public class PluginMap {
             builder.append('"');
             builder.append(name);
             builder.append('"');
-            builder.append(" ");
+            builder.append(' ');
         }
         builder.append("?\n");
         return new ClassNotFoundException(builder.toString(), ex);
@@ -211,9 +261,11 @@ public class PluginMap {
     @Override public String toString() {
         return Objects.toStringHelper(this)
                       .add("category", category)
+                      .add("baseClass", baseClass)
                       .add("classField", classField)
                       .add("defaultSugar", defaultSugar)
                       .add("arraySugar", arraySugar)
+                      .add("arrayField", arrayField)
                       .add("typoRegistry", typoRegistry)
                       .add("map", map)
                       .toString();

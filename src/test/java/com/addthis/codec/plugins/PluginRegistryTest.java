@@ -17,6 +17,7 @@ import java.util.Map;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import org.junit.Assert;
 import org.junit.Rule;
@@ -46,4 +47,48 @@ public class PluginRegistryTest {
         PluginRegistry shouldFail = new PluginRegistry(testPluginConfig);
     }
 
+    @Test
+    public void loadWithBaseClass() {
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass");
+        PluginRegistry pluginRegistry = new PluginRegistry(testPluginConfig);
+        Map<String, PluginMap> mapping = pluginRegistry.asMap();
+        Assert.assertEquals(1, mapping.size());
+        Assert.assertEquals(2, mapping.get("greet").asBiMap().size());
+    }
+
+    @Test
+    public void loadErrorWithBaseClass() {
+        thrown.expect(isA(ClassCastException.class));
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass-bad");
+        PluginRegistry shouldFail = new PluginRegistry(testPluginConfig);
+    }
+
+    @Test
+    public void loadDynamicWithBaseClass() throws ClassNotFoundException {
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass");
+        PluginRegistry pluginRegistry = new PluginRegistry(testPluginConfig);
+        Map<String, PluginMap> mapping = pluginRegistry.asMap();
+        mapping.get("greet").getClass("EasyGreet");
+        mapping.get("greet").getClass("com.addthis.codec.plugins.ListGreet");
+        mapping.get("greet").getClass("codec.plugins.EnumGreet");
+        thrown.expect(isA(ClassCastException.class));
+        mapping.get("greet").getClass("PluginRegistryTest");
+        thrown.expectCause(isA(ClassNotFoundException.class));
+        mapping.get("greet").getClass("com.addthis.error.CrowdGreet");
+    }
+
+    @Test
+    public void loadInterestingBaseClasses() throws ClassNotFoundException {
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass");
+        testPluginConfig = testPluginConfig.withValue(
+                "plugins.greet._class",
+                ConfigValueFactory.fromAnyRef("com.addthis.codec.plugins.SimpleGreet"));
+        thrown.expect(isA(ClassCastException.class));
+        PluginRegistry shouldThrowClassCastException = new PluginRegistry(testPluginConfig);
+        testPluginConfig = testPluginConfig.withValue(
+                "plugins.greet._class",
+                ConfigValueFactory.fromAnyRef(".addthis.codec.plugins.SimpleGreet"));
+        thrown.expectCause(isA(ClassNotFoundException.class));
+        PluginRegistry shouldThrowClassNotFoundException = new PluginRegistry(testPluginConfig);
+    }
 }
