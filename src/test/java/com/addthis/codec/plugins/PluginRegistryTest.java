@@ -71,6 +71,7 @@ public class PluginRegistryTest {
         mapping.get("greet").getClass("EasyGreet");
         mapping.get("greet").getClass("com.addthis.codec.plugins.ListGreet");
         mapping.get("greet").getClass("codec.plugins.EnumGreet");
+        mapping.get("greet").getClass("other.SimpleGreet");
         thrown.expect(isA(ClassCastException.class));
         mapping.get("greet").getClass("PluginRegistryTest");
         thrown.expectCause(isA(ClassNotFoundException.class));
