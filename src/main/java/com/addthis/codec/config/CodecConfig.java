@@ -276,13 +276,17 @@ public final class CodecConfig {
             ((type == null) || Modifier.isAbstract(type.getModifiers()) ||
              Modifier.isInterface(type.getModifiers()))) {
             String sugarType = configObject.keySet().iterator().next();
+            boolean success = false;
             try {
-                if (pluginMap.getClass(sugarType) != null) {
-                    configObject = (ConfigObject) configObject.get(sugarType);
-                    stype = sugarType;
-                }
+                type = (Class<T>) pluginMap.getClass(sugarType);
+                success = true;
             } catch (ClassNotFoundException ignored) {
                 // there could still be a default, so defer throwing an exception
+            }
+            if (success) {
+                configObject = (ConfigObject) configObject.get(sugarType);
+                info = getOrCreateClassInfo(type);
+                return createAndPopulate(info, type, configObject);
             }
         }
         if (stype == null) {
