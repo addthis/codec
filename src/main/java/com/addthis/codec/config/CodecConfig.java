@@ -331,7 +331,8 @@ public final class CodecConfig {
         if ((config == null) || !config.hasPath(fieldName)) {
             return null;
         } else if (componentType.isAssignableFrom(String.class)) {
-            return config.getStringList(fieldName).toArray();
+            List<String> stringList = config.getStringList(fieldName);
+            return stringList.toArray(new String[stringList.size()]);
         } else if (componentType.isEnum()) {
             List<String> nameList = config.getStringList(fieldName);
             Enum[] enums = (Enum[]) Array.newInstance(componentType, nameList.size());

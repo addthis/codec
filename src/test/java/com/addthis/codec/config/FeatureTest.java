@@ -57,6 +57,14 @@ public class FeatureTest {
     }
 
     @Test
+    public void arraySingle() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.ArrayGreet.phrases: [\"heya\"] ");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "heya";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
     public void bytesAndTime() throws Exception {
         Config greet = ConfigFactory.parseString("greet.parse {bytes: 1G, millis: 5s}");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
