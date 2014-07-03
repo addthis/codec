@@ -113,7 +113,7 @@ public class CodableClassInfo {
                     fields.put(field.getName(), field);
                 } else {
                     classDefaults.remove(field.getName());
-                    log.debug("({}) ignoring parent class ({}) field with repeated field name ({})",
+                    log.debug("({}) ignoring field in parent class ({}) with duplicate name ({})",
                               clazz, ptrForFields, field.getName());
                 }
             }
