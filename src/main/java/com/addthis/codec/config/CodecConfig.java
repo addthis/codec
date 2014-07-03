@@ -473,14 +473,17 @@ public final class CodecConfig {
         Class vc = (Class) field.getGenericTypes()[1];
         boolean va = field.isMapValueArray();
         Config configMap = config.getConfig(field.getName());
-        for (String key : configMap.root().keySet()) {
+        for (Map.Entry<String, ConfigValue> entry : configMap.root().entrySet()) {
+            String key = entry.getKey();
             if (field.isInterned()) {
                 key = key.intern();
             }
+            // control for map keys that might have unexpected behavior when parsed as paths
+            Config fieldHolder = entry.getValue().atKey("field");
             if (va) {
-                map.put(key, hydrateArray(vc, key, configMap));
+                map.put(key, hydrateArray(vc, "field", fieldHolder));
             } else {
-                map.put(key, hydrateField(vc, key, configMap));
+                map.put(key, hydrateField(vc, "field", fieldHolder));
             }
         }
         return map;
