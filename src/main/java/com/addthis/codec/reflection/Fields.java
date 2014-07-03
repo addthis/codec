@@ -37,7 +37,7 @@ public final class Fields {
     }
 
     public static boolean isNative(Class<?> type) {
-        return type == String.class || type == AtomicBoolean.class ||
-               type == Boolean.class || type.isPrimitive() || Number.class.isAssignableFrom(type);
+        return (type == String.class) || (type == AtomicBoolean.class) ||
+               (type == Boolean.class) || type.isPrimitive() || Number.class.isAssignableFrom(type);
     }
 }

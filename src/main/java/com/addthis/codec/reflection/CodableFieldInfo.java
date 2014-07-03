@@ -135,7 +135,7 @@ public final class CodableFieldInfo {
         return genTypes;
     }
 
-    public void setGenericTypes(final Type[] genTypes) {
+    public void setGenericTypes(@Nullable final Type[] genTypes) {
         if (genTypes == null) {
             return;
         }

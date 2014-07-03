@@ -13,6 +13,8 @@
  */
 package com.addthis.codec.plugins;
 
+import javax.annotation.Nonnull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +38,7 @@ public class PluginRegistry {
         return DefaultRegistry.DEFAULT;
     }
 
-    private final Map<String, PluginMap> pluginMaps;
+    @Nonnull private final Map<String, PluginMap> pluginMaps;
 
     public PluginRegistry(Config config) {
         Config defaultPluginMapSettings = config.getConfig(PLUGIN_DEFAULTS_PATH);

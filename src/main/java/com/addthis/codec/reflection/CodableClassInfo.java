@@ -13,6 +13,7 @@
  */
 package com.addthis.codec.reflection;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.lang.reflect.Field;
@@ -24,8 +25,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -38,71 +39,43 @@ import com.addthis.codec.plugins.PluginRegistry;
 
 import com.google.common.collect.ImmutableSortedMap;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
-public final class CodableClassInfo {
-
+public class CodableClassInfo {
     private static final Logger log = LoggerFactory.getLogger(CodableClassInfo.class);
 
-    private final Class<?>  baseClass;
-    private final PluginMap pluginMap;
+    @Nonnull private final Class<?>     baseClass;
+    @Nonnull private final PluginMap    pluginMap;
+    @Nonnull private final Config       fieldDefaults;
+    @Nonnull private final ImmutableSortedMap<String, CodableFieldInfo> classData;
 
-    private final ImmutableSortedMap<String, CodableFieldInfo> classData;
-
-    public Class<?> getBaseClass() {
-        return baseClass;
+    public CodableClassInfo(@Nonnull Class<?> clazz) {
+        this(clazz, ConfigFactory.load(), PluginRegistry.defaultRegistry());
     }
 
-    public PluginMap getPluginMap() {
-        return pluginMap;
-    }
-
-    @Nullable public Class<?> getArraySugar() {
-        return pluginMap.arraySugar();
-    }
-
-    @Nullable public Class<?> getDefaultSugar() {
-        return pluginMap.defaultSugar();
-    }
-
-    public String getClassField() {
-        return pluginMap.classField();
-    }
-
-    public String getClassName(Object val) {
-        if ((baseClass != null) && (val.getClass() != baseClass)) {
-            return pluginMap.getClassName(val.getClass());
-        } else {
-            return null;
-        }
-    }
-
-    public Class<?> getClass(String name) throws ClassNotFoundException {
-        return pluginMap.getClass(name);
-    }
-
-    public CodableClassInfo(Class<?> clazz) {
-        this(clazz, PluginRegistry.defaultRegistry());
-    }
-
-    public CodableClassInfo(Class<?> clazz, PluginRegistry pluginRegistry) {
-        SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
+    public CodableClassInfo(@Nonnull Class<?> clazz,
+                            @Nonnull Config globalDefaults,
+                            @Nonnull PluginRegistry pluginRegistry) {
 
         // skip native classes
-        if (Fields.isNative(clazz)) {
-            classData = ImmutableSortedMap.<String, CodableFieldInfo>naturalOrder()
-                                          .putAll(buildClassData).build();
-            baseClass = null;
+        if (Fields.isNative(clazz) || clazz.isArray()) {
+            classData = ImmutableSortedMap.of();
+            baseClass = clazz;
             pluginMap = PluginMap.EMPTY;
+            fieldDefaults = ConfigFactory.empty();
             return;
         }
 
+        // find any parent class (or itself) with a Pluggable annotation
         Class<?> findBaseClass = clazz;
         PluginMap findPluginMap = PluginMap.EMPTY;
 
-        // get class annotations
         Class<?> ptr = clazz;
         while (ptr != null) {
             Pluggable pluggable = ptr.getAnnotation(Pluggable.class);
@@ -119,17 +92,116 @@ public final class CodableClassInfo {
             }
             ptr = ptr.getSuperclass();
         }
+        pluginMap = findPluginMap;
+        baseClass = findBaseClass;
+
+        // find all fields in the class and its parent classes, and aggregate any defaults
         Map<String, Field> fields = new HashMap<>();
-        Class<?> clazzptr = clazz;
-        while (clazzptr != null) {
-            for (Field field : clazzptr.getDeclaredFields()) {
+        Map<String, Object> buildDefaults = new HashMap<>();
+
+        Class<?> ptrForFields = clazz;
+        while (ptrForFields != null) {
+            String canonicalClassName = ptrForFields.getCanonicalName();
+            Map<String, Object> classDefaults;
+            if ((canonicalClassName != null) && globalDefaults.hasPath(canonicalClassName)) {
+                classDefaults = globalDefaults.getObject(canonicalClassName).unwrapped();
+            } else {
+                classDefaults = Collections.emptyMap();
+            }
+            for (Field field : ptrForFields.getDeclaredFields()) {
                 if (fields.get(field.getName()) == null) {
                     fields.put(field.getName(), field);
+                } else {
+                    classDefaults.remove(field.getName());
+                    log.debug("ignoring parent class ({}) field with repeated field name ({})",
+                              ptrForFields, field.getName());
                 }
             }
-            clazzptr = clazzptr.getSuperclass();
+            for (Map.Entry<String, Object> pair : classDefaults.entrySet()) {
+                if (!buildDefaults.containsKey(pair.getKey())) {
+                    buildDefaults.put(pair.getKey(), pair.getValue());
+                }
+            }
+            ptrForFields = ptrForFields.getSuperclass();
         }
-        for (Field field : fields.values()) {
+        fieldDefaults = ConfigValueFactory.fromMap(buildDefaults).toConfig();
+
+        // turn all the found fields into CodableFieldInfo objects
+        Map<String, CodableFieldInfo> buildClassData = buildFieldInfoMap(fields.values());
+        classData = ImmutableSortedMap.<String, CodableFieldInfo>naturalOrder()
+                                      .putAll(buildClassData).build();
+    }
+
+    @Nonnull public PluginMap getPluginMap() {
+        return pluginMap;
+    }
+
+    @Nonnull public Config getFieldDefaults() {
+        return fieldDefaults;
+    }
+
+    @Nonnull public Class<?> getBaseClass() {
+        return baseClass;
+    }
+
+    @Nonnull public String getClassField() {
+        return pluginMap.classField();
+    }
+
+    @Nullable public Class<?> getArraySugar() {
+        return pluginMap.arraySugar();
+    }
+
+    @Nullable public Class<?> getDefaultSugar() {
+        return pluginMap.defaultSugar();
+    }
+
+    @Nullable public String getClassName(Object val) {
+        if (val.getClass() != baseClass) {
+            return pluginMap.getClassName(val.getClass());
+        } else {
+            return null;
+        }
+    }
+
+    @Nonnull public Class<?> getClass(String name) throws ClassNotFoundException {
+        return pluginMap.getClass(name);
+    }
+
+    public int size() {
+        return classData.size();
+    }
+
+    @Nonnull public Collection<CodableFieldInfo> values() {
+        return classData.values();
+    }
+
+    @Nullable public static Type[] collectTypes(Class<?> type, Type node) {
+        List<Type> l = collectTypes(new ArrayList<Type>(), type, node);
+        while (!l.isEmpty()) {
+            int ni = l.lastIndexOf(null);
+            if (ni < 0) {
+                break;
+            }
+            if (ni >= (l.size() - 1)) {
+                l.remove(ni);
+            } else {
+                l.set(ni, l.get(l.size() - 1));
+                l.remove(l.size() - 1);
+            }
+        }
+        if (l.isEmpty()) {
+            return null;
+        } else {
+            Type[] t = new Type[l.size()];
+            l.toArray(t);
+            return t;
+        }
+    }
+
+    @Nonnull private static Map<String, CodableFieldInfo> buildFieldInfoMap(Iterable<Field> fields) {
+        SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
+        for (Field field : fields) {
             int mod = field.getModifiers();
             boolean store = ((mod & Modifier.FINAL) == 0) && ((mod & Modifier.PUBLIC) != 0);
             // extract annotations
@@ -147,7 +219,7 @@ public final class CodableClassInfo {
             if (array) {
                 type = type.getComponentType();
                 if (type == null) {
-                    System.out.println("!! null array type for " + field + " !!");
+                    throw new IllegalStateException("!! null array type for " + field + " !!");
                 }
             }
             CodableFieldInfo info = new CodableFieldInfo(field, type, fieldConfigPolicy);
@@ -161,52 +233,14 @@ public final class CodableClassInfo {
             }
             buildClassData.put(field.getName(), info);
         }
-        classData = ImmutableSortedMap.
-                <String, CodableFieldInfo>naturalOrder().
-                putAll(buildClassData).build();
-        baseClass = findBaseClass;
-        pluginMap = findPluginMap;
+        return buildClassData;
     }
 
-    public int size() {
-        return classData.size();
-    }
-
-    public Collection<CodableFieldInfo> values() {
-        return classData.values();
-    }
-
-    public static Type[] collectTypes(Class<?> type, Type node) {
-        List<Type> l = collectTypes(new ArrayList<Type>(), type, node);
-        // System.out.println("collected: " +l);
-        while (l.size() > 0) {
-            int ni = l.lastIndexOf(null);
-            if (ni < 0) {
-                break;
-            }
-            if (ni >= l.size() - 1) {
-                l.remove(ni);
-            } else {
-                l.set(ni, l.get(l.size() - 1));
-                l.remove(l.size() - 1);
-            }
-        }
-        // System.out.println("returned: " +l);
-        if (l.size() == 0) {
-            return null;
-        } else {
-            Type[] t = new Type[l.size()];
-            l.toArray(t);
-            return t;
-        }
-    }
-
-    private static List<Type> collectTypes(List<Type> list, Class<?> type, Type node) {
+    @Nonnull private static List<Type> collectTypes(@Nonnull List<Type> list,
+                                           @Nullable Class<?> type,
+                                           @Nullable Type node) {
         if ((type == null) && (node == null)) {
             return list;
-        }
-        if (list == null) {
-            list = new LinkedList<>();
         }
         if (node instanceof Class) {
             if (type != null) {

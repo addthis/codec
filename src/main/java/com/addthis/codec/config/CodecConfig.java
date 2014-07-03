@@ -13,6 +13,7 @@
  */
 package com.addthis.codec.config;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.lang.reflect.Array;
@@ -23,17 +24,19 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.addthis.basis.collect.ConcurrentHashMapV8;
 
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.annotations.Time;
 import com.addthis.codec.codables.SuperCodable;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
+import com.addthis.codec.plugins.Plugins;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.RequiredFieldException;
@@ -62,7 +65,7 @@ public final class CodecConfig {
 
     private final Config         globalConfig;
     private final PluginRegistry pluginRegistry;
-    private final ConcurrentMap<Class<?>, CodableClassInfo> fieldMaps = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Class<?>, CodableClassInfo> fieldMaps = new ConcurrentHashMapV8<>();
 
     public CodecConfig(Config globalConfig) {
         this(globalConfig, new PluginRegistry(globalConfig));
@@ -86,7 +89,7 @@ public final class CodecConfig {
      */
     public <T> T decodeObject(Class<T> type, Config config) {
         CodableClassInfo classInfo = getOrCreateClassInfo(type);
-        return hydrateObject(classInfo, classInfo.getPluginMap(), type, config.root()) ;
+        return hydrateObject(classInfo, classInfo.getPluginMap(), type, config.root());
     }
 
     /**
@@ -110,11 +113,11 @@ public final class CodecConfig {
     }
 
     /** called when the expected type hasn't been inspected yet */
-    Object hydrateField(CodableFieldInfo field, Config config) {
+    @Nullable Object hydrateField(CodableFieldInfo field, @Nonnull Config config) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String fieldName = field.getName();
-        if ((config == null) || !config.hasPath(fieldName)) {
+        if (!config.hasPath(fieldName)) {
             return null;
         } else if (field.isArray()) { // check CodableFieldInfo instead of expectedType
             ConfigValue configValue = config.root().get(fieldName);
@@ -278,6 +281,7 @@ public final class CodecConfig {
                     stype = sugarType;
                 }
             } catch (ClassNotFoundException ignored) {
+                // there could still be a default, so defer throwing an exception
             }
         }
         if (stype == null) {
@@ -292,10 +296,9 @@ public final class CodecConfig {
                 configObject = configObject.withoutKey(classField);
                 info = null;
             } catch (ClassNotFoundException e) {
-                throw new ConfigException
-                        .UnresolvedSubstitution(configObject.origin(),
-                                                pluginMap.category() + " could not resolve " + stype,
-                                                e);
+                String helpMessage = Plugins.classNameSuggestions(pluginRegistry, pluginMap, stype);
+                throw new ConfigException.UnresolvedSubstitution(
+                        configObject.origin(), helpMessage, e);
             }
         }
         if (type == null) {
@@ -311,14 +314,7 @@ public final class CodecConfig {
     private <T> T createAndPopulate(CodableClassInfo info, Class<T> type, ConfigObject configObject) {
         try {
             T objectShell = type.newInstance();
-            String className = type.getName();
-            Config objectConfig = configObject.toConfig();
-            try {
-                objectConfig = objectConfig.withFallback(globalConfig.getConfig(className));
-            } catch (ConfigException logged) {
-                log.debug("failed to get defaults for {}", className, logged);
-            }
-            populateObjectFields(info, objectShell, objectConfig);
+            populateObjectFields(info, objectShell, configObject.toConfig());
             return objectShell;
         } catch (InstantiationException | IllegalAccessException ex) {
             throw new ConfigException.BadValue(configObject.origin(), type.getName(),
@@ -521,8 +517,9 @@ public final class CodecConfig {
     /** given a class, instance, and config.. turn config values into field values */
     private void populateObjectFields(CodableClassInfo classInfo, Object objectShell,
                                               Config config) {
+        Config fieldDefaults = classInfo.getFieldDefaults();
         if (objectShell instanceof ConfigCodable) {
-            ((ConfigCodable) objectShell).fromConfigObject(config.root());
+            ((ConfigCodable) objectShell).fromConfigObject(config.root(), fieldDefaults.root());
             return;
         }
         Collection<String> unusedKeys = new HashSet<>(config.root().keySet());
@@ -532,6 +529,9 @@ public final class CodecConfig {
             }
             unusedKeys.remove(field.getName());
             Object value = hydrateField(field, config);
+            if (value == null) {
+                value = hydrateField(field, fieldDefaults);
+            }
             try {
                 field.set(objectShell, value);
             } catch (RequiredFieldException ex) {
@@ -559,7 +559,7 @@ public final class CodecConfig {
     private CodableClassInfo getOrCreateClassInfo(Class<?> clazz) {
         CodableClassInfo fieldMap = fieldMaps.get(clazz);
         if (fieldMap == null) {
-            fieldMap = new CodableClassInfo(clazz, pluginRegistry);
+            fieldMap = new CodableClassInfo(clazz, globalConfig, pluginRegistry);
             fieldMaps.put(clazz, fieldMap);
         }
         return fieldMap;

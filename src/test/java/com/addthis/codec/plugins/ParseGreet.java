@@ -26,6 +26,9 @@ public class ParseGreet implements Greeter {
     @Time(TimeUnit.MILLISECONDS)
     public int millis;
 
+    // for use by ParseGreetSub
+    public Greeter other;
+
     @Override
     public String greet() {
         return "bytes: " + bytes + " millis: " + millis;

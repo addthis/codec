@@ -21,5 +21,5 @@ public interface ConfigCodable extends Codable {
 
     public ConfigObject toConfigObject();
 
-    public void fromConfigObject(ConfigObject config);
+    public void fromConfigObject(ConfigObject config, ConfigObject defaults);
 }

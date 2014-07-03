@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,17 +31,21 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.addthis.basis.util.Bytes;
 
 import com.addthis.codec.Codec;
-import com.addthis.codec.reflection.Fields;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.codables.ConcurrentCodable;
 import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.plugins.PluginRegistry;
+import com.addthis.codec.plugins.Plugins;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
+import com.addthis.codec.reflection.Fields;
 import com.addthis.codec.util.CodableStatistics;
 import com.addthis.maljson.JSONArray;
 import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
 import com.addthis.maljson.LineNumberInfo;
+
+import com.typesafe.config.Config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,17 +69,17 @@ public final class CodecJSON extends Codec {
 
 
     @Override
-    public <T> T decode(T shell, byte data[]) throws CodecExceptionLineNumber, JSONException {
+    public <T> T decode(T shell, byte[] data) throws CodecExceptionLineNumber, JSONException {
         return decodeString(shell, Bytes.toString(data));
     }
 
-    public <T> T decode(T shell, byte data[], List<CodecExceptionLineNumber> warnings)
+    public <T> T decode(T shell, byte[] data, List<CodecExceptionLineNumber> warnings)
             throws Exception {
         return decodeString(shell, Bytes.toString(data), warnings);
     }
 
     @Override
-    public boolean storesNull(byte data[]) {
+    public boolean storesNull(byte[] data) {
         throw new UnsupportedOperationException();
     }
 
@@ -335,6 +340,11 @@ public final class CodecJSON extends Codec {
                 type = (Class<T>) atype;
                 jsonObj.remove(classField);
             }
+        } catch (ClassNotFoundException ex) {
+            String helpMessage = Plugins.classNameSuggestions(
+                    PluginRegistry.defaultRegistry(), classInfo.getPluginMap(), stype);
+            throw new CodecExceptionLineNumber(new ClassNotFoundException(helpMessage, ex),
+                                               jsonObj.getValLineNumber(classField));
         } catch (Exception ex) {
             throw new CodecExceptionLineNumber(ex, jsonObj.getValLineNumber(classField));
         }
@@ -379,17 +389,22 @@ public final class CodecJSON extends Codec {
             JSONObject json, List<CodecExceptionLineNumber> warnings)
             throws CodecExceptionLineNumber, JSONException {
 
+        Config fieldDefaults = classInfo.getFieldDefaults();
         if (object instanceof JSONCodable) {
             try {
+                for (String key : fieldDefaults.root().keySet()) {
+                    if (!json.has(key)) {
+                        json.put(key, JSONObject.wrap(fieldDefaults.root().get(key).unwrapped()));
+                    }
+                }
                 ((JSONCodable) object).fromJSONObject(json);
             } catch (Exception ex) {
                 throw new CodecExceptionLineNumber(ex, json.getLineNumberInfo());
             }
             return object;
         }
-        java.util.Set<String> unknownFields = new HashSet<String>(json.keySet());
-        for (Iterator<CodableFieldInfo> fields = classInfo.values().iterator(); fields.hasNext();) {
-            CodableFieldInfo field = fields.next();
+        Set<String> unknownFields = new HashSet<String>(json.keySet());
+        for (CodableFieldInfo field : classInfo.values()) {
             if (field.isWriteOnly()) {
                 continue;
             }
@@ -397,6 +412,9 @@ public final class CodecJSON extends Codec {
             unknownFields.remove(fieldName);
             Class type = field.getType();
             Object value = json.opt(fieldName);
+            if ((value == null) && fieldDefaults.root().containsKey(fieldName)) {
+                value = JSONObject.wrap(fieldDefaults.root().get(fieldName).unwrapped());
+            }
             if (value == null) {
                 field.set(object, json.getLineNumberInfo(), value, LineNumberInfo.MissingInfo);
                 continue;
@@ -412,8 +430,9 @@ public final class CodecJSON extends Codec {
                     CodecExceptionLineNumber celn = translateInstantiationException(type, valInfo);
                     throw celn;
                 } catch (IllegalAccessException ex) {
-                    throw new CodecExceptionLineNumber("Could not access the type or the constructor of " +
-                                                       type.getName(), valInfo);
+                    throw new CodecExceptionLineNumber(
+                            "Could not access the type or the constructor of " +
+                            type.getName(), valInfo);
                 }
                 try {
                     ((JSONCodable) value).fromJSONObject(new JSONObject(oValue.toString()));
@@ -457,12 +476,14 @@ public final class CodecJSON extends Codec {
                         try {
 
                             // convert String values to int if the field requires int
-                            if (type == Integer.class || type == int.class || type == AtomicInteger.class) {
+                            if (type == Integer.class || type == int.class ||
+                                type == AtomicInteger.class) {
                                 value = Integer.parseInt((String) value);
                             }
 
                             // convert String values to long if the field requires long
-                            if (type == long.class || type == Long.class || type == AtomicLong.class) {
+                            if (type == long.class || type == Long.class ||
+                                type == AtomicLong.class) {
                                 value = Long.parseLong((String) value);
                             }
 
@@ -472,18 +493,25 @@ public final class CodecJSON extends Codec {
                             }
 
                             // convert String values to boolean if the field requires boolean
-                            if (type == boolean.class || type == Boolean.class || type == AtomicBoolean.class) {
+                            if (type == boolean.class || type == Boolean.class ||
+                                type == AtomicBoolean.class) {
                                 value = Boolean.parseBoolean((String) value);
                             }
                         } catch (NumberFormatException ex) {
-                            if (type == Integer.class || type == int.class || type == AtomicInteger.class) {
-                                throw new CodecExceptionLineNumber("cannot convert the string to an integer", valInfo);
-                            } else if (type == long.class || type == Long.class || type == AtomicLong.class) {
-                                throw new CodecExceptionLineNumber("cannot convert the string to a long", valInfo);
+                            if (type == Integer.class || type == int.class ||
+                                type == AtomicInteger.class) {
+                                throw new CodecExceptionLineNumber(
+                                        "cannot convert the string to an integer", valInfo);
+                            } else if (type == long.class || type == Long.class ||
+                                       type == AtomicLong.class) {
+                                throw new CodecExceptionLineNumber(
+                                        "cannot convert the string to a long", valInfo);
                             } else if (type == double.class || type == Double.class) {
-                                throw new CodecExceptionLineNumber("cannot convert the string to a double", valInfo);
+                                throw new CodecExceptionLineNumber(
+                                        "cannot convert the string to a double", valInfo);
                             } else {
-                                throw new IllegalStateException("unhandled case in the NumberFormatException");
+                                throw new IllegalStateException(
+                                        "unhandled case in the NumberFormatException");
                             }
                         }
                     }
@@ -507,13 +535,17 @@ public final class CodecJSON extends Codec {
                 JSONObject jmap = (JSONObject) value;
                 Class vc = (Class) field.getGenericTypes()[1];
                 boolean va = field.isMapValueArray();
-                for (Iterator<String> iter = jmap.keys(); iter.hasNext();) {
+                for (Iterator<String> iter = jmap.keys(); iter.hasNext(); ) {
                     String key = iter.next();
                     if (field.isInterned()) {
                         key = key.intern();
                     }
-                    map.put(key, va ? decodeArrayInternal(vc, jmap.get(key), jmap.getKeyLineNumber(key), warnings)
-                                    : decodeObjectInternal(vc, jmap.get(key), jmap.getKeyLineNumber(key), warnings));
+                    map.put(key, va ?
+                                 decodeArrayInternal(vc, jmap.get(key), jmap.getKeyLineNumber(key),
+                                                     warnings)
+                                    :
+                                 decodeObjectInternal(vc, jmap.get(key), jmap.getKeyLineNumber(key),
+                                                      warnings));
                 }
                 value = map;
             } else if (field.isCollection()) {
@@ -532,7 +564,8 @@ public final class CodecJSON extends Codec {
                 Class vc = field.getCollectionClass();
                 boolean ar = field.isCollectionArray();
                 for (int i = 0; i < jarr.length(); i++) {
-                    col.add(ar ? decodeArrayInternal(vc, jarr.get(i), jarr.getLineNumber(i), warnings) :
+                    col.add(ar ?
+                            decodeArrayInternal(vc, jarr.get(i), jarr.getLineNumber(i), warnings) :
                             decodeObjectInternal(vc, jarr.get(i), jarr.getLineNumber(i), warnings));
                 }
                 value = col;

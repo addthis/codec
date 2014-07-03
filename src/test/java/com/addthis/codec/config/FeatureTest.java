@@ -79,4 +79,15 @@ public class FeatureTest {
         String expected = "[MILLISECONDS, HOURS]";
         Assert.assertEquals(expected, greeterObject.greet());
     }
+
+    @Test
+    public void inheritance() throws Exception {
+        Config config = ConfigFactory.load("plugins/greet-inheritance");
+        CodecConfig codec = new CodecConfig(config);
+        Config greet = ConfigFactory.parseString(
+                "greet.subparse {bytes: 512k, other: {enum.timeUnit: SECONDS}}");
+        Greeter greeterObject = codec.decodeObject(greet);
+        String expected = "extra extra! other [SECONDS] bytes: 524288 millis: 1000";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
 }

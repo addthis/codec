@@ -14,9 +14,10 @@
 package com.addthis.codec.plugins;
 
 import com.addthis.codec.annotations.Pluggable;
+import com.addthis.codec.codables.Codable;
 
 @Pluggable("greet")
-public interface Greeter {
+public interface Greeter extends Codable {
 
     // return a greeting
     String greet();

@@ -13,18 +13,12 @@
  */
 package com.addthis.codec.plugins;
 
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+public class ParseGreetSub extends ParseGreet {
 
-import com.addthis.codec.annotations.FieldConfig;
+    public String extra;
 
-public class EnumGreet implements Greeter {
-
-    @FieldConfig(autocollection = true)
-    public ArrayList<TimeUnit> timeUnit;
-
-    @Override
-    public String greet() {
-        return timeUnit.toString();
+    @Override public String greet() {
+        return "extra " + extra + " other " + other.greet() +
+               " bytes: " + bytes + " millis: " + millis;
     }
 }
