@@ -112,8 +112,9 @@ public final class CodecConfig {
         return hydrateObject(null, pluginMap, null, config.root().get(category));
     }
 
-    /** called when the expected type hasn't been inspected yet */
-    @Nullable Object hydrateField(CodableFieldInfo field, @Nonnull Config config) {
+    /** visibility intended for internal use, but should be safe to use */
+    @Nullable
+    public Object hydrateField(CodableFieldInfo field, @Nonnull Config config) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String fieldName = field.getName();

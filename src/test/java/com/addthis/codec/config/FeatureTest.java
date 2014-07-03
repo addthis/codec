@@ -13,7 +13,10 @@
  */
 package com.addthis.codec.config;
 
+import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.plugins.Greeter;
+import com.addthis.codec.plugins.ParseGreetSub;
+import com.addthis.maljson.JSONObject;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -82,12 +85,19 @@ public class FeatureTest {
 
     @Test
     public void inheritance() throws Exception {
-        Config config = ConfigFactory.load("plugins/greet-inheritance");
-        CodecConfig codec = new CodecConfig(config);
         Config greet = ConfigFactory.parseString(
                 "greet.subparse {bytes: 512k, other: {enum.timeUnit: SECONDS}}");
-        Greeter greeterObject = codec.decodeObject(greet);
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
         String expected = "extra extra! other [SECONDS] bytes: 524288 millis: 1000";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void inheritanceJson() throws Exception {
+        Greeter greeterObject = CodecJSON.decodeObject(
+                ParseGreetSub.class,
+                new JSONObject("{bytes: 512, other: {enum: {timeUnit: [SECONDS]}}}"));
+        String expected = "extra extra! other [SECONDS] bytes: 512 millis: 1000";
         Assert.assertEquals(expected, greeterObject.greet());
     }
 }

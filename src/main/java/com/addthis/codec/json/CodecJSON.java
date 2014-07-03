@@ -34,6 +34,7 @@ import com.addthis.codec.Codec;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.codables.ConcurrentCodable;
 import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.config.CodecConfig;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.plugins.Plugins;
 import com.addthis.codec.reflection.CodableClassInfo;
@@ -413,7 +414,11 @@ public final class CodecJSON extends Codec {
             Class type = field.getType();
             Object value = json.opt(fieldName);
             if ((value == null) && fieldDefaults.root().containsKey(fieldName)) {
-                value = JSONObject.wrap(fieldDefaults.root().get(fieldName).unwrapped());
+                value = CodecConfig.getDefault().hydrateField(field, fieldDefaults);
+                if (value != null) {
+                    field.set(object, json.getLineNumberInfo(), value, json.getValLineNumber(fieldName));
+                    continue;
+                }
             }
             if (value == null) {
                 field.set(object, json.getLineNumberInfo(), value, LineNumberInfo.MissingInfo);
