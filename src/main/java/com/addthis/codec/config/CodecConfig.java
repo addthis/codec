@@ -73,6 +73,14 @@ public final class CodecConfig {
         this.pluginRegistry = pluginRegistry;
     }
 
+    public Config globalConfig() {
+        return globalConfig;
+    }
+
+    public PluginRegistry pluginRegistry() {
+        return pluginRegistry;
+    }
+
     /**
      * Instantiate an object of the requested type using the provided config.
      */
@@ -256,8 +264,8 @@ public final class CodecConfig {
         String classField = pluginMap.classField();
         ConfigValue typeValue = configObject.get(classField);
         String stype = null;
-        if ((typeValue != null) && (typeValue.valueType() == ConfigValueType.STRING)) {
-            stype = (String) typeValue.unwrapped();
+        if (typeValue != null) {
+            stype = configObject.toConfig().getString(classField);
         }
         // if otherwise doomed to fail, try supporting "type-value : {...}"  syntax
         if ((stype == null) && (configObject.size() == 1) &&
@@ -531,8 +539,15 @@ public final class CodecConfig {
             }
         }
         if (!unusedKeys.isEmpty()) {
-            throw new ConfigException.UnresolvedSubstitution(
-                    config.origin(),"unrecognized key(s) " + unusedKeys.toString());
+            for (String unusedKey : unusedKeys) {
+                if (unusedKey.charAt(0) == '_') {
+                    unusedKeys.remove(unusedKey);
+                }
+            }
+            if (!unusedKeys.isEmpty()) {
+                throw new ConfigException.UnresolvedSubstitution(
+                        config.origin(), "unrecognized key(s) " + unusedKeys.toString());
+            }
         }
         if (objectShell instanceof SuperCodable) {
             ((SuperCodable) objectShell).postDecode();
