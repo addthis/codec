@@ -22,6 +22,7 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -549,9 +550,11 @@ public final class CodecConfig {
             }
         }
         if (!unusedKeys.isEmpty()) {
-            for (String unusedKey : unusedKeys) {
+            for (Iterator<String> unusedKeyIterator = unusedKeys.iterator();
+                 unusedKeyIterator.hasNext(); ) {
+                String unusedKey = unusedKeyIterator.next();
                 if (unusedKey.charAt(0) == '_') {
-                    unusedKeys.remove(unusedKey);
+                    unusedKeyIterator.remove();
                 }
             }
             if (!unusedKeys.isEmpty()) {
