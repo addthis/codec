@@ -41,6 +41,7 @@ import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.RequiredFieldException;
 
+import com.google.common.base.Objects;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Shorts;
 
@@ -571,5 +572,13 @@ public final class CodecConfig {
             fieldMaps.put(clazz, fieldMap);
         }
         return fieldMap;
+    }
+
+    @Override public String toString() {
+        return Objects.toStringHelper(this)
+                      .add("globalConfig", globalConfig)
+                      .add("pluginRegistry", pluginRegistry)
+                      .add("fieldMaps", fieldMaps)
+                      .toString();
     }
 }
