@@ -26,6 +26,6 @@ final class DefaultRegistry {
     static {
         log = LoggerFactory.getLogger(DefaultRegistry.class);
         DEFAULT = new PluginRegistry(ConfigFactory.load());
-        log.debug("initialized default plugin registry {}", DEFAULT);
+        log.trace("initialized default plugin registry {}", DEFAULT);
     }
 }

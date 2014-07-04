@@ -28,6 +28,6 @@ final class DefaultCodecConfig {
     static {
         log = LoggerFactory.getLogger(DefaultCodecConfig.class);
         DEFAULT = new CodecConfig(ConfigFactory.load(), PluginRegistry.defaultRegistry());
-        log.debug("initialized default codec config {}", DEFAULT);
+        log.trace("initialized default codec config {}", DEFAULT);
     }
 }
