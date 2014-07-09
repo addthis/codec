@@ -29,6 +29,7 @@ import com.google.common.collect.Maps;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
 
 import org.slf4j.Logger;
@@ -49,8 +50,10 @@ public class PluginMap {
 
     @Nullable private final Class<?> baseClass;
     @Nullable private final Class<?> defaultSugar;
+    @Nullable private final ConfigValue defaultOrigin;
     @Nullable private final Class<?> arraySugar;
-    @Nullable private final String   arrayField;
+    @Nullable private final String arrayField;
+    @Nullable private final ConfigValue arrayOrigin;
 
     public PluginMap(@Nonnull String category, @Nonnull Config config) {
         this.category = checkNotNull(category);
@@ -99,18 +102,25 @@ public class PluginMap {
             arrayField = searchArraySugarFieldName(configuredArraySugar);
             if (arrayField != null) {
                 arraySugar = configuredArraySugar;
+                arrayOrigin = ConfigValueFactory.fromAnyRef(
+                        arraySugarName, "array type : " + config.root().get("_array").origin().description());
             } else {
                 arraySugar = null;
+                arrayOrigin = null;
             }
         } else {
             arraySugar = null;
             arrayField = null;
+            arrayOrigin = null;
         }
         if (config.hasPath("_default")) {
             String defaultName = config.getString("_default");
             defaultSugar = map.get(defaultName);
+            defaultOrigin = ConfigValueFactory.fromAnyRef(
+                    defaultName, "default type : " + config.root().get("_default").origin().description());
         } else {
             defaultSugar = null;
+            defaultOrigin = null;
         }
     }
 
@@ -119,9 +129,11 @@ public class PluginMap {
         classField = "class";
         category = "unknown";
         defaultSugar = null;
+        defaultOrigin = null;
         baseClass = null;
         arraySugar = null;
         arrayField = null;
+        arrayOrigin = null;
     }
 
     /** A thread safe, immutable bi-map view of this plugin map. */
@@ -145,8 +157,16 @@ public class PluginMap {
         return arrayField;
     }
 
+    @Nullable public ConfigValue arrayOrigin() {
+        return arrayOrigin;
+    }
+
     @Nullable public Class<?> defaultSugar() {
         return defaultSugar;
+    }
+
+    @Nullable public ConfigValue defaultOrigin() {
+        return defaultOrigin;
     }
 
     @Nullable public Class<?> baseClass() {

@@ -20,16 +20,32 @@ import com.addthis.maljson.JSONObject;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigObject;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FeatureTest {
+
+    private static final Logger log = LoggerFactory.getLogger(FeatureTest.class);
 
     @Test
     public void greetDefault() throws Exception {
         Config greet = ConfigFactory.parseResources("config/defaultgreeter.conf");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
+                            greeterObject.greet());
+    }
+
+    @Test
+    public void expandDefault() throws Exception {
+        Config greet = ConfigFactory.parseResources("config/defaultgreeter.conf");
+        ConfigObject resolved = Configs.expandSugar(greet, CodecConfig.getDefault());
+        log.debug("unresolved {}", greet.root().render());
+        log.debug("resolved {}", resolved.render());
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(Greeter.class, resolved.toConfig());
         Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
                             greeterObject.greet());
     }

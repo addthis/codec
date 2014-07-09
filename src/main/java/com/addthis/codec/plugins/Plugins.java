@@ -14,6 +14,7 @@
 package com.addthis.codec.plugins;
 
 public final class Plugins {
+    private Plugins() {}
 
     public static String classNameSuggestions(PluginRegistry pluginRegistry,
                                               PluginMap pluginMap,

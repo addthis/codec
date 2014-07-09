@@ -25,7 +25,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +40,8 @@ import com.google.common.collect.ImmutableSortedMap;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,34 +97,35 @@ public class CodableClassInfo {
 
         // find all fields in the class and its parent classes, and aggregate any defaults
         Map<String, Field> fields = new HashMap<>();
-        Map<String, Object> buildDefaults = new HashMap<>();
+        // slower than using unwrapped, mutable conversions but this preserves origins
+        ConfigObject buildDefaults = ConfigFactory.empty().root();
 
         Class<?> ptrForFields = clazz;
         while (ptrForFields != null) {
             String canonicalClassName = ptrForFields.getCanonicalName();
-            Map<String, Object> classDefaults;
+            ConfigObject classDefaults;
             if ((canonicalClassName != null) && globalDefaults.hasPath(canonicalClassName)) {
-                classDefaults = globalDefaults.getObject(canonicalClassName).unwrapped();
+                classDefaults = globalDefaults.getObject(canonicalClassName);
             } else {
-                classDefaults = Collections.emptyMap();
+                classDefaults = ConfigFactory.empty().root();
             }
             for (Field field : ptrForFields.getDeclaredFields()) {
                 if (fields.get(field.getName()) == null) {
                     fields.put(field.getName(), field);
                 } else {
-                    classDefaults.remove(field.getName());
+                    classDefaults = classDefaults.withoutKey(field.getName());
                     log.debug("({}) ignoring field in parent class ({}) with duplicate name ({})",
                               clazz, ptrForFields, field.getName());
                 }
             }
-            for (Map.Entry<String, Object> pair : classDefaults.entrySet()) {
+            for (Map.Entry<String, ConfigValue> pair : classDefaults.entrySet()) {
                 if (!buildDefaults.containsKey(pair.getKey())) {
-                    buildDefaults.put(pair.getKey(), pair.getValue());
+                    buildDefaults = buildDefaults.withValue(pair.getKey(), pair.getValue());
                 }
             }
             ptrForFields = ptrForFields.getSuperclass();
         }
-        fieldDefaults = ConfigValueFactory.fromMap(buildDefaults).toConfig();
+        fieldDefaults = buildDefaults.toConfig();
 
         // turn all the found fields into CodableFieldInfo objects
         Map<String, CodableFieldInfo> buildClassData = buildFieldInfoMap(fields.values());
