@@ -103,7 +103,8 @@ public class PluginMap {
             if (arrayField != null) {
                 arraySugar = configuredArraySugar;
                 arrayOrigin = ConfigValueFactory.fromAnyRef(
-                        arraySugarName, "array type : " + config.root().get("_array").origin().description());
+                        arraySugarName, category + " array sugar : " +
+                                        config.root().get("_array").origin().description());
             } else {
                 arraySugar = null;
                 arrayOrigin = null;
@@ -117,7 +118,8 @@ public class PluginMap {
             String defaultName = config.getString("_default");
             defaultSugar = map.get(defaultName);
             defaultOrigin = ConfigValueFactory.fromAnyRef(
-                    defaultName, "default type : " + config.root().get("_default").origin().description());
+                    defaultName, category + " default type : " +
+                                 config.root().get("_default").origin().description());
         } else {
             defaultSugar = null;
             defaultOrigin = null;

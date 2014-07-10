@@ -66,6 +66,10 @@ public final class Configs {
                 // try not to throw exceptions or at least checked exceptions from this helper method
             }
         }
+        return expandSugarSkipResolve(type, root, codec);
+    }
+
+    private static ConfigObject expandSugarSkipResolve(Class<?> type, ConfigObject root, CodecConfig codec) {
         CodableClassInfo resolvedTypeInfo = codec.getOrCreateClassInfo(type);
         ConfigObject fieldDefaults = resolvedTypeInfo.getFieldDefaults().root();
         for (CodableFieldInfo fieldInfo : resolvedTypeInfo.values()) {
@@ -92,25 +96,26 @@ public final class Configs {
                                                         ConfigValueType.LIST.name(), fieldValue.valueType().name());
                 }
                 Class<?> elementType = elementType(fieldInfo);
-                ConfigList fieldList = (ConfigList) fieldValue;
-                List<Object> newList = new ArrayList<>(fieldList.size());
-                for (ConfigValue listEntry : fieldList) {
-                    ConfigObject listObject = expandSugar(elementType, listEntry, codec);
-                    newList.add(listObject.unwrapped());
-                }
-                fieldValue = ConfigValueFactory.fromIterable(newList, fieldList.origin().description());
+                boolean nested = fieldInfo.isCollectionArray();
+                fieldValue = expandSugarArray(fieldValue, elementType, codec, nested);
             } else if (fieldInfo.isMap()) {
                 if (fieldValue.valueType() != ConfigValueType.OBJECT) {
                     throw new ConfigException.WrongType(fieldValue.origin(), fieldName,
                                                         ConfigValueType.OBJECT.name(), fieldValue.valueType().name());
                 }
                 Class<?> elementType = elementType(fieldInfo);
+                boolean nested = fieldInfo.isMapValueArray();
                 ConfigObject fieldMap = (ConfigObject) fieldValue;
                 Map<String, Object> newMap = new HashMap<>(fieldMap.size());
                 for (Map.Entry<String, ConfigValue> mapEntry : fieldMap.entrySet()) {
                     ConfigValue mapValue = mapEntry.getValue();
                     String mapKey = mapEntry.getKey();
-                    ConfigObject resolvedMapObject = expandSugar(elementType, mapValue, codec);
+                    ConfigValue resolvedMapObject;
+                    if (nested) {
+                        resolvedMapObject = expandSugarArray(mapValue, elementType, codec, false);
+                    } else {
+                        resolvedMapObject = expandSugar(elementType, mapValue, codec);
+                    }
                     newMap.put(mapKey, resolvedMapObject.unwrapped());
                 }
                 fieldValue = ConfigValueFactory.fromMap(newMap, fieldMap.origin().description());
@@ -120,6 +125,24 @@ public final class Configs {
             root = root.withValue(fieldName, fieldValue);
         }
         return root;
+    }
+
+    private static ConfigList expandSugarArray(ConfigValue fieldValue,
+                                                 Class<?> elementType,
+                                                 CodecConfig codec,
+                                                 boolean nested) {
+        ConfigList fieldList = (ConfigList) fieldValue;
+        List<Object> newList = new ArrayList<>(fieldList.size());
+        for (ConfigValue listEntry : fieldList) {
+            ConfigValue listObject;
+            if (nested) {
+                listObject = expandSugarArray(listEntry, elementType, codec, false);
+            } else {
+                listObject = expandSugar(elementType, listEntry, codec);
+            }
+            newList.add(listObject.unwrapped());
+        }
+        return ConfigValueFactory.fromIterable(newList, fieldList.origin().description());
     }
 
     private static Class<?> elementType(CodableFieldInfo fieldInfo) {

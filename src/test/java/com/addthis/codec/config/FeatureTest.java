@@ -43,8 +43,8 @@ public class FeatureTest {
     public void expandDefault() throws Exception {
         Config greet = ConfigFactory.parseResources("config/defaultgreeter.conf");
         ConfigObject resolved = Configs.expandSugar(greet, CodecConfig.getDefault());
-        log.debug("unresolved {}", greet.root().render());
-        log.debug("resolved {}", resolved.render());
+        log.info("unresolved {}", greet.root().render());
+        log.info("resolved {}", resolved.render());
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(Greeter.class, resolved.toConfig());
         Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
                             greeterObject.greet());
