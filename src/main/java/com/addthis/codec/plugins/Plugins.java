@@ -27,7 +27,7 @@ public final class Plugins {
 
         if (pluginRegistry != null) {
             for (PluginMap otherMap : pluginRegistry.asMap().values()) {
-                if (pluginMap.asBiMap().containsKey(type)) {
+                if (otherMap.asBiMap().containsKey(type)) {
                     builder.append("\nIt looks like you tried to instantiate a ")
                            .append(otherMap.category()).append('.');
                     return builder.toString();
