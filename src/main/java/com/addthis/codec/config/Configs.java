@@ -81,16 +81,20 @@ public final class Configs {
                         fieldDefault.unwrapped(), "global default : " + fieldDefault.origin().description());
                 root = root.withValue(fieldName, fieldValue);
             }
-            if ((fieldValue == null) || !isCodableType(fieldInfo)) {
+            if (fieldValue == null) {
+                continue;
+            }
+            if ((fieldInfo.isArray() || fieldInfo.isCollection()) &&
+                (fieldValue.valueType() != ConfigValueType.LIST) && fieldInfo.autoArrayEnabled()) {
+                fieldValue = ConfigValueFactory.fromIterable(
+                        Collections.singletonList(fieldValue.unwrapped()), "auto collection of " +
+                                                                           fieldValue.origin().description());
+                root = root.withValue(fieldName, fieldValue);
+            }
+            if (!isCodableType(fieldInfo)) {
                 continue;
             }
             if (fieldInfo.isArray() || fieldInfo.isCollection()) {
-                if ((fieldValue.valueType() != ConfigValueType.LIST) && fieldInfo.autoArrayEnabled()) {
-                    fieldValue = ConfigValueFactory.fromIterable(
-                            Collections.singletonList(fieldValue.unwrapped()), "auto collection of " +
-                                                                               fieldValue.origin().description());
-                    root = root.withValue(fieldName, fieldValue);
-                }
                 if (fieldValue.valueType() != ConfigValueType.LIST) {
                     throw new ConfigException.WrongType(fieldValue.origin(), fieldName,
                                                         ConfigValueType.LIST.name(), fieldValue.valueType().name());
