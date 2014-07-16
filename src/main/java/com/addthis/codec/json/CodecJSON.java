@@ -311,7 +311,7 @@ public final class CodecJSON extends Codec {
             if (arrarySugar != null) {
                 LineNumberInfo infoCopy = ((JSONArray) json).getMyLineNumberInfo();
                 JSONObject magicWrapper = new JSONObject();
-                magicWrapper.put(classInfo.getPluginMap().arrayField(), json, infoCopy, infoCopy);
+                magicWrapper.put(classInfo.getPluginMap().aliasDefaults("_array").toConfig().getString("_primary"), json, infoCopy, infoCopy);
                 classInfo = Fields.getClassFieldMap(arrarySugar);
                 json = magicWrapper;
                 type = (Class<T>) arrarySugar;

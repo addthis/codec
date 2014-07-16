@@ -46,7 +46,6 @@ import com.typesafe.config.ConfigValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("serial")
 public class CodableClassInfo {
     private static final Logger log = LoggerFactory.getLogger(CodableClassInfo.class);
 
@@ -62,13 +61,6 @@ public class CodableClassInfo {
     public CodableClassInfo(@Nonnull Class<?> clazz,
                             @Nonnull Config globalDefaults,
                             @Nonnull PluginRegistry pluginRegistry) {
-        this(clazz, ConfigFactory.load(), PluginRegistry.defaultRegistry(), null);
-    }
-
-    public CodableClassInfo(@Nonnull Class<?> clazz,
-                            @Nonnull Config globalDefaults,
-                            @Nonnull PluginRegistry pluginRegistry,
-                            @Nullable String requestedAlias) {
 
         // skip native classes
         if (Fields.isNative(clazz) || clazz.isArray()) {
@@ -184,6 +176,11 @@ public class CodableClassInfo {
         return classData.values();
     }
 
+    /** Immutable view of codable fields as a map of field names to {@link CodableFieldInfo}s. */
+    @Nonnull public Map<String, CodableFieldInfo> fields() {
+        return classData;
+    }
+
     @Nullable public static Type[] collectTypes(Class<?> type, Type node) {
         List<Type> l = collectTypes(new ArrayList<Type>(), type, node);
         while (!l.isEmpty()) {
@@ -245,8 +242,8 @@ public class CodableClassInfo {
     }
 
     @Nonnull private static List<Type> collectTypes(@Nonnull List<Type> list,
-                                           @Nullable Class<?> type,
-                                           @Nullable Type node) {
+                                                    @Nullable Class<?> type,
+                                                    @Nullable Type node) {
         if ((type == null) && (node == null)) {
             return list;
         }

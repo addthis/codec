@@ -115,8 +115,9 @@ public final class CodecConfig {
     }
 
     /** visibility intended for internal use, but should be safe to use */
-    @Nullable
-    public Object hydrateField(@Nonnull CodableFieldInfo field, @Nonnull Config config, @Nullable Object objectShell) {
+    @Nullable public Object hydrateField(@Nonnull CodableFieldInfo field,
+                                         @Nonnull Config config,
+                                         @Nullable Object objectShell) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String fieldName = field.getName();
@@ -255,8 +256,10 @@ public final class CodecConfig {
                 // plugin map assumed to be the same (not enforced atm)
                 type = (Class<T>) arrarySugar;
                 info = getOrCreateClassInfo(type);
-                configValue = configValue.atKey(pluginMap.arrayField()).root();
-                return createAndPopulate(info, type, (ConfigObject) configValue);
+                Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
+                ConfigObject configObject = configValue.atKey(aliasDefaults.getString("_primary")).root();
+                configObject = configObject.withFallback(aliasDefaults);
+                return createAndPopulate(info, type, configObject);
             }
         }
         return hydrateObject(info, pluginMap, type, (ConfigObject) configValue);
@@ -332,6 +335,8 @@ public final class CodecConfig {
             // if no type field is set, then try using the default (if any)
             if (pluginMap.defaultSugar() != null) {
                 type = (Class<T>) pluginMap.defaultSugar();
+                ConfigObject aliasDefaults = pluginMap.aliasDefaults("_default");
+                configObject = configObject.withFallback(aliasDefaults);
                 info = null;
             }
         } else {

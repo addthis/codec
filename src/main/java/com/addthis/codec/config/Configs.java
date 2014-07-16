@@ -182,9 +182,17 @@ public final class Configs {
         if (objectOrArray.valueType() == ConfigValueType.LIST) {
             Class<?> arrayType = pluginMap.arraySugar();
             if (arrayType != null) {
-                String arrayFieldName = pluginMap.arrayField();
+                String arrayFieldName = pluginMap.aliasDefaults("_array").toConfig().getString("_primary");
+                String arraySugarName = pluginMap.getLastAlias("_array");
                 return ConfigFactory.empty()
-                                    .withValue(classField, pluginMap.arrayOrigin())
+                                    .withValue(classField, ConfigValueFactory.fromAnyRef(arraySugarName,
+                                                                                         pluginMap.category() +
+                                                                                         " array sugar : " +
+                                                                                         pluginMap.config()
+                                                                                                  .root()
+                                                                                                  .get("_array")
+                                                                                                  .origin()
+                                                                                                  .description()))
                                     .withValue(arrayFieldName, objectOrArray)
                                     .root();
             } else {
@@ -216,8 +224,12 @@ public final class Configs {
                 }
             }
         }
-        if (pluginMap.defaultOrigin() != null) {
-            return root.withValue(classField, pluginMap.defaultOrigin());
+        ConfigValue defaultObject = pluginMap.config().root().get("_default");
+        if (defaultObject != null) {
+            String defaultName = pluginMap.getLastAlias("_default");
+            return root.withValue(classField, ConfigValueFactory.fromAnyRef(defaultName,
+                                                                            pluginMap.category() + " default type : " +
+                                                                            defaultObject.origin().description()));
         }
         return root;
     }
