@@ -42,6 +42,7 @@ import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.RequiredFieldException;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Shorts;
@@ -58,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Decodes {@link Config} and associated classes into runtime objects. */
+@Beta
 public final class CodecConfig {
 
     private static final Logger log = LoggerFactory.getLogger(CodecConfig.class);

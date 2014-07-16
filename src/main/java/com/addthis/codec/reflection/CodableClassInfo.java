@@ -36,6 +36,7 @@ import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 
+import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableSortedMap;
 
 import com.typesafe.config.Config;
@@ -46,6 +47,7 @@ import com.typesafe.config.ConfigValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Beta
 public class CodableClassInfo {
     private static final Logger log = LoggerFactory.getLogger(CodableClassInfo.class);
 

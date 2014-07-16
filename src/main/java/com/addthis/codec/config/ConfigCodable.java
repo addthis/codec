@@ -15,8 +15,11 @@ package com.addthis.codec.config;
 
 import com.addthis.codec.codables.Codable;
 
+import com.google.common.annotations.Beta;
+
 import com.typesafe.config.ConfigObject;
 
+@Beta
 public interface ConfigCodable extends Codable {
 
     public ConfigObject toConfigObject();

@@ -13,6 +13,9 @@
  */
 package com.addthis.codec.plugins;
 
+import com.google.common.annotations.Beta;
+
+@Beta
 public final class Plugins {
     private Plugins() {}
 
@@ -39,5 +42,4 @@ public final class Plugins {
                .append(pluginMap.asBiMap().keySet());
         return builder.toString();
     }
-
 }

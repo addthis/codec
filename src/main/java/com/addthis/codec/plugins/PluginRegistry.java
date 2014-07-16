@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 
 import com.typesafe.config.Config;
@@ -27,6 +28,7 @@ import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Beta
 public class PluginRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(PluginRegistry.class);

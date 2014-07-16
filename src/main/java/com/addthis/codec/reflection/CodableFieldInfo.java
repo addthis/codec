@@ -29,13 +29,15 @@ import com.addthis.codec.validation.ValidationException;
 import com.addthis.codec.validation.Validator;
 import com.addthis.maljson.LineNumberInfo;
 
+import com.google.common.annotations.Beta;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * information about a field in a class - expensive to get so runs and gets
- * cached
+ * information about a field in a class - expensive to get so runs and gets cached
  */
+@Beta
 public final class CodableFieldInfo {
 
     private static final Logger log = LoggerFactory.getLogger(CodableFieldInfo.class);

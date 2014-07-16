@@ -24,6 +24,7 @@ import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 
 import com.typesafe.config.Config;
@@ -35,6 +36,7 @@ import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
 
+@Beta
 public final class Configs {
     private Configs() {}
 
