@@ -414,7 +414,7 @@ public final class CodecJSON extends Codec {
             Class type = field.getType();
             Object value = json.opt(fieldName);
             if ((value == null) && fieldDefaults.root().containsKey(fieldName)) {
-                value = CodecConfig.getDefault().hydrateField(field, fieldDefaults);
+                value = CodecConfig.getDefault().hydrateField(field, fieldDefaults, object);
                 if (value != null) {
                     field.set(object, json.getLineNumberInfo(), value, json.getValLineNumber(fieldName));
                     continue;

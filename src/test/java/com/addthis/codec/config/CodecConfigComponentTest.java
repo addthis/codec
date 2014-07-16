@@ -15,7 +15,11 @@ package com.addthis.codec.config;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
+import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.Fields;
 
@@ -79,7 +83,7 @@ public class CodecConfigComponentTest {
     }
 
     @Test
-    public void hydrateMap() throws Exception {
+    public void hydrateHashMap() throws Exception {
         CodableFieldInfo mapField =
                 Fields.getClassFieldMap(MapHolder.class).values().iterator().next();
         Config mapHolder = ConfigFactory.parseString("map { a: 1, b: 2, c: 14 }");
@@ -88,6 +92,41 @@ public class CodecConfigComponentTest {
         expected.put("a", 1);
         expected.put("b", 2);
         expected.put("c", 14);
+        Assert.assertEquals(expected, actual);
+    }
+
+    static class MapInterfaceHolder {
+        @FieldConfig public Map<String, Integer> map = new TreeMap<>();
+    }
+
+    @Test
+    public void hydrateMap() throws Exception {
+        CodableFieldInfo mapField =
+                Fields.getClassFieldMap(MapInterfaceHolder.class).values().iterator().next();
+        Config mapHolder = ConfigFactory.parseString("map { a: 1, b: 2, c: 14 }");
+        Map<String, Integer> actual = CodecConfig.getDefault().hydrateMap(mapField, mapHolder, new MapInterfaceHolder());
+        Map<String, Integer> expected = new HashMap<>();
+        expected.put("a", 1);
+        expected.put("b", 2);
+        expected.put("c", 14);
+        Assert.assertEquals(expected, actual);
+    }
+
+    static class CollectionInterfaceHolder {
+        @FieldConfig public SortedSet<String> set = new TreeSet<>();
+    }
+
+    @Test
+    public void hydrateCollection() throws Exception {
+        CodableFieldInfo setField =
+                Fields.getClassFieldMap(CollectionInterfaceHolder.class).values().iterator().next();
+        Config setHolder = ConfigFactory.parseString("set: [ a, b, c]");
+        SortedSet<String> actual = (SortedSet<String>) CodecConfig.getDefault().hydrateCollection(
+                setField, setHolder, new CollectionInterfaceHolder());
+        SortedSet<String> expected = new TreeSet<>();
+        expected.add("a");
+        expected.add("b");
+        expected.add("c");
         Assert.assertEquals(expected, actual);
     }
 }

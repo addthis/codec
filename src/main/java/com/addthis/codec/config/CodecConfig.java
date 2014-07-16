@@ -116,7 +116,7 @@ public final class CodecConfig {
 
     /** visibility intended for internal use, but should be safe to use */
     @Nullable
-    public Object hydrateField(CodableFieldInfo field, @Nonnull Config config) {
+    public Object hydrateField(@Nonnull CodableFieldInfo field, @Nonnull Config config, @Nullable Object objectShell) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String fieldName = field.getName();
@@ -133,9 +133,9 @@ public final class CodecConfig {
             }
             return hydrateArray(expectedType, fieldName, config);
         } else if (field.isMap()) {
-            return hydrateMap(field, config);
+            return hydrateMap(field, config, objectShell);
         } else if (field.isCollection()) {
-            return hydrateCollection(field, config);
+            return hydrateCollection(field, config, objectShell);
         } else if (expectedType.isAssignableFrom(String.class)) {
             return config.getString(fieldName);
         } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {
@@ -465,12 +465,34 @@ public final class CodecConfig {
     }
 
     Map hydrateMap(CodableFieldInfo field, Config config) {
+        return hydrateMap(field, config, null);
+    }
+
+    Map hydrateMap(CodableFieldInfo field, Config config, @Nullable Object objectShell) {
+        Class<?> type = field.getType();
         Map map;
-        try {
-            map = (Map) field.getType().newInstance();
-        } catch (IllegalAccessException | InstantiationException ex) {
-            throw new ConfigException.BadValue(config.origin(), field.getName(),
-                                               "failed to get a concrete, working class", ex);
+        if (Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
+            if (objectShell != null) {
+                map = (Map) field.get(objectShell);
+            } else {
+                throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
+                                                      "Map subclass and there is no enclosing object provided " +
+                                                      "to check for an existing Map to mutate");
+            }
+            if (map == null) {
+                throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
+                                                      "Map subclass and there was no default instantiated object to " +
+                                                      "add configured key-value pairs to. Problem is most likely in " +
+                                                      "the java source code for the field's enclosing class: " +
+                                                      objectShell.getClass());
+            }
+        } else {
+            try {
+                map = (Map) type.newInstance();
+            } catch (IllegalAccessException | InstantiationException ex) {
+                throw new ConfigException.BadValue(config.origin(), field.getName(),
+                                                   "failed to instantiate map implementation", ex);
+            }
         }
         Class vc = (Class) field.getGenericTypes()[1];
         boolean va = field.isMapValueArray();
@@ -492,12 +514,34 @@ public final class CodecConfig {
     }
 
     Collection hydrateCollection(CodableFieldInfo field, Config config) {
+        return hydrateCollection(field, config, null);
+    }
+
+    Collection hydrateCollection(CodableFieldInfo field, Config config, @Nullable Object objectShell) {
+        Class<?> type = field.getType();
         Collection<Object> col;
-        try {
-            col = (Collection<Object>) field.getType().newInstance();
-        } catch (Exception ex) {
-            throw new ConfigException.BadValue(config.origin(), field.getName(),
-                                               "failed to get a concrete, working class", ex);
+        if (Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
+            if (objectShell != null) {
+                col = (Collection<Object>) field.get(objectShell);
+            } else {
+                throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
+                                                      "Collection subclass and there is no enclosing object provided " +
+                                                      "to check for an existing Collection to mutate");
+            }
+            if (col == null) {
+                throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
+                                                      "Collection subclass and there was no default instantiated " +
+                                                      "object to add configured values to. Problem is most likely in " +
+                                                      "the java source code for the field's enclosing class: " +
+                                                      objectShell.getClass());
+            }
+        } else {
+            try {
+                col = (Collection<Object>) field.getType().newInstance();
+            } catch (Exception ex) {
+                throw new ConfigException.BadValue(config.origin(), field.getName(),
+                                                   "failed to get a concrete, working class", ex);
+            }
         }
         Class vc = field.getCollectionClass();
         boolean ar = field.isCollectionArray();
@@ -538,9 +582,9 @@ public final class CodecConfig {
                 continue;
             }
             unusedKeys.remove(field.getName());
-            Object value = hydrateField(field, config);
+            Object value = hydrateField(field, config, objectShell);
             if (value == null) {
-                value = hydrateField(field, fieldDefaults);
+                value = hydrateField(field, fieldDefaults, objectShell);
             }
             try {
                 field.set(objectShell, value);
