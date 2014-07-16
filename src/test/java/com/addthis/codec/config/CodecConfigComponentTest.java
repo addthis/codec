@@ -74,7 +74,8 @@ public class CodecConfigComponentTest {
     public void hydrateBoolean() throws Exception {
         ConfigValue longValue = ConfigValueFactory.fromAnyRef(true);
         Config valueHolder = longValue.atKey("value");
-        Boolean booleanValue = (Boolean) CodecConfig.getDefault().hydrateField(Boolean.class, "value", valueHolder);
+        Boolean booleanValue = (Boolean) CodecConfig.getDefault().hydrateFieldComponent(Boolean.class, "value",
+                                                                                        valueHolder);
         Assert.assertEquals(true, booleanValue);
     }
 

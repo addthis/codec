@@ -48,7 +48,7 @@ public class FeatureTest {
         log.info("unresolved {}", greet.root().render());
         log.info("resolved {}", resolved.render());
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(Greeter.class, resolved.toConfig());
-        Assert.assertEquals("Hello World! What a pleasant default suffix we are having!",
+        Assert.assertEquals("Hello World! What a pleasant default-alias suffix we are having!",
                             greeterObject.greet());
     }
 
