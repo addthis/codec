@@ -23,7 +23,6 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigObject;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,6 @@ public class FeatureTest {
     }
 
     @Test
-    @Ignore("passes but does so erroneously - need to fix expand sugar for new features")
     public void expandDefault() throws Exception {
         Config greet = ConfigFactory.parseResources("config/defaultgreeter.conf");
         ConfigObject resolved = Configs.expandSugar(greet, CodecConfig.getDefault());
