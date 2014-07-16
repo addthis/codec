@@ -286,8 +286,45 @@ public final class CodecConfig {
                 // there could still be a default, so defer throwing an exception
             }
             if (success) {
-                configObject = (ConfigObject) configObject.get(sugarType);
+                ConfigObject aliasDefaults = pluginMap.aliasDefaults(sugarType);
+                ConfigValue configValue = configObject.get(sugarType);
+                if ((configValue.valueType() != ConfigValueType.OBJECT) && (aliasDefaults.get("_primary") != null)) {
+                    configValue = configValue.atKey((String) aliasDefaults.get("_primary").unwrapped()).root();
+                }
+                configObject = (ConfigObject) configValue;
                 info = getOrCreateClassInfo(type);
+                configObject = configObject.withFallback(aliasDefaults);
+                return createAndPopulate(info, type, configObject);
+            }
+        }
+        // if still otherwise doomed to fail, try supporting opt-in inlined types as primary fields
+        if ((stype == null) && ((type == null) || Modifier.isAbstract(type.getModifiers())
+                                || Modifier.isInterface(type.getModifiers()))) {
+            String matched = null;
+            for (String alias : pluginMap.inlinedAliases()) {
+                if (configObject.get(alias) != null) {
+                    if (matched != null) {
+                       throw new ConfigException.Parse(configObject.origin(),
+                                                       "no type specified, more than one key, "
+                                                       + "and both " + matched + " and " + alias
+                                                       + " match for inlined types.");
+                    }
+                    matched = alias;
+                }
+            }
+            if (matched != null) {
+                try {
+                    type = (Class<T>) pluginMap.getClass(matched);
+                } catch (ClassNotFoundException shouldntHappen) {
+                    throw new AssertionError(shouldntHappen);
+                }
+                ConfigObject aliasDefaults = pluginMap.aliasDefaults(matched);
+                ConfigValue configValue = configObject.get(matched);
+                String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
+                configObject = configObject.withValue(primaryField, configValue);
+                configObject = configObject.withoutKey(matched);
+                info = getOrCreateClassInfo(type);
+                configObject = configObject.withFallback(aliasDefaults);
                 return createAndPopulate(info, type, configObject);
             }
         }
@@ -301,6 +338,8 @@ public final class CodecConfig {
             try {
                 type = (Class<T>) pluginMap.getClass(stype);
                 configObject = configObject.withoutKey(classField);
+                ConfigObject aliasDefaults = pluginMap.aliasDefaults(stype);
+                configObject = configObject.withFallback(aliasDefaults);
                 info = null;
             } catch (ClassNotFoundException e) {
                 String helpMessage = Plugins.classNameSuggestions(pluginRegistry, pluginMap, stype);

@@ -76,6 +76,47 @@ public class FeatureTest {
     }
 
     @Test
+    public void alias() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.simpler {}");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello World even simpler";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void primary() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.multi-simple-primary: \" even simpler\" ");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello World even simpler";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void primaryArray() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.multi-array-primary: [a, b, c]");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "listing parts: [a, b, c]";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void inline() throws Exception {
+        Config greet = ConfigFactory.parseString(
+                "greet { multi-simple-primary: \" even simpler\", message: \" INLINED\" }");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello World INLINED even simpler";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void aliasInheritance() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.simplerer {}");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello World even simpler";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
     public void arraySingle() throws Exception {
         Config greet = ConfigFactory.parseString("greet.ArrayGreet.phrases: [\"heya\"] ");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);

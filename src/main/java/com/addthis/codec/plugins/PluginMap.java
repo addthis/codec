@@ -18,6 +18,10 @@ import javax.annotation.Nullable;
 
 import java.lang.reflect.Field;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Objects;
@@ -28,6 +32,8 @@ import com.google.common.collect.Maps;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
@@ -43,7 +49,10 @@ public class PluginMap {
 
     public static final PluginMap EMPTY = new PluginMap();
 
+    @Nonnull private final Config config;
     @Nonnull private final BiMap<String, Class<?>> map;
+    @Nonnull private final Map<String, String> aliases;
+    @Nonnull private final Set<String> inlinedAliases;
 
     @Nonnull private final String category;
     @Nonnull private final String classField;
@@ -56,6 +65,7 @@ public class PluginMap {
     @Nullable private final ConfigValue arrayOrigin;
 
     public PluginMap(@Nonnull String category, @Nonnull Config config) {
+        this.config = config;
         this.category = checkNotNull(category);
         classField = config.getString("_field");
         boolean errorMissing = config.getBoolean("_strict");
@@ -73,29 +83,58 @@ public class PluginMap {
         }
         Set<String> labels = config.root().keySet();
         BiMap<String, Class<?>> mutableMap = HashBiMap.create(labels.size());
+        Map<String, String> mutableAliasMap = new HashMap<>();
+        Set<String> mutableInlinedAliasSet = new HashSet<>();
         for (String label : labels) {
             if (label.charAt(0) == '_') {
                 continue;
             }
             ConfigValue configValue = config.root().get(label);
-            if (configValue.valueType() != ConfigValueType.STRING) {
-                throw new ConfigException.WrongType(configValue.origin(), label,
-                                                    "STRING", configValue.valueType().toString());
-            }
-            String className = (String) configValue.unwrapped();
-            try {
-                Class<?> foundClass = findAndValidateClass(className);
-                mutableMap.put(label, foundClass);
-            } catch (ClassNotFoundException maybeSwallowed) {
-                if (errorMissing) {
-                    throw new RuntimeException(maybeSwallowed);
-                } else {
-                    log.warn("plugin category {} with alias {} is pointing to missing class {}",
-                             category, label, className);
+            if (configValue.valueType() == ConfigValueType.STRING) {
+                String className = (String) configValue.unwrapped();
+                try {
+                    Class<?> foundClass = findAndValidateClass(className);
+                    mutableMap.put(label, foundClass);
+                } catch (ClassNotFoundException maybeSwallowed) {
+                    if (errorMissing) {
+                        throw new RuntimeException(maybeSwallowed);
+                    } else {
+                        log.warn("plugin category {} with alias {} is pointing to missing class {}",
+                                 category, label, className);
+                    }
                 }
+            } else if (configValue.valueType() == ConfigValueType.OBJECT) {
+                ConfigObject configObject = (ConfigObject) configValue;
+                String className = configObject.toConfig().getString("_class");
+                if (labels.contains(className)) {
+                    // points to another alias
+                    mutableAliasMap.put(label, className);
+                } else {
+                    try {
+                        Class<?> foundClass = findAndValidateClass(className);
+                        mutableMap.put(label, foundClass);
+                    } catch (ClassNotFoundException maybeSwallowed) {
+                        if (errorMissing) {
+                            throw new RuntimeException(maybeSwallowed);
+                        } else {
+                            log.warn("plugin category {} with alias {} is pointing to missing class {}",
+                                     category, label, className);
+                        }
+                    }
+                }
+                if (configObject.toConfig().hasPath("_inline") &&
+                        configObject.toConfig().getBoolean("_inline")) {
+                    mutableInlinedAliasSet.add(label);
+                }
+            } else {
+                throw new ConfigException.WrongType(configValue.origin(), label,
+                                                    "STRING OR OBJECT", configValue.valueType().toString());
             }
         }
         map = Maps.unmodifiableBiMap(mutableMap);
+        aliases = Collections.unmodifiableMap(mutableAliasMap);
+        checkAliasesForCycles();
+        inlinedAliases = Collections.unmodifiableSet(mutableInlinedAliasSet);
         if (config.hasPath("_array")) {
             String arraySugarName = config.getString("_array");
             Class<?> configuredArraySugar = map.get(arraySugarName);
@@ -127,7 +166,10 @@ public class PluginMap {
     }
 
     private PluginMap() {
+        config = ConfigFactory.empty();
         map = ImmutableBiMap.of();
+        aliases = Collections.emptyMap();
+        inlinedAliases = Collections.emptySet();
         classField = "class";
         category = "unknown";
         defaultSugar = null;
@@ -141,6 +183,25 @@ public class PluginMap {
     /** A thread safe, immutable bi-map view of this plugin map. */
     public BiMap<String, Class<?>> asBiMap() {
         return map;
+    }
+
+    @Nonnull public ConfigObject aliasDefaults(String alias) {
+        ConfigValue configValue = config.root().get(alias);
+        ConfigObject defaults;
+        if ((configValue != null) && (configValue.valueType() == ConfigValueType.OBJECT)) {
+            defaults = (ConfigObject) configValue;
+        } else {
+            defaults = ConfigFactory.empty().root();
+        }
+        String aliasTarget = aliases.get(alias);
+        if (aliasTarget != null) {
+            defaults = defaults.withFallback(aliasDefaults(aliasTarget));
+        }
+        return defaults;
+    }
+
+    @Nonnull public Set<String> inlinedAliases() {
+        return inlinedAliases;
     }
 
     @Nonnull public String classField() {
@@ -188,6 +249,11 @@ public class PluginMap {
         Class<?> alt = map.get(type);
         if (alt != null) {
             return alt;
+        } else {
+            String aliasTarget = aliases.get(type);
+            if (aliasTarget != null) {
+                return getClass(aliasTarget);
+            }
         }
         return findAndValidateClass(type);
     }
@@ -233,6 +299,27 @@ public class PluginMap {
                       .add("arrayField", arrayField)
                       .add("map", map)
                       .toString();
+    }
+
+    private void checkAliasesForCycles() {
+        for (String key : aliases.keySet()) {
+            Set<String> visited = new HashSet<>(aliases.size());
+            checkAliasesForCyclesHelper(key, visited);
+        }
+    }
+
+    private void checkAliasesForCyclesHelper(String key, Set<String> visited) {
+        visited.add(key);
+        String nextKey = aliases.get(key);
+        if (nextKey == null) {
+            // should mean it is present in the bimap
+            return;
+        }
+        if (visited.contains(nextKey)) {
+            throw new ConfigException.BadValue(config.root().get(key).origin(), key, "cyclical aliases detected");
+        } else {
+            checkAliasesForCyclesHelper(nextKey, visited);
+        }
     }
 
     @Nullable private static String searchArraySugarFieldName(Class<?> arraySugar) {

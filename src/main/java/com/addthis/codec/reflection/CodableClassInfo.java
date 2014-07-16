@@ -62,6 +62,13 @@ public class CodableClassInfo {
     public CodableClassInfo(@Nonnull Class<?> clazz,
                             @Nonnull Config globalDefaults,
                             @Nonnull PluginRegistry pluginRegistry) {
+        this(clazz, ConfigFactory.load(), PluginRegistry.defaultRegistry(), null);
+    }
+
+    public CodableClassInfo(@Nonnull Class<?> clazz,
+                            @Nonnull Config globalDefaults,
+                            @Nonnull PluginRegistry pluginRegistry,
+                            @Nullable String requestedAlias) {
 
         // skip native classes
         if (Fields.isNative(clazz) || clazz.isArray()) {
