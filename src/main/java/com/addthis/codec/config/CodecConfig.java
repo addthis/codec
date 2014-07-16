@@ -486,6 +486,7 @@ public final class CodecConfig {
                                                       "the java source code for the field's enclosing class: " +
                                                       objectShell.getClass());
             }
+            map.clear();
         } else {
             try {
                 map = (Map) type.newInstance();
@@ -535,6 +536,7 @@ public final class CodecConfig {
                                                       "the java source code for the field's enclosing class: " +
                                                       objectShell.getClass());
             }
+            col.clear();
         } else {
             try {
                 col = (Collection<Object>) field.getType().newInstance();
