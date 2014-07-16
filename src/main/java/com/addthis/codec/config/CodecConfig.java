@@ -289,7 +289,7 @@ public final class CodecConfig {
                 ConfigObject aliasDefaults = pluginMap.aliasDefaults(sugarType);
                 ConfigValue configValue = configObject.get(sugarType);
                 if ((configValue.valueType() != ConfigValueType.OBJECT) && (aliasDefaults.get("_primary") != null)) {
-                    configValue = configValue.atKey((String) aliasDefaults.get("_primary").unwrapped()).root();
+                    configValue = configValue.atPath((String) aliasDefaults.get("_primary").unwrapped()).root();
                 }
                 configObject = (ConfigObject) configValue;
                 info = getOrCreateClassInfo(type);
@@ -321,7 +321,7 @@ public final class CodecConfig {
                 ConfigObject aliasDefaults = pluginMap.aliasDefaults(matched);
                 ConfigValue configValue = configObject.get(matched);
                 String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
-                configObject = configObject.withValue(primaryField, configValue);
+                configObject = configObject.toConfig().withValue(primaryField, configValue).root();
                 configObject = configObject.withoutKey(matched);
                 info = getOrCreateClassInfo(type);
                 configObject = configObject.withFallback(aliasDefaults);
