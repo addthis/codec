@@ -396,7 +396,8 @@ public final class CodecConfig {
 
             /** we know it is not a type we can instantiate, and none of our syntactic sugar picked up anything. */
             throw new ConfigException.Parse(configObject.origin(),
-                                            "expected type must either be a valid pluggable or concrete class");
+                                            Objects.firstNonNull(type, pluginMap.category())
+                                            + " is not a concrete class and cannot figure out a suitable subclass");
         }
 
         /** type is instantiable -- could just be a random concrete type that doesn't care about pluggable types */
