@@ -13,6 +13,7 @@
  */
 package com.addthis.codec.reflection;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.lang.reflect.Field;
@@ -234,7 +235,7 @@ public final class CodableFieldInfo {
         }
     }
 
-    public void set(Object dst, Object value) {
+    public void set(@Nonnull Object dst, @Nullable Object value) {
         if (value == null) {
             if (isRequired() && get(dst) == null) {
                 throw new RequiredFieldException("missing required field '" +

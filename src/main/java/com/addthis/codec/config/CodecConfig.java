@@ -141,7 +141,7 @@ public final class CodecConfig {
     /** visibility intended for internal use, but should be safe to use */
     @Nullable public Object hydrateField(@Nonnull CodableFieldInfo field,
                                          @Nonnull Config config,
-                                         @Nullable Object objectShell) {
+                                         @Nonnull Object objectShell) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String fieldName = field.getName();
@@ -427,8 +427,8 @@ public final class CodecConfig {
     }
 
     /** called when the expected type is an array */
-    Object hydrateArray(Class<?> componentType, String fieldName, Config config) {
-        if ((config == null) || !config.hasPath(fieldName)) {
+    @Nullable Object hydrateArray(@Nonnull Class<?> componentType, @Nonnull String fieldName, @Nonnull Config config) {
+        if (!config.hasPath(fieldName)) {
             return null;
         } else if (componentType.isAssignableFrom(String.class)) {
             List<String> stringList = config.getStringList(fieldName);
@@ -668,7 +668,9 @@ public final class CodecConfig {
     }
 
     /** given a class, instance, and config.. turn config values into field values */
-    private void populateObjectFields(CodableClassInfo classInfo, Object objectShell, Config config) {
+    private void populateObjectFields(@Nonnull CodableClassInfo classInfo,
+                                      @Nonnull Object objectShell,
+                                      @Nonnull Config config) {
         Config fieldDefaults = classInfo.getFieldDefaults();
         if (objectShell instanceof ConfigCodable) {
             ((ConfigCodable) objectShell).fromConfigObject(config.root(), fieldDefaults.root());
