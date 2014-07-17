@@ -184,8 +184,10 @@ public final class CodecConfig {
      * Used to hydrate values for arrays, collections, and maps. CodableFieldInfo/ Codec2 design means that we don't
      * get a CodableFieldInfo object here and so some logic (like time/ bytes annotations) is not available.
      */
-    Object hydrateFieldComponent(Class<?> expectedType, String fieldName, Config config) {
-        if ((config == null) || !config.hasPath(fieldName)) {
+    @Nullable Object hydrateFieldComponent(@Nonnull Class<?> expectedType,
+                                           @Nonnull String fieldName,
+                                           @Nonnull Config config) {
+        if (!config.hasPath(fieldName)) {
             return null;
         } else if (expectedType.isAssignableFrom(String.class)) {
             return config.getString(fieldName);
