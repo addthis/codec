@@ -44,6 +44,7 @@ import com.addthis.codec.reflection.RequiredFieldException;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Shorts;
 
@@ -98,6 +99,13 @@ public final class CodecConfig {
         return hydrateObject(classInfo, classInfo.getPluginMap(), type, ConfigFactory.empty().root());
     }
 
+    /** Construct an object of the requested plugin category based on the default type and values */
+    public <T> T newDefault(@Nonnull String category) {
+        PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
+                                                         "could not find anything about the category %s", category);
+        return hydrateObject(null, pluginMap, null, ConfigFactory.empty().root());
+    }
+
     /**
      * Instantiate an object of the requested type based on the provided config. The config should only contain
      * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
@@ -109,6 +117,17 @@ public final class CodecConfig {
     }
 
     /**
+     * Instantiate an object of the requested category based on the provided config. The config should only contain
+     * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
+     * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
+     */
+    public <T> T decodeObject(@Nonnull String category, @Nonnull Config config) {
+        PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
+                                                         "could not find anything about the category %s", category);
+        return hydrateObject(null, pluginMap, null, config.root());
+    }
+
+    /**
      * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
      * {@link #decodeObject(Class, Config)} with the resultant config and the passed in type. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
@@ -116,6 +135,18 @@ public final class CodecConfig {
     public <T> T decodeObject(@Nonnull Class<T> type, @Nonnull String configText) {
         Config config = ConfigFactory.parseString(configText).resolve();
         return decodeObject(type, config);
+    }
+
+    /**
+     * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
+     * {@link #decodeObject(String, Config)} with the resultant config and the passed in category. Pretty much just
+     * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
+     */
+    public <T> T decodeObject(@Nonnull String category, @Nonnull String configText) {
+        PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
+                                                         "could not find anything about the category %s", category);
+        Config config = ConfigFactory.parseString(configText).resolve();
+        return hydrateObject(null, pluginMap, null, config.root());
     }
 
     /**
