@@ -20,6 +20,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import com.addthis.codec.annotations.FieldConfig;
+import com.addthis.codec.plugins.ConfigGreet;
+import com.addthis.codec.plugins.ConfigGreetHolder;
+import com.addthis.codec.plugins.ConfigNonGreet;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.Fields;
 
@@ -129,5 +132,56 @@ public class CodecConfigComponentTest {
         expected.add("b");
         expected.add("c");
         Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void valueCodableDirect() throws Exception {
+        Config greet = ConfigFactory.parseString("raw: [\"someraw\"]");
+        ConfigGreet greeterObject =
+                (ConfigGreet) CodecConfig.getDefault().hydrateFieldComponent(ConfigGreet.class, "raw", greet);
+        Assert.assertEquals("ValueCodable", greeterObject.source);
+        Assert.assertEquals("[\"someraw\"]", greeterObject.greet());
+    }
+
+    @Test
+    public void valueCodableNestedNoPluggables() throws Exception {
+        Config greet = ConfigFactory.parseString("configNonGreet: [\"someraw\"]");
+        ConfigGreetHolder greeterHolderObject = CodecConfig.getDefault().decodeObject(ConfigGreetHolder.class, greet);
+        ConfigNonGreet greeterObject = greeterHolderObject.configNonGreet;
+        Assert.assertEquals("ValueCodable", greeterObject.source);
+        Assert.assertEquals("[\"someraw\"]", greeterObject.greet());
+    }
+
+    @Test
+    public void valueCodableNested() throws Exception {
+        Config greet = ConfigFactory.parseString("configGreet: [\"someraw\"]");
+        ConfigGreetHolder greeterHolderObject = CodecConfig.getDefault().decodeObject(ConfigGreetHolder.class, greet);
+        ConfigGreet greeterObject = greeterHolderObject.configGreet;
+        Assert.assertEquals("ValueCodable", greeterObject.source);
+        Assert.assertEquals("[\"someraw\"]", greeterObject.greet());
+    }
+
+    @Test
+    public void configCodable() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.config {rawConfigValue: [\"someraw\"], source: ConfigCodable}");
+        ConfigGreet greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        Assert.assertEquals("ConfigCodable", greeterObject.source);
+        Assert.assertEquals("[\"someraw\"]", greeterObject.greet());
+    }
+
+    @Test
+    public void configCodableAliasDefaults() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.configDefaulted {}");
+        ConfigGreet greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        Assert.assertEquals("alias defaults", greeterObject.source);
+        Assert.assertEquals("[0,1,2]", greeterObject.greet());
+    }
+
+    @Test
+    public void configCodableGlobalDefaults() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.config {}");
+        ConfigGreet greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        Assert.assertEquals("global defaults", greeterObject.source);
+        Assert.assertEquals("[3,4,5]", greeterObject.greet());
     }
 }

@@ -13,6 +13,9 @@
  */
 package com.addthis.codec.config;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.addthis.codec.codables.Codable;
 
 import com.google.common.annotations.Beta;
@@ -49,5 +52,5 @@ public interface ConfigCodable extends Codable {
      * @param defaults the global default values for objects of this class. This includes defaults derived from
      *                 super classes and this method may need to use those to do any setup the super classes may need.
      */
-    public ConfigObject fromConfigObject(ConfigObject config, ConfigObject defaults);
+    @Nullable public ConfigObject fromConfigObject(@Nonnull ConfigObject config, @Nonnull ConfigObject defaults);
 }
