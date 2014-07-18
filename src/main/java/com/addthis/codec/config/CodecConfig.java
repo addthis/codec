@@ -178,6 +178,8 @@ public final class CodecConfig {
         String fieldName = field.getName();
         if (!config.hasPath(fieldName)) {
             return null;
+        } else if (expectedType.isAssignableFrom(ConfigValue.class)) {
+            return config.root().get(fieldName);
         } else if (field.isArray()) { // check CodableFieldInfo instead of expectedType
             ConfigValue configValue = config.root().get(fieldName);
             if ((configValue.valueType() != ConfigValueType.LIST) &&
@@ -214,12 +216,17 @@ public final class CodecConfig {
     /**
      * Used to hydrate values for arrays, collections, and maps. CodableFieldInfo/ Codec2 design means that we don't
      * get a CodableFieldInfo object here and so some logic (like time/ bytes annotations) is not available.
+     *
+     * Currently is anti-dry due to some subtle logic differences that complicate abstraction. Some of those logic
+     * differences are questionable though so they may not have to be around forever (replicates legacy behavior).
      */
     @Nullable Object hydrateFieldComponent(@Nonnull Class<?> expectedType,
                                            @Nonnull String fieldName,
                                            @Nonnull Config config) {
         if (!config.hasPath(fieldName)) {
             return null;
+        } else if (expectedType.isAssignableFrom(ConfigValue.class)) {
+            return config.root().get(fieldName);
         } else if (expectedType.isAssignableFrom(String.class)) {
             return config.getString(fieldName);
         } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {
@@ -310,27 +317,50 @@ public final class CodecConfig {
                                        @Nullable Class<T> type,
                                        ConfigValue configValue) {
 
-        /** if config value is a list, see if the base class has an _array alias */
-        if (configValue.valueType() == ConfigValueType.LIST) {
-            Class<T> arrayType = (Class<T>) pluginMap.arraySugar();
-            if (arrayType != null) {
-                Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
-                ConfigObject fieldsValues = configValue.atKey(aliasDefaults.getString("_primary")).root()
-                                                       .withFallback(aliasDefaults);
-                CodableClassInfo arrayInfo = getOrCreateClassInfo(arrayType);
-                return createAndPopulate(arrayInfo, arrayType, fieldsValues);
-            } // else just let the error get thrown below
-        }
-
-        /** could support some kind of _simple handler for other non-object types in theory, but can't
-         *  think of a compelling use case. If that changes later, make sure to handle "list but no _array". */
         if (configValue.valueType() != ConfigValueType.OBJECT) {
+
+            if ((type == null)
+                || Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
+
+                /* if config value is a list see if the base class has an _array alias */
+                if (configValue.valueType() == ConfigValueType.LIST) {
+                    Class<T> arrayType = (Class<T>) pluginMap.arraySugar();
+                    if (arrayType != null) {
+                        Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
+                        ConfigObject fieldsValues = configValue.atKey(aliasDefaults.getString("_primary")).root()
+                                                               .withFallback(aliasDefaults);
+                        CodableClassInfo arrayInfo = getOrCreateClassInfo(arrayType);
+                        return createAndPopulate(arrayInfo, arrayType, fieldsValues);
+                    } // else just let the error get thrown below
+                }
+            } else {
+
+                /* for non-pluggable ValueCodable implementors */
+                if (ValueCodable.class.isAssignableFrom(type)) {
+                    try {
+                        T objectShell = type.newInstance();
+                        CodableClassInfo configInfo = (info != null) ? info : getOrCreateClassInfo(type);
+                        Config fieldDefaults = configInfo.getFieldDefaults();
+                        ((ValueCodable) objectShell).fromConfigValue(configValue, fieldDefaults.root());
+                        if (objectShell instanceof SuperCodable) {
+                            ((SuperCodable) objectShell).postDecode();
+                        }
+                        return objectShell;
+                    } catch (InstantiationException | IllegalAccessException | RuntimeException ex) {
+                        throw new ConfigException.BadValue(configValue.origin(), type.getName(),
+                                                           "exception during instantiation of a ValueCodable", ex);
+                    }
+                }
+            }
+
+            /* could theoretically support some kind of _simple handler for other non-object types, but have yet to
+             * think of a compelling use case. */
             String path = Objects.firstNonNull(info, "some value").toString();
             throw new ConfigException.WrongType(configValue.origin(), path,
                                                 "OBJECT", configValue.valueType().toString());
         }
 
-        /** have an object as 'expected'; resolve the type if needed/ possible, then build it */
+        /* have an object as 'expected'; resolve the type if needed/ possible, then build it */
         return hydrateObject(info, pluginMap, type, (ConfigObject) configValue);
     }
 
@@ -340,7 +370,7 @@ public final class CodecConfig {
                                 @Nullable Class<T> type,
                                 ConfigObject configObject) {
 
-        /** look for normal, explicit type syntax. ie. "{type: my-type, val: my-val}" */
+        /* look for normal, explicit type syntax. ie. "{type: my-type, val: my-val}" */
         String classField = pluginMap.classField();
         ConfigValue typeValue = configObject.get(classField);
         if (typeValue != null) {
@@ -361,27 +391,45 @@ public final class CodecConfig {
             }
         }
 
-        /** if no chance of instantiating current type, try to get a new type from various special syntax/ settings */
+        /* if no chance of instantiating current type, try to get a new type from various special syntax/ settings */
         if ((type == null) || Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
 
-            /** "type-value : {...}"  syntax; ie. if there is only one key, see if it would be a valid type */
+            /* "type-value : {...}"  syntax; ie. if there is only one key, see if it would be a valid type */
             if (configObject.size() == 1) {
-                String sugarType = configObject.keySet().iterator().next();
+                String singleKeyName = configObject.keySet().iterator().next();
                 try {
-                    Class<T> singleKeyType = (Class<T>) pluginMap.getClass(sugarType);
-                    ConfigObject aliasDefaults = pluginMap.aliasDefaults(sugarType);
-                    ConfigValue configValue = configObject.get(sugarType);
-                    // if value is not an object, try supporting _primary syntax to derive one
+                    Class<T> singleKeyType = (Class<T>) pluginMap.getClass(singleKeyName);
+                    CodableClassInfo singleKeyInfo = getOrCreateClassInfo(singleKeyType);
+                    ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
+                    ConfigValue configValue = configObject.get(singleKeyName);
                     if (configValue.valueType() != ConfigValueType.OBJECT) {
                         if (aliasDefaults.get("_primary") != null) {
+                            // if value is not an object, try supporting _primary syntax to derive one
                             configValue = configValue.atPath((String) aliasDefaults.get("_primary").unwrapped()).root();
+                        } else if (ValueCodable.class.isAssignableFrom(singleKeyType)) {
+                            // see if the resolved type is innately okay with non-objects
+                            try {
+                                T objectShell = singleKeyType.newInstance();
+                                Config fieldDefaults = singleKeyInfo.getFieldDefaults();
+                                // do not merge objects between global defaults and user defaults (incl. alias defaults)
+                                ConfigObject mergedDefaults = aliasDefaults;
+                                for (Map.Entry<String, ConfigValue> pair : fieldDefaults.entrySet()) {
+                                    if (!mergedDefaults.containsKey(pair.getKey())) {
+                                        mergedDefaults = mergedDefaults.withValue(pair.getKey(), pair.getValue());
+                                    }
+                                }
+                                ((ValueCodable) objectShell).fromConfigValue(configValue, mergedDefaults);
+                                return objectShell;
+                            } catch (InstantiationException | IllegalAccessException | RuntimeException ex) {
+                                throw new ConfigException.BadValue(configValue.origin(), singleKeyType.getName(),
+                                                                   "exception during instantiation of a ValueCodable", ex);
+                            }
                         } else {
-                            throw new ConfigException.WrongType(configValue.origin(), sugarType,
+                            throw new ConfigException.WrongType(configValue.origin(), singleKeyName,
                                                                 "OBJECT", configValue.valueType().toString());
                         }
                     }
                     ConfigObject fieldValues = ((ConfigObject) configValue).withFallback(aliasDefaults);
-                    CodableClassInfo singleKeyInfo = getOrCreateClassInfo(singleKeyType);
                     return createAndPopulate(singleKeyInfo, singleKeyType, fieldValues);
                 } catch (ClassNotFoundException ignored) {
                     // expected when the single key is not a valid alias or class. could avoid exception if we dropped
@@ -390,9 +438,9 @@ public final class CodecConfig {
                 }
             }
 
-            /** inlined types syntax ie "{ type-value: some-value, some-field: some-other-value, ...}".
-             *  Opt-in is on a per alias basis, and the target type must be unambiguous amongst aliases
-             *  that have opted in. The recognized alias label is then replaced with the _primary field. */
+            /* inlined types syntax ie "{ type-value: some-value, some-field: some-other-value, ...}".
+             * Opt-in is on a per alias basis, and the target type must be unambiguous amongst aliases
+             * that have opted in. The recognized alias label is then replaced with the _primary field. */
             String matched = null;
             for (String alias : pluginMap.inlinedAliases()) {
                 if (configObject.get(alias) != null) {
@@ -418,7 +466,7 @@ public final class CodecConfig {
                 return createAndPopulate(inlinedInfo, inlinedType, fieldValues);
             }
 
-            /** lastly, check for a _default type. */
+            /* lastly, check for a _default type. */
             Class<T> defaultType = (Class<T>) pluginMap.defaultSugar();
             if (defaultType != null) {
                 CodableClassInfo defaultInfo = getOrCreateClassInfo(defaultType);
@@ -427,13 +475,13 @@ public final class CodecConfig {
                 return createAndPopulate(defaultInfo, defaultType, fieldValues);
             }
 
-            /** we know it is not a type we can instantiate, and none of our syntactic sugar picked up anything. */
+            /* we know it is not a type we can instantiate, and none of our syntactic sugar picked up anything. */
             throw new ConfigException.Parse(configObject.origin(),
                                             Objects.firstNonNull(type, pluginMap.category())
                                             + " is not a concrete class and cannot figure out a suitable subclass");
         }
 
-        /** type is instantiable -- could just be a random concrete type that doesn't care about pluggable types */
+        /* type is instantiable -- could just be a random concrete type that doesn't care about pluggable types */
         if (info == null) {
             return createAndPopulate(type, configObject);
         } else {
@@ -449,7 +497,18 @@ public final class CodecConfig {
     private <T> T createAndPopulate(CodableClassInfo info, Class<T> type, ConfigObject configObject) {
         try {
             T objectShell = type.newInstance();
-            populateObjectFields(info, objectShell, configObject.toConfig());
+            if (objectShell instanceof ConfigCodable) {
+                ConfigObject newConfig = ((ConfigCodable) objectShell).fromConfigObject(
+                        configObject, info.getFieldDefaults().root());
+                if (newConfig != null) {
+                    populateObjectFields(info, objectShell, newConfig.toConfig());
+                }
+            } else {
+                populateObjectFields(info, objectShell, configObject.toConfig());
+            }
+            if (objectShell instanceof SuperCodable) {
+                ((SuperCodable) objectShell).postDecode();
+            }
             return objectShell;
         } catch (InstantiationException | IllegalAccessException ex) {
             throw new ConfigException.BadValue(configObject.origin(), type.getName(),
@@ -703,10 +762,6 @@ public final class CodecConfig {
                                       @Nonnull Object objectShell,
                                       @Nonnull Config config) {
         Config fieldDefaults = classInfo.getFieldDefaults();
-        if (objectShell instanceof ConfigCodable) {
-            ((ConfigCodable) objectShell).fromConfigObject(config.root(), fieldDefaults.root());
-            return;
-        }
         Collection<String> unusedKeys = new HashSet<>(config.root().keySet());
         for (CodableFieldInfo field : classInfo.values()) {
             if (field.isWriteOnly()) {
@@ -735,9 +790,6 @@ public final class CodecConfig {
             if (!unusedKeys.isEmpty()) {
                 throw new ConfigException.BadPath(config.origin(), "unrecognized key(s) " + unusedKeys.toString());
             }
-        }
-        if (objectShell instanceof SuperCodable) {
-            ((SuperCodable) objectShell).postDecode();
         }
     }
 

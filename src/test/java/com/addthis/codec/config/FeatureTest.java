@@ -42,7 +42,7 @@ public class FeatureTest {
     @Test
     public void expandDefault() throws Exception {
         Config greet = ConfigFactory.parseResources("config/defaultgreeter.conf");
-        ConfigObject resolved = Configs.expandSugar(greet, CodecConfig.getDefault());
+        ConfigObject resolved = (ConfigObject) Configs.expandSugar(greet, CodecConfig.getDefault());
         log.info("unresolved {}", greet.root().render());
         log.info("resolved {}", resolved.render());
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(Greeter.class, resolved.toConfig());

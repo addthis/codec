@@ -42,7 +42,7 @@ import com.typesafe.config.ConfigValueType;
 public final class Configs {
     private Configs() {}
 
-    public static ConfigObject expandSugar(Config config, CodecConfig codec) {
+    public static ConfigValue expandSugar(Config config, CodecConfig codec) {
         if (config.root().size() != 1) {
             throw new ConfigException.Parse(config.root().origin(),
                                             "config root must have exactly one key");
@@ -58,10 +58,14 @@ public final class Configs {
         return expandSugar(baseClass, config.root().get(category), codec);
     }
 
-    public static ConfigObject expandSugar(Class<?> type, ConfigValue config, CodecConfig codec) {
+    public static ConfigValue expandSugar(Class<?> type, ConfigValue config, CodecConfig codec) {
         CodableClassInfo typeInfo = codec.getOrCreateClassInfo(type);
         PluginMap pluginMap = typeInfo.getPluginMap();
-        ConfigObject root = resolveType(type, config, pluginMap);
+        ConfigValue valueOrResolvedRoot = resolveType(type, config, pluginMap);
+        if (valueOrResolvedRoot.valueType() != ConfigValueType.OBJECT) {
+            return valueOrResolvedRoot;
+        }
+        ConfigObject root = (ConfigObject) valueOrResolvedRoot;
         String classField = pluginMap.classField();
         if (root.get(classField) != null) {
             try {
@@ -182,32 +186,42 @@ public final class Configs {
     }
 
     /** should be roughly analagous to {@link CodecConfig#hydrateObject(Class, ConfigValue)} */
-    private static ConfigObject resolveType(Class<?> type, ConfigValue objectOrArray, PluginMap pluginMap) {
+    private static ConfigValue resolveType(Class<?> type, ConfigValue configValue, PluginMap pluginMap) {
         String classField = pluginMap.classField();
-        if (objectOrArray.valueType() == ConfigValueType.LIST) {
-            Class<?> arrayType = pluginMap.arraySugar();
-            if (arrayType != null) {
-                ConfigObject aliasDefaults = pluginMap.aliasDefaults("_array");
-                String arrayFieldName = aliasDefaults.toConfig().getString("_primary");
-                String arraySugarName = pluginMap.getLastAlias("_array");
-                return ConfigFactory.empty().withValue(
-                        classField, ConfigValueFactory.fromAnyRef(
-                                arraySugarName, pluginMap.category() + " array sugar : " +
-                                                pluginMap.config().root().get("_array").origin().description()))
-                                    .withValue(arrayFieldName, objectOrArray)
-                                    .withFallback(aliasDefaults)
-                                    .root();
+        if (configValue.valueType() != ConfigValueType.OBJECT) {
+            if ((type == null)
+                || Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
+                if (configValue.valueType() == ConfigValueType.LIST) {
+                    Class<?> arrayType = pluginMap.arraySugar();
+                    if (arrayType != null) {
+                        ConfigObject aliasDefaults = pluginMap.aliasDefaults("_array");
+                        String arrayFieldName = aliasDefaults.toConfig().getString("_primary");
+                        String arraySugarName = pluginMap.getLastAlias("_array");
+                        return ConfigFactory.empty().withValue(
+                                classField, ConfigValueFactory.fromAnyRef(
+                                        arraySugarName, pluginMap.category() + " array sugar : " +
+                                                        pluginMap.config().root().get("_array").origin().description()))
+                                            .withValue(arrayFieldName, configValue)
+                                            .withFallback(aliasDefaults)
+                                            .root();
+                    } else {
+                        throw new ConfigException.WrongType(configValue.origin(),
+                                                            "found an array instead of an object, but no array type set");
+
+                    }
+                }
             } else {
-                throw new ConfigException.WrongType(objectOrArray.origin(),
-                                                    "found an array instead of an object, but no array type set");
+                if (ValueCodable.class.isAssignableFrom(type)) {
+                    return ConfigValueFactory.fromAnyRef(configValue.unwrapped(),
+                                                         "unchanged for ValueCodable"
+                                                         + configValue.origin().description());
+                }
             }
-        }
-        if (objectOrArray.valueType() != ConfigValueType.OBJECT) {
-            throw new ConfigException.WrongType(objectOrArray.origin(),
-                                                "invalid config type of " + objectOrArray.valueType() +
+            throw new ConfigException.WrongType(configValue.origin(),
+                                                "invalid config type of " + configValue.valueType() +
                                                 " for " + pluginMap);
         }
-        ConfigObject root = (ConfigObject) objectOrArray;
+        ConfigObject root = (ConfigObject) configValue;
         ConfigValue classValue = root.get(classField);
         // normal, explicit typing
         if ((classValue != null) && (classValue.valueType() == ConfigValueType.STRING)) {
@@ -222,17 +236,17 @@ public final class Configs {
                 String onlyKey = root.keySet().iterator().next();
                 try {
                     pluginMap.getClass(onlyKey); // make sure key is a valid type
-                    ConfigValue configValue = root.values().iterator().next();
+                    ConfigValue onlyKeyValue = root.values().iterator().next();
                     ConfigObject aliasDefaults = pluginMap.aliasDefaults(onlyKey);
-                    if (configValue.valueType() != ConfigValueType.OBJECT) {
+                    if (onlyKeyValue.valueType() != ConfigValueType.OBJECT) {
                         if (aliasDefaults.get("_primary") != null) {
-                            configValue = configValue.atPath((String) aliasDefaults.get("_primary").unwrapped()).root();
+                            onlyKeyValue = onlyKeyValue.atPath((String) aliasDefaults.get("_primary").unwrapped()).root();
                         } else {
-                            throw new ConfigException.WrongType(configValue.origin(), onlyKey,
-                                                                "OBJECT", configValue.valueType().toString());
+                            throw new ConfigException.WrongType(onlyKeyValue.origin(), onlyKey,
+                                                                "OBJECT", onlyKeyValue.valueType().toString());
                         }
                     }
-                    ConfigObject fieldValues = (ConfigObject) configValue;
+                    ConfigObject fieldValues = (ConfigObject) onlyKeyValue;
                     return fieldValues.withValue(classField, ConfigValueFactory.fromAnyRef(
                             onlyKey, "single key to type from " + root.origin().description()))
                                       .withFallback(aliasDefaults);
@@ -255,9 +269,9 @@ public final class Configs {
             }
             if (matched != null) {
                 ConfigObject aliasDefaults = pluginMap.aliasDefaults(matched);
-                ConfigValue configValue = root.get(matched);
+                ConfigValue inlinedValue = root.get(matched);
                 String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
-                ConfigObject fieldValues =  root.toConfig().withValue(primaryField, configValue).root()
+                ConfigObject fieldValues =  root.toConfig().withValue(primaryField, inlinedValue).root()
                                                         .withoutKey(matched)
                                                         .withFallback(aliasDefaults);
                 return fieldValues.withValue(classField, ConfigValueFactory.fromAnyRef(
