@@ -176,10 +176,11 @@ public final class CodecConfig {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
         Class<?> expectedType = field.getType();
         String fieldName = field.getName();
-        if (!config.hasPath(fieldName)) {
-            return null;
-        } else if (expectedType.isAssignableFrom(ConfigValue.class)) {
+        if (expectedType.isAssignableFrom(ConfigValue.class)) {
+            // different from hasPath in that this will accept ConfigValueType.NULL
             return config.root().get(fieldName);
+        } else if (!config.hasPath(fieldName)) {
+            return null;
         } else if (field.isArray()) { // check CodableFieldInfo instead of expectedType
             ConfigValue configValue = config.root().get(fieldName);
             if ((configValue.valueType() != ConfigValueType.LIST) &&
@@ -223,10 +224,11 @@ public final class CodecConfig {
     @Nullable Object hydrateFieldComponent(@Nonnull Class<?> expectedType,
                                            @Nonnull String fieldName,
                                            @Nonnull Config config) {
-        if (!config.hasPath(fieldName)) {
-            return null;
-        } else if (expectedType.isAssignableFrom(ConfigValue.class)) {
+        if (expectedType.isAssignableFrom(ConfigValue.class)) {
+            // different from hasPath in that this will accept ConfigValueType.NULL
             return config.root().get(fieldName);
+        } else if (!config.hasPath(fieldName)) {
+            return null;
         } else if (expectedType.isAssignableFrom(String.class)) {
             return config.getString(fieldName);
         } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {

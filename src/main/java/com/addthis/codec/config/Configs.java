@@ -59,6 +59,11 @@ public final class Configs {
     }
 
     public static ConfigValue expandSugar(Class<?> type, ConfigValue config, CodecConfig codec) {
+        if ((type != null) && type.isAssignableFrom(ConfigValue.class)) {
+            return ConfigValueFactory.fromAnyRef(config.unwrapped(),
+                                                 "unchanged for raw ConfigValue field "
+                                                 + config.origin().description());
+        }
         CodableClassInfo typeInfo = codec.getOrCreateClassInfo(type);
         PluginMap pluginMap = typeInfo.getPluginMap();
         ConfigValue valueOrResolvedRoot = resolveType(type, config, pluginMap);
