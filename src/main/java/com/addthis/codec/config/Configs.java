@@ -13,6 +13,8 @@
  */
 package com.addthis.codec.config;
 
+import javax.annotation.Nonnull;
+
 import java.lang.reflect.Modifier;
 
 import java.util.ArrayList;
@@ -38,9 +40,78 @@ import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
 
+import org.intellij.lang.annotations.Language;
+
 @Beta
 public final class Configs {
     private Configs() {}
+
+    /**
+     * Construct an object of the requested type based on the default values and types (if the requested
+     * is not a concrete class).
+     */
+    public static <T> T newDefault(@Nonnull Class<T> type) {
+        return DefaultCodecConfig.DEFAULT.newDefault(type);
+    }
+
+    /** Construct an object of the requested plugin category based on the default type and values */
+    public static <T> T newDefault(@Nonnull String category) {
+        return DefaultCodecConfig.DEFAULT.newDefault(category);
+    }
+
+    /**
+     * Instantiate an object of the requested type based on the provided config. The config should only contain
+     * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
+     * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
+     */
+    public static <T> T decodeObject(@Nonnull Class<T> type, @Nonnull Config config) {
+        return DefaultCodecConfig.DEFAULT.decodeObject(type, config);
+    }
+
+    /**
+     * Instantiate an object of the requested category based on the provided config. The config should only contain
+     * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
+     * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
+     */
+    public static <T> T decodeObject(@Nonnull String category, @Nonnull Config config) {
+        return DefaultCodecConfig.DEFAULT.decodeObject(category, config);
+    }
+
+    /**
+     * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
+     * {@link #decodeObject(Class, Config)} with the resultant config and the passed in type. Pretty much just
+     * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
+     */
+    public static <T> T decodeObject(@Nonnull Class<T> type, @Language("HOCON") @Nonnull String configText) {
+        return DefaultCodecConfig.DEFAULT.decodeObject(type, configText);
+    }
+
+    /**
+     * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
+     * {@link #decodeObject(String, Config)} with the resultant config and the passed in category. Pretty much just
+     * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
+     */
+    public static <T> T decodeObject(@Nonnull String category, @Language("HOCON") @Nonnull String configText) {
+        return DefaultCodecConfig.DEFAULT.decodeObject(category, configText);
+    }
+
+    /**
+     * Instantiate an object without a compile time expected type. This expects a config of the
+     * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
+     * key should be a valid, loaded, plug-in category.
+     */
+    public static <T> T decodeObject(@Language("HOCON") String configText) {
+        return DefaultCodecConfig.DEFAULT.decodeObject(configText);
+    }
+
+    /**
+     * Instantiate an object without a compile time expected type. This expects a config of the
+     * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
+     * key should be a valid, loaded, plug-in category.
+     */
+    public static <T> T decodeObject(Config config) {
+        return DefaultCodecConfig.DEFAULT.decodeObject(config);
+    }
 
     public static ConfigValue expandSugar(Config config, CodecConfig codec) {
         if (config.root().size() != 1) {

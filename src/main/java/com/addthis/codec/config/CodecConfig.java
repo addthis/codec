@@ -56,6 +56,7 @@ import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
 
+import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +133,7 @@ public final class CodecConfig {
      * {@link #decodeObject(Class, Config)} with the resultant config and the passed in type. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
-    public <T> T decodeObject(@Nonnull Class<T> type, @Nonnull String configText) {
+    public <T> T decodeObject(@Nonnull Class<T> type, @Language("HOCON") @Nonnull String configText) {
         Config config = ConfigFactory.parseString(configText).resolve();
         return decodeObject(type, config);
     }
@@ -142,11 +143,21 @@ public final class CodecConfig {
      * {@link #decodeObject(String, Config)} with the resultant config and the passed in category. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
-    public <T> T decodeObject(@Nonnull String category, @Nonnull String configText) {
+    public <T> T decodeObject(@Nonnull String category, @Language("HOCON") @Nonnull String configText) {
         PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
                                                          "could not find anything about the category %s", category);
         Config config = ConfigFactory.parseString(configText).resolve();
         return hydrateObject(null, pluginMap, null, config.root());
+    }
+
+    /**
+     * Instantiate an object without a compile time expected type. This expects a config of the
+     * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
+     * key should be a valid, loaded, plug-in category.
+     */
+    public <T> T decodeObject(@Language("HOCON") String configText) {
+        Config config = ConfigFactory.parseString(configText).resolve();
+        return decodeObject(config);
     }
 
     /**

@@ -27,6 +27,7 @@ import com.typesafe.config.ConfigValueType;
 public class ConfigGreet implements Greeter, ConfigCodable, ValueCodable {
 
     @FieldConfig(required = true) public ConfigValue rawConfigValue;
+
     @FieldConfig(required = true) public String source = "Constructor";
 
     @Override public String greet() {
