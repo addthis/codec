@@ -416,12 +416,12 @@ public final class CodecJSON extends Codec {
             if ((value == null) && fieldDefaults.root().containsKey(fieldName)) {
                 value = CodecConfig.getDefault().hydrateField(field, fieldDefaults, object);
                 if (value != null) {
-                    field.set(object, json.getLineNumberInfo(), value, json.getValLineNumber(fieldName));
+                    field.setStrictJson(object, json.getLineNumberInfo(), value, json.getValLineNumber(fieldName));
                     continue;
                 }
             }
             if (value == null) {
-                field.set(object, json.getLineNumberInfo(), value, LineNumberInfo.MissingInfo);
+                field.setStrictJson(object, json.getLineNumberInfo(), value, LineNumberInfo.MissingInfo);
                 continue;
             }
             LineNumberInfo keyInfo = json.getKeyLineNumber(fieldName);
@@ -586,7 +586,7 @@ public final class CodecJSON extends Codec {
             } else if (field.isCodable()) {
                 value = decodeObjectInternal(type, value, valInfo, warnings);
             }
-            field.set(object, json.getLineNumberInfo(), value, valInfo);
+            field.setStrictJson(object, json.getLineNumberInfo(), value, valInfo);
         }
         if (object instanceof SuperCodable) {
             ((SuperCodable) object).postDecode();

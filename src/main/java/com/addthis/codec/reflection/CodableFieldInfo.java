@@ -200,22 +200,18 @@ public final class CodableFieldInfo {
     }
 
     /**
-     * Variation of {@link #set(Object, Object)} with line numbers.
+     * Variation of {@link #setStrict(Object, Object)} with line numbers and extra string intern handling.
+     *
+     * @deprecated Handle string interning yourself and use {@link #setStrict(Object, Object)} instead.
      */
-    public void set(Object dst, LineNumberInfo dstInfo, Object value,
-            LineNumberInfo valInfo) throws CodecExceptionLineNumber {
+    @Deprecated
+    public void setStrictJson(Object dst, LineNumberInfo dstInfo, Object value, LineNumberInfo valInfo)
+            throws CodecExceptionLineNumber {
 
         if (value == null) {
-            Object currentValue;
-            try {
-                currentValue = get(dst);
-            } catch (Exception ex) {
-                throw new CodecExceptionLineNumber(ex, dstInfo);
-            }
-
-            if (isRequired() && currentValue == null) {
+            if (isRequired()) {
                 Exception ex = new RequiredFieldException("missing required field '" +
-                    this.getName() + "' for " + dst, getName());
+                                                          this.getName() + "' for " + dst, getName());
                 throw new CodecExceptionLineNumber(ex, dstInfo);
             }
             return;
@@ -226,13 +222,33 @@ public final class CodableFieldInfo {
             throw new CodecExceptionLineNumber(ex, valInfo);
         }
         try {
-            if (value.getClass() == String.class && isInterned()) {
+            if ((value.getClass() == String.class) && isInterned()) {
                 value = ((String) value).intern();
             }
             field.set(dst, value);
         } catch (Exception ex) {
             throw new CodecExceptionLineNumber(ex.getMessage(), valInfo);
         }
+    }
+
+    /**
+     * Sets the field value for the destination object if and only if it is non-null and passes the field's
+     * validation method (if any). If the value is null and the field is marked as required, then an exception
+     * is thrown, otherwise the null value is ignored and the current value (if any) is kept.
+     */
+    public void setStrict(@Nonnull Object dst, @Nullable Object value) throws IllegalAccessException {
+        if (value == null) {
+            if (isRequired()) {
+                throw new RequiredFieldException("missing required field '" +
+                                                 this.getName() + "' for " + dst, getName());
+            }
+            return;
+        }
+        if (!validate(value)) {
+            throw new ValidationException("invalid field value '" + value + "' for " +
+                                          this.getName() + " in " + dst, getName());
+        }
+        field.set(dst, value);
     }
 
     public void set(@Nonnull Object dst, @Nullable Object value) {

@@ -207,7 +207,7 @@ public final class CodecConfig {
         } else if (field.isCollection()) {
             return hydrateCollection(field, config, objectShell);
         } else if (expectedType.isAssignableFrom(String.class)) {
-            return config.getString(fieldName);
+            return hydrateString(field, expectedType, fieldName, config);
         } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {
             return config.getBoolean(fieldName);
         } else if (expectedType == AtomicBoolean.class) {
@@ -241,14 +241,14 @@ public final class CodecConfig {
         } else if (!config.hasPath(fieldName)) {
             return null;
         } else if (expectedType.isAssignableFrom(String.class)) {
-            return config.getString(fieldName);
+            return hydrateString(null, expectedType, fieldName, config);
         } else if ((expectedType == boolean.class) || (expectedType == Boolean.class)) {
             return config.getBoolean(fieldName);
         } else if (expectedType == AtomicBoolean.class) {
             return new AtomicBoolean(config.getBoolean(fieldName));
         } else if (Number.class.isAssignableFrom(expectedType) || expectedType.isPrimitive()) {
             // primitive numeric types are not subclasses of Number, so just catch all non-booleans
-            return hydrateNumber(expectedType, fieldName, config);
+            return hydrateNumberComponent(expectedType, fieldName, config);
         } else if (expectedType.isEnum()) {
             return Enum.valueOf((Class<? extends Enum>) expectedType,
                                 config.getString(fieldName).toUpperCase());
@@ -256,6 +256,16 @@ public final class CodecConfig {
             // assume codable instead of checking
             return hydrateObject(expectedType, config.getValue(fieldName));
         }
+    }
+
+    /** parses strings and handles interning options */
+    @SuppressWarnings("MethodMayBeStatic")
+    Object hydrateString(@Nullable CodableFieldInfo fieldInfo, Class<?> type, String fieldName, Config config) {
+        if ((fieldInfo != null) && fieldInfo.isInterned()) {
+            String value = config.getString(fieldName);
+            return value.intern();
+        }
+        return config.getString(fieldName);
     }
 
     /** called when the expected type is a number */
@@ -294,9 +304,10 @@ public final class CodecConfig {
         }
     }
 
-    /** called when the expected type is a number */
+    /** Like {@link #hydrateNumber(CodableFieldInfo, Class, String, Config)}, but called from
+     * {@link #hydrateFieldComponent(Class, String, Config)}. See the latter's javadoc for details. */
     @SuppressWarnings("MethodMayBeStatic")
-    Object hydrateNumber(Class<?> type, String fieldName, Config config) {
+    Object hydrateNumberComponent(Class<?> type, String fieldName, Config config) {
         if ((type == Short.class) || (type == short.class)) {
             return Shorts.checkedCast(config.getLong(fieldName));
         } else if ((type == Integer.class) || (type == int.class)) {
@@ -773,7 +784,7 @@ public final class CodecConfig {
     /** given a class, instance, and config.. turn config values into field values */
     private void populateObjectFields(@Nonnull CodableClassInfo classInfo,
                                       @Nonnull Object objectShell,
-                                      @Nonnull Config config) {
+                                      @Nonnull Config config) throws IllegalAccessException {
         Config fieldDefaults = classInfo.getFieldDefaults();
         Collection<String> unusedKeys = new HashSet<>(config.root().keySet());
         for (CodableFieldInfo field : classInfo.values()) {
@@ -786,7 +797,7 @@ public final class CodecConfig {
                 value = hydrateField(field, fieldDefaults, objectShell);
             }
             try {
-                field.set(objectShell, value);
+                field.setStrict(objectShell, value);
             } catch (RequiredFieldException ex) {
                 throw new ConfigException.Null(config.origin(), field.getName(),
                                                field.toString(), ex);

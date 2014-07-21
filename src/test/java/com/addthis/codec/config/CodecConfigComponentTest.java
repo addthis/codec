@@ -41,7 +41,7 @@ public class CodecConfigComponentTest {
         ConfigValue longValue = ConfigValueFactory.fromAnyRef(12L);
         Config valueHolder = longValue.atKey("value");
         short shortValue = (short) CodecConfig.getDefault()
-                                              .hydrateNumber(Short.class, "value", valueHolder);
+                                              .hydrateNumberComponent(Short.class, "value", valueHolder);
         Assert.assertEquals((short) 12, shortValue);
     }
 
@@ -50,7 +50,7 @@ public class CodecConfigComponentTest {
         ConfigValue longValue = ConfigValueFactory.fromAnyRef(12L);
         Config valueHolder = longValue.atKey("value");
         short shortValue = (short) CodecConfig.getDefault()
-                                              .hydrateNumber(short.class, "value", valueHolder);
+                                              .hydrateNumberComponent(short.class, "value", valueHolder);
         Assert.assertEquals((short) 12, shortValue);
     }
 
