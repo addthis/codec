@@ -14,6 +14,7 @@
 package com.addthis.codec.config;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Syntax;
 
 import java.lang.reflect.Modifier;
 
@@ -39,8 +40,6 @@ import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
-
-import org.intellij.lang.annotations.Language;
 
 @Beta
 public final class Configs {
@@ -82,7 +81,7 @@ public final class Configs {
      * {@link #decodeObject(Class, Config)} with the resultant config and the passed in type. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
-    public static <T> T decodeObject(@Nonnull Class<T> type, @Language("HOCON") @Nonnull String configText) {
+    public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") @Nonnull String configText) {
         return DefaultCodecConfig.DEFAULT.decodeObject(type, configText);
     }
 
@@ -91,7 +90,7 @@ public final class Configs {
      * {@link #decodeObject(String, Config)} with the resultant config and the passed in category. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
-    public static <T> T decodeObject(@Nonnull String category, @Language("HOCON") @Nonnull String configText) {
+    public static <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") @Nonnull String configText) {
         return DefaultCodecConfig.DEFAULT.decodeObject(category, configText);
     }
 
@@ -100,7 +99,7 @@ public final class Configs {
      * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
      * key should be a valid, loaded, plug-in category.
      */
-    public static <T> T decodeObject(@Language("HOCON") String configText) {
+    public static <T> T decodeObject(@Syntax("HOCON") String configText) {
         return DefaultCodecConfig.DEFAULT.decodeObject(configText);
     }
 
