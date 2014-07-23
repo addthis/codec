@@ -13,21 +13,73 @@
  */
 package com.addthis.codec;
 
+import java.lang.reflect.Field;
+
+import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
 
 import com.addthis.codec.binary.CodecBin2;
+import com.addthis.codec.reflection.CodableFieldInfo;
+
+import com.google.common.reflect.TypeToken;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class CodecGenericsTest {
 
+    private static final Logger log = LoggerFactory.getLogger(CodecGenericsTest.class);
+
     public static void main(String args[]) throws Exception {
         new CodecGenericsTest().testAll();
+    }
+
+    @Test public void current() throws NoSuchFieldException {
+        Field heldHolder = HolderHolder.class.getDeclaredField("heldHolder");
+        Field heldHolderExtender = HolderHolder.class.getDeclaredField("heldHolderExtender");
+        CodableFieldInfo heldInfo = new CodableFieldInfo(heldHolder);
+        log.info("held info {}", heldInfo);
+        CodableFieldInfo extenderInfo = new CodableFieldInfo(heldHolderExtender);
+        log.info("extender info {}", extenderInfo);
+    }
+
+    @Test public void tokens() throws NoSuchFieldException {
+        Field heldHolder = HolderHolder.class.getDeclaredField("heldHolder");
+
+        log.info("generic {}", TypeToken.of(heldHolder.getGenericType()));
+        log.info("raw {}", TypeToken.of(heldHolder.getType()));
+
+        log.info("easier generic {}", new TypeToken<Holder<String>>() {});
+
+        log.info("resolve type {}", new TypeToken<Holder<String>>() {}.resolveType(Holder.class.getTypeParameters()[0]));
+
+        log.info("unresolved type {}", Arrays.toString(HolderExtender.class.getTypeParameters()));
+
+        log.info("parent type {}", TypeToken.of(HolderExtender.class).resolveType(Holder.class));
+    }
+
+    public static class Holder<T> {
+        T held;
+    }
+
+    public static class HolderExtender extends AbstractMap<String, Integer> {
+        @Override public Set<Entry<String, Integer>> entrySet() {
+            return null;
+        }
+    }
+
+    public static class HolderHolder {
+        Holder<String> heldHolder;
+        HolderExtender heldHolderExtender;
     }
 
     @Test

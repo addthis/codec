@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
@@ -31,6 +32,8 @@ import com.addthis.codec.validation.Validator;
 import com.addthis.maljson.LineNumberInfo;
 
 import com.google.common.annotations.Beta;
+import com.google.common.base.Objects;
+import com.google.common.reflect.TypeToken;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,8 +59,9 @@ public final class CodableFieldInfo {
     public static final int ENUM       = 1 << 10;
     public static final int INTERN     = 1 << 11;
 
-    @Nonnull private final Field    field;
-    @Nonnull private final Class<?> typeOrComponentType;
+    @Nonnull private final Field        field;
+    @Nonnull private final Class<?>     typeOrComponentType;
+    @Nonnull private final TypeToken<?> typeToken;
     private final int bits;
 
     @Nullable private final Validator   validator;
@@ -71,6 +75,7 @@ public final class CodableFieldInfo {
         fieldConfig = field.getAnnotation(FieldConfig.class);
 
         Class<?> type = field.getType();
+        typeToken = TypeToken.of(field.getGenericType());
         boolean array = type.isArray();
         if (array) {
             typeOrComponentType = type.getComponentType();
@@ -340,7 +345,16 @@ public final class CodableFieldInfo {
         return (bits & INTERN) == INTERN;
     }
 
-    public String toString() {
-        return "[" + getName() + "," + typeOrComponentType + (isArray() ? "[]," : ",") + Integer.toString(bits, 2) + "]";
+    @Override public String toString() {
+        return Objects.toStringHelper(this)
+                      .add("field", field)
+                      .add("typeOrComponentType", typeOrComponentType)
+                      .add("typeToken", typeToken)
+                      .add("bits", Integer.toBinaryString(bits))
+                      .add("validator", validator)
+                      .add("fieldConfig", fieldConfig)
+                      .add("genTypes", Arrays.toString(genTypes))
+                      .add("genArray", Arrays.toString(genArray))
+                      .toString();
     }
 }
