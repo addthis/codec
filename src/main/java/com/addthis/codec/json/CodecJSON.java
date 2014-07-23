@@ -46,7 +46,7 @@ import com.addthis.maljson.JSONException;
 import com.addthis.maljson.JSONObject;
 import com.addthis.maljson.LineNumberInfo;
 
-import com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

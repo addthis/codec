@@ -14,11 +14,10 @@
 package com.addthis.codec.config;
 
 import com.addthis.codec.codables.Codable;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigObject;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValue;
 
 import com.google.common.annotations.Beta;
-
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
 
 /**
  * Note: This is only intended for unusual cases. If this functionality seems tempting, you should probably look more

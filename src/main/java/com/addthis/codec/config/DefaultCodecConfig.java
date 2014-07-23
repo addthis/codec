@@ -15,7 +15,7 @@ package com.addthis.codec.config;
 
 import com.addthis.codec.plugins.PluginRegistry;
 
-import com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

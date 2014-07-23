@@ -26,10 +26,10 @@ import com.addthis.codec.plugins.ConfigNonGreet;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.Fields;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueFactory;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValue;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValueFactory;
 
 import org.junit.Assert;
 import org.junit.Test;

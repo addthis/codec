@@ -23,7 +23,7 @@ import java.util.Set;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 
-import com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
