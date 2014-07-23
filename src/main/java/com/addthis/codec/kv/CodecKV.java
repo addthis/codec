@@ -86,7 +86,7 @@ public final class CodecKV extends Codec {
             String name = field.getName();
             if (field.isArray()) {
                 int len = Array.getLength(value);
-                if (field.getType() == byte.class) {
+                if (field.getTypeOrComponentType() == byte.class) {
                     kv.putValue(name, new String(Base64.encode((byte[]) value)));
                 } else {
                     for (int i = 0; i < len; i++) {
@@ -173,12 +173,12 @@ public final class CodecKV extends Codec {
             CodableFieldInfo field = fields.next();
             String name = field.getName();
             if (field.isArray()) {
-                field.set(object, decodeArray(field.getType(), data, name));
+                field.set(object, decodeArray(field.getTypeOrComponentType(), data, name));
             } else if (field.isCollection()) {
                 List<String> arr = getList(data, name);
                 int size = arr.size();
                 if (size > 0) {
-                    Collection<Object> value = (Collection<Object>) field.getType().newInstance();
+                    Collection<Object> value = (Collection<Object>) field.getTypeOrComponentType().newInstance();
                     Class<?> vc = field.getCollectionClass();
                     boolean va = field.isCollectionArray();
                     for (int i = 0; i < size; i++) {
@@ -187,7 +187,7 @@ public final class CodecKV extends Codec {
                     field.set(object, value);
                 }
             } else if (field.isMap()) {
-                Map<String, Object> map = (Map<String, Object>) field.getType().newInstance();
+                Map<String, Object> map = (Map<String, Object>) field.getTypeOrComponentType().newInstance();
                 // value type, assume key is String
                 Class<?> kc = field.getMapKeyClass();
                 Class<?> vc = field.getMapValueClass();
@@ -196,12 +196,12 @@ public final class CodecKV extends Codec {
                 }
                 field.set(object, map);
             } else if (field.isCodable()) {
-                field.set(object, decodeString(field.getType(), data.getValue(name)));
+                field.set(object, decodeString(field.getTypeOrComponentType(), data.getValue(name)));
             } else if (field.isEnum()) {
-                field.set(object, decodeEnum((Class<Enum>) field.getType(),
+                field.set(object, decodeEnum((Class<Enum>) field.getTypeOrComponentType(),
                                              data.getValue(name)));
             } else if (field.isNative()) {
-                field.set(object, decodeNative(field.getType(), data.getValue(name)));
+                field.set(object, decodeNative(field.getTypeOrComponentType(), data.getValue(name)));
             }
         }
         if (object instanceof SuperCodable) {

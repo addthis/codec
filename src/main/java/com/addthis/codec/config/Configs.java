@@ -207,7 +207,7 @@ public final class Configs {
                 }
                 fieldValue = ConfigValueFactory.fromMap(newMap, fieldMap.origin().description());
             } else {
-                fieldValue = expandSugar(fieldInfo.getType(), fieldValue, codec);
+                fieldValue = expandSugar(fieldInfo.getTypeOrComponentType(), fieldValue, codec);
             }
             root = root.withValue(fieldName, fieldValue);
         }
@@ -233,7 +233,7 @@ public final class Configs {
     }
 
     private static Class<?> elementType(CodableFieldInfo fieldInfo) {
-        Class<?> elementType = fieldInfo.getType();
+        Class<?> elementType = fieldInfo.getTypeOrComponentType();
         if (fieldInfo.isMap()) {
             elementType = fieldInfo.getMapValueClass();
         } else if (fieldInfo.isCollection()) {

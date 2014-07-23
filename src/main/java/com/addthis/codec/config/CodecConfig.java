@@ -185,7 +185,7 @@ public final class CodecConfig {
                                          @Nonnull Config config,
                                          @Nonnull Object objectShell) {
         // must use wildcards to get around CodableFieldInfo erasing array types (for now)
-        Class<?> expectedType = field.getType();
+        Class<?> expectedType = field.getTypeOrComponentType();
         String fieldName = field.getName();
         if (expectedType.isAssignableFrom(ConfigValue.class)) {
             // different from hasPath in that this will accept ConfigValueType.NULL
@@ -680,7 +680,7 @@ public final class CodecConfig {
     }
 
     Map hydrateMap(CodableFieldInfo field, Config config, @Nullable Object objectShell) {
-        Class<?> type = field.getType();
+        Class<?> type = field.getTypeOrComponentType();
         Map map;
         if (Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
             if (objectShell != null) {
@@ -730,7 +730,7 @@ public final class CodecConfig {
     }
 
     Collection hydrateCollection(CodableFieldInfo field, Config config, @Nullable Object objectShell) {
-        Class<?> type = field.getType();
+        Class<?> type = field.getTypeOrComponentType();
         Collection<Object> col;
         if (Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
             if (objectShell != null) {
@@ -750,7 +750,7 @@ public final class CodecConfig {
             col.clear();
         } else {
             try {
-                col = (Collection<Object>) field.getType().newInstance();
+                col = (Collection<Object>) field.getTypeOrComponentType().newInstance();
             } catch (Exception ex) {
                 throw new ConfigException.BadValue(config.origin(), field.getName(),
                                                    "failed to get a concrete, working class", ex);

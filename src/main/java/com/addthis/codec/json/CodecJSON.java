@@ -150,7 +150,7 @@ public final class CodecJSON extends Codec {
                 if (value == null || value == JSONObject.NULL || field.isReadOnly()) {
                     continue;
                 }
-                if (JSONCodable.class.isAssignableFrom(field.getType())) {
+                if (JSONCodable.class.isAssignableFrom(field.getTypeOrComponentType())) {
                     value = ((JSONCodable) value).toJSONObject();
                     obj.put(field.getName(), value);
                 } else if (field.isArray()) {
@@ -411,7 +411,7 @@ public final class CodecJSON extends Codec {
             }
             String fieldName = field.getName();
             unknownFields.remove(fieldName);
-            Class type = field.getType();
+            Class type = field.getTypeOrComponentType();
             Object value = json.opt(fieldName);
             if ((value == null) && fieldDefaults.root().containsKey(fieldName)) {
                 value = CodecConfig.getDefault().hydrateField(field, fieldDefaults, object);

@@ -131,7 +131,7 @@ public final class CodableFieldInfo {
         return field.getName();
     }
 
-    public Class<?> getType() {
+    public Class<?> getTypeOrComponentType() {
         return type;
     }
 

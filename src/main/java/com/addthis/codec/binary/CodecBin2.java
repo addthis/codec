@@ -280,7 +280,7 @@ public final class CodecBin2 extends Codec {
             try {
                 buf.out.write(1);
                 if (field.isArray()) {
-                    encodeArray(value, field.getType(), buf);
+                    encodeArray(value, field.getTypeOrComponentType(), buf);
                 } else if (field.isNative()) {
                     encodeNative(value, buf);
                 } else if (field.isMap()) {
@@ -343,7 +343,7 @@ public final class CodecBin2 extends Codec {
         if (ck == 0) {
             return null;
         }
-        Class<?> type = field.getType();
+        Class<?> type = field.getTypeOrComponentType();
         if (field.isArray()) {
             return decodeArray(type, buf);
         } else if (field.isMap()) {
