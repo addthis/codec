@@ -60,7 +60,7 @@ public final class CodableFieldInfo {
     private final FieldConfig  fieldConfig;
     private final Validator    validator;
     private final Class<?>     typeOrComponentType;
-    private       int          bits;
+    private final int          bits;
     private       Type[]       genTypes;
     private       boolean[]    genArray;
 
@@ -74,9 +74,10 @@ public final class CodableFieldInfo {
             if (typeOrComponentType == null) {
                 throw new IllegalStateException("!! null array type for " + field + " !!");
             }
-            updateBits(CodableFieldInfo.ARRAY);
+            this.bits = cacheFlags(CodableFieldInfo.ARRAY);
         } else {
             typeOrComponentType = type;
+            this.bits = cacheFlags(0);
         }
         // extract generics info
         if (!Fields.isNative(typeOrComponentType)) {
@@ -84,7 +85,6 @@ public final class CodableFieldInfo {
         }
         fieldConfig = field.getAnnotation(FieldConfig.class);
         field.setAccessible(true);
-        cacheFlags();
         Validator tryValidator = null;
         if ((fieldConfig != null) && (fieldConfig.validator() != Validator.class)) {
             try {
@@ -96,50 +96,48 @@ public final class CodableFieldInfo {
         validator = tryValidator;
     }
 
-    private void cacheFlags() {
+    private int cacheFlags(int externalBits) {
+        int partialBits = externalBits;
         if (Codable.class.isAssignableFrom(typeOrComponentType)) {
-            updateBits(CodableFieldInfo.CODABLE);
+            partialBits |= CodableFieldInfo.CODABLE;
         }
         if (Collection.class.isAssignableFrom(typeOrComponentType)) {
-            updateBits(CodableFieldInfo.COLLECTION);
+            partialBits |= CodableFieldInfo.COLLECTION;
         }
         if (Map.class.isAssignableFrom(typeOrComponentType)) {
-            updateBits(CodableFieldInfo.MAP);
+            partialBits |= CodableFieldInfo.MAP;
         }
         if (typeOrComponentType.isEnum()) {
-            updateBits(CodableFieldInfo.ENUM);
+            partialBits |= CodableFieldInfo.ENUM;
         }
         if (Number.class.isAssignableFrom(typeOrComponentType)) {
-            updateBits(CodableFieldInfo.NUMBER);
+            partialBits |= CodableFieldInfo.NUMBER;
         }
         if (Fields.isNative(typeOrComponentType)) {
-            updateBits(CodableFieldInfo.NATIVE);
+            partialBits |= CodableFieldInfo.NATIVE;
         }
         if (fieldConfig != null) {
             if (fieldConfig.readonly()) {
-                updateBits(CodableFieldInfo.READONLY);
+                partialBits |= CodableFieldInfo.READONLY;
             }
             if (fieldConfig.writeonly()) {
-                updateBits(CodableFieldInfo.WRITEONLY);
+                partialBits |= CodableFieldInfo.WRITEONLY;
             }
             if (fieldConfig.codable()) {
-                updateBits(CodableFieldInfo.CODABLE);
+                partialBits |= CodableFieldInfo.CODABLE;
             }
             if (fieldConfig.required()) {
-                updateBits(CodableFieldInfo.REQUIRED);
+                partialBits |= CodableFieldInfo.REQUIRED;
             }
             if (fieldConfig.intern()) {
-                updateBits(CodableFieldInfo.INTERN);
+                partialBits |= CodableFieldInfo.INTERN;
             }
         }
+        return partialBits;
     }
 
     public Field getField() {
         return field;
-    }
-
-    public void updateBits(int bits) {
-        this.bits |= bits;
     }
 
     public String getName() {
@@ -154,7 +152,7 @@ public final class CodableFieldInfo {
         return genTypes;
     }
 
-    public void setGenericTypes(@Nullable final Type[] genTypes) {
+    private void setGenericTypes(@Nullable final Type[] genTypes) {
         if (genTypes == null) {
             return;
         }
