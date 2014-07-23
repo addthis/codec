@@ -21,7 +21,7 @@ package com.addthis.codec.embedded.com.typesafe.config;
  * Marker for types whose instances can be merged, that is {@link Config} and
  * {@link ConfigValue}. Instances of {@code Config} and {@code ConfigValue} can
  * be combined into a single new instance using the
- * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigMergeable#withFallback withFallback()} method.
+ * {@link ConfigMergeable#withFallback withFallback()} method.
  *
  * <p>
  * <em>Do not implement this interface</em>; it should only be implemented by
@@ -82,5 +82,5 @@ public interface ConfigMergeable {
      * @return a new object (or the original one, if the fallback doesn't get
      *         used)
      */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigMergeable withFallback(com.addthis.codec.embedded.com.typesafe.config.ConfigMergeable other);
+    ConfigMergeable withFallback(ConfigMergeable other);
 }

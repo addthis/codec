@@ -39,7 +39,7 @@ public final class ConfigValueFactory {
      * <code>Iterable</code> must iterate over more values that can be supplied
      * to <code>fromAnyRef()</code>. A <code>Map</code> will become a
      * {@link ConfigObject} and an <code>Iterable</code> will become a
-     * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigList}. If the <code>Iterable</code> is not an ordered
+     * {@link ConfigList}. If the <code>Iterable</code> is not an ordered
      * collection, results could be strange, since <code>ConfigList</code> is
      * ordered.
      *
@@ -111,15 +111,15 @@ public final class ConfigValueFactory {
     /**
      * See the {@link #fromAnyRef(Object,String)} documentation for details.
      * This is a typesafe wrapper that only works on {@link Iterable}
-     * and returns {@link com.addthis.codec.embedded.com.typesafe.config.ConfigList} rather than {@link ConfigValue}.
+     * and returns {@link ConfigList} rather than {@link ConfigValue}.
      *
      * @param values
      * @param originDescription
-     * @return a new {@link com.addthis.codec.embedded.com.typesafe.config.ConfigList} value
+     * @return a new {@link ConfigList} value
      */
-    public static com.addthis.codec.embedded.com.typesafe.config.ConfigList fromIterable(Iterable<? extends Object> values,
+    public static ConfigList fromIterable(Iterable<? extends Object> values,
             String originDescription) {
-        return (com.addthis.codec.embedded.com.typesafe.config.ConfigList) fromAnyRef(values, originDescription);
+        return (ConfigList) fromAnyRef(values, originDescription);
     }
 
     /**
@@ -153,7 +153,7 @@ public final class ConfigValueFactory {
      * details, this one just uses a default origin description.
      *
      * @param values
-     * @return a new {@link com.addthis.codec.embedded.com.typesafe.config.ConfigList}
+     * @return a new {@link ConfigList}
      */
     public static ConfigList fromIterable(Iterable<? extends Object> values) {
         return fromIterable(values, null);

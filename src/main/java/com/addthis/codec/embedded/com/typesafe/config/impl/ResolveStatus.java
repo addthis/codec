@@ -25,17 +25,16 @@ import java.util.Collection;
 enum ResolveStatus {
     UNRESOLVED, RESOLVED;
 
-    final static com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus fromValues(
+    final static ResolveStatus fromValues(
             Collection<? extends AbstractConfigValue> values) {
         for (AbstractConfigValue v : values) {
-            if (v.resolveStatus() == com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.UNRESOLVED)
-                return com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.UNRESOLVED;
+            if (v.resolveStatus() == ResolveStatus.UNRESOLVED)
+                return ResolveStatus.UNRESOLVED;
         }
-        return com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED;
+        return ResolveStatus.RESOLVED;
     }
 
-    final static com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus fromBoolean(boolean resolved) {
-        return resolved ? com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED : com.addthis
-                .codec.embedded.com.typesafe.config.impl.ResolveStatus.UNRESOLVED;
+    final static ResolveStatus fromBoolean(boolean resolved) {
+        return resolved ? ResolveStatus.RESOLVED : ResolveStatus.UNRESOLVED;
     }
 }

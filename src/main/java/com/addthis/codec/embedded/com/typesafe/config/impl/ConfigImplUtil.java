@@ -244,7 +244,7 @@ final public class ConfigImplUtil {
 
     public static void writeOrigin(ObjectOutputStream out, ConfigOrigin origin) throws IOException {
         SerializedConfigValue.writeOrigin(new DataOutputStream(out),
-                                          (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) origin,
+                                          (SimpleConfigOrigin) origin,
                                           null);
     }
 }

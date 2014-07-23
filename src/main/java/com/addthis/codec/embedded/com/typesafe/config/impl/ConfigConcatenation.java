@@ -49,7 +49,7 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
 
         boolean hadUnmergeable = false;
         for (AbstractConfigValue p : pieces) {
-            if (p instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation)
+            if (p instanceof ConfigConcatenation)
                 throw new ConfigException.BugOrBroken(
                         "ConfigConcatenation should never be nested: " + this);
             if (p instanceof Unmergeable)
@@ -77,8 +77,8 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation newCopy(ConfigOrigin newOrigin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation(newOrigin, pieces);
+    protected ConfigConcatenation newCopy(ConfigOrigin newOrigin) {
+        return new ConfigConcatenation(newOrigin, pieces);
     }
 
     @Override
@@ -90,7 +90,7 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
     }
 
     @Override
-    public Collection<com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation> unmergedValues() {
+    public Collection<ConfigConcatenation> unmergedValues() {
         return Collections.singleton(this);
     }
 
@@ -117,7 +117,7 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
             joined = right.withFallback(left);
         } else if (left instanceof SimpleConfigList && right instanceof SimpleConfigList) {
             joined = ((SimpleConfigList)left).concatenate((SimpleConfigList)right);
-        } else if (left instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation || right instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation) {
+        } else if (left instanceof ConfigConcatenation || right instanceof ConfigConcatenation) {
             throw new ConfigException.BugOrBroken("unflattened ConfigConcatenation");
         } else if (left instanceof Unmergeable || right instanceof Unmergeable) {
             // leave joined=null, cannot join
@@ -130,7 +130,7 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
                         "Cannot concatenate object or list with a non-object-or-list, " + left
                                 + " and " + right + " are not compatible");
             } else {
-                ConfigOrigin joinedOrigin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.mergeOrigins(left.origin(),
+                ConfigOrigin joinedOrigin = SimpleConfigOrigin.mergeOrigins(left.origin(),
                                                                                                      right.origin());
                 joined = new ConfigString(joinedOrigin, s1 + s2);
             }
@@ -150,8 +150,8 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
         } else {
             List<AbstractConfigValue> flattened = new ArrayList<AbstractConfigValue>(pieces.size());
             for (AbstractConfigValue v : pieces) {
-                if (v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation) {
-                    flattened.addAll(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation) v).pieces);
+                if (v instanceof ConfigConcatenation) {
+                    flattened.addAll(((ConfigConcatenation) v).pieces);
                 } else {
                     flattened.add(v);
                 }
@@ -177,8 +177,8 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
         } else if (consolidated.size() == 1) {
             return consolidated.get(0);
         } else {
-            ConfigOrigin mergedOrigin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.mergeOrigins(consolidated);
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation(mergedOrigin, consolidated);
+            ConfigOrigin mergedOrigin = SimpleConfigOrigin.mergeOrigins(consolidated);
+            return new ConfigConcatenation(mergedOrigin, consolidated);
         }
     }
 
@@ -201,7 +201,7 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
         // if unresolved is allowed we can just become another
         // ConfigConcatenation
         if (joined.size() > 1 && context.options().getAllowUnresolved())
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation(this.origin(), joined);
+            return new ConfigConcatenation(this.origin(), joined);
         else if (joined.isEmpty())
             return null; // we had just a list of optional references using ${?}
         else if (joined.size() == 1)
@@ -220,24 +220,24 @@ final class ConfigConcatenation extends AbstractConfigValue implements Unmergeab
     // where you grafted it; but save prefixLength so
     // system property and env variable lookups don't get
     // broken.
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation relativized(Path prefix) {
+    @Override ConfigConcatenation relativized(Path prefix) {
         List<AbstractConfigValue> newPieces = new ArrayList<AbstractConfigValue>();
         for (AbstractConfigValue p : pieces) {
             newPieces.add(p.relativized(prefix));
         }
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation(origin(), newPieces);
+        return new ConfigConcatenation(origin(), newPieces);
     }
 
     @Override
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation;
+        return other instanceof ConfigConcatenation;
     }
 
     @Override
     public boolean equals(Object other) {
         // note that "origin" is deliberately NOT part of equality
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation) {
-            return canEqual(other) && this.pieces.equals(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation) other).pieces);
+        if (other instanceof ConfigConcatenation) {
+            return canEqual(other) && this.pieces.equals(((ConfigConcatenation) other).pieces);
         } else {
             return false;
         }

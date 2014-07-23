@@ -36,8 +36,8 @@ class Token {
     }
 
     // this is used for singleton tokens like COMMA or OPEN_CURLY
-    static com.addthis.codec.embedded.com.typesafe.config.impl.Token newWithoutOrigin(TokenType tokenType, String debugString) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.Token(tokenType, null, debugString);
+    static Token newWithoutOrigin(TokenType tokenType, String debugString) {
+        return new Token(tokenType, null, debugString);
     }
 
     final TokenType tokenType() {
@@ -71,15 +71,15 @@ class Token {
     }
 
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.Token;
+        return other instanceof Token;
     }
 
     @Override
     public boolean equals(Object other) {
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.Token) {
+        if (other instanceof Token) {
             // origin is deliberately left out
             return canEqual(other)
-                    && this.tokenType == ((com.addthis.codec.embedded.com.typesafe.config.impl.Token) other).tokenType;
+                    && this.tokenType == ((Token) other).tokenType;
         } else {
             return false;
         }

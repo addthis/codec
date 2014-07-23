@@ -45,18 +45,18 @@ import com.addthis.codec.embedded.com.typesafe.config.ConfigValueType;
  * with a one-level java.util.Map from paths to non-null values. Null values are
  * not "in" the map.
  */
-final class SimpleConfig implements Config, com.addthis.codec.embedded.com.typesafe.config.impl.MergeableValue, Serializable {
+final class SimpleConfig implements Config, MergeableValue, Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    final private com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject object;
+    final private AbstractConfigObject object;
 
-    SimpleConfig(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject object) {
+    SimpleConfig(AbstractConfigObject object) {
         this.object = object;
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject root() {
+    public AbstractConfigObject root() {
         return object;
     }
 
@@ -66,36 +66,35 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig resolve() {
+    public SimpleConfig resolve() {
         return resolve(ConfigResolveOptions.defaults());
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig resolve(ConfigResolveOptions options) {
+    public SimpleConfig resolve(ConfigResolveOptions options) {
         return resolveWith(this, options);
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig resolveWith(Config source) {
+    public SimpleConfig resolveWith(Config source) {
         return resolveWith(source, ConfigResolveOptions.defaults());
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig resolveWith(Config source, ConfigResolveOptions options) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue resolved = com.addthis.codec.embedded
-                .com.typesafe.config.impl.ResolveContext.resolve(object,
-                                                                                                                ((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig) source).object,
+    public SimpleConfig resolveWith(Config source, ConfigResolveOptions options) {
+        AbstractConfigValue resolved = ResolveContext.resolve(object,
+                                                                                                                ((SimpleConfig) source).object,
                                                                                                                 options);
 
         if (resolved == object)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) resolved);
+            return new SimpleConfig((AbstractConfigObject) resolved);
     }
 
     @Override
     public boolean hasPath(String pathExpression) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(pathExpression);
+        Path path = Path.newPath(pathExpression);
         ConfigValue peeked;
         try {
             peeked = object.peekPath(path);
@@ -110,17 +109,17 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         return object.isEmpty();
     }
 
-    private static void findPaths(Set<Map.Entry<String, ConfigValue>> entries, com.addthis.codec.embedded.com.typesafe.config.impl.Path parent,
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject obj) {
+    private static void findPaths(Set<Map.Entry<String, ConfigValue>> entries, Path parent,
+            AbstractConfigObject obj) {
         for (Map.Entry<String, ConfigValue> entry : obj.entrySet()) {
             String elem = entry.getKey();
             ConfigValue v = entry.getValue();
-            com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newKey(elem);
+            Path path = Path.newKey(elem);
             if (parent != null)
                 path = path.prepend(parent);
-            if (v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-                findPaths(entries, path, (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) v);
-            } else if (v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNull) {
+            if (v instanceof AbstractConfigObject) {
+                findPaths(entries, path, (AbstractConfigObject) v);
+            } else if (v instanceof ConfigNull) {
                 // nothing; nulls are conceptually not in a Config
             } else {
                 entries.add(new AbstractMap.SimpleImmutableEntry<String, ConfigValue>(path.render(), v));
@@ -135,14 +134,14 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         return entries;
     }
 
-    static private com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue findKey(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject self, String key,
-            ConfigValueType expected, com.addthis.codec.embedded.com.typesafe.config.impl.Path originalPath) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v = self.peekAssumingResolved(key, originalPath);
+    static private AbstractConfigValue findKey(AbstractConfigObject self, String key,
+            ConfigValueType expected, Path originalPath) {
+        AbstractConfigValue v = self.peekAssumingResolved(key, originalPath);
         if (v == null)
             throw new ConfigException.Missing(originalPath.render());
 
         if (expected != null)
-            v = com.addthis.codec.embedded.com.typesafe.config.impl.DefaultTransformer.transform(v, expected);
+            v = DefaultTransformer.transform(v, expected);
 
         if (v.valueType() == ConfigValueType.NULL)
             throw new ConfigException.Null(v.origin(), originalPath.render(),
@@ -154,16 +153,16 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
             return v;
     }
 
-    static private com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue find(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject self, com.addthis.codec.embedded.com.typesafe.config.impl.Path path,
-            ConfigValueType expected, com.addthis.codec.embedded.com.typesafe.config.impl.Path originalPath) {
+    static private AbstractConfigValue find(AbstractConfigObject self, Path path,
+            ConfigValueType expected, Path originalPath) {
         try {
             String key = path.first();
-            com.addthis.codec.embedded.com.typesafe.config.impl.Path next = path.remainder();
+            Path next = path.remainder();
             if (next == null) {
                 return findKey(self, key, expected, originalPath);
             } else {
-                com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject
-                        o = (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) findKey(self, key,
+                AbstractConfigObject
+                        o = (AbstractConfigObject) findKey(self, key,
                         ConfigValueType.OBJECT,
                         originalPath.subPath(0, originalPath.length() - next.length()));
                 assert (o != null); // missing was supposed to throw
@@ -174,17 +173,17 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         }
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue find(com.addthis.codec.embedded.com.typesafe.config.impl.Path pathExpression, ConfigValueType expected, com.addthis.codec.embedded.com.typesafe.config.impl.Path originalPath) {
+    AbstractConfigValue find(Path pathExpression, ConfigValueType expected, Path originalPath) {
         return find(object, pathExpression, expected, originalPath);
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue find(String pathExpression, ConfigValueType expected) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(pathExpression);
+    AbstractConfigValue find(String pathExpression, ConfigValueType expected) {
+        Path path = Path.newPath(pathExpression);
         return find(path, expected, path);
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue getValue(String path) {
+    public AbstractConfigValue getValue(String path) {
         return find(path, null);
     }
 
@@ -194,9 +193,9 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         return (Boolean) v.unwrapped();
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber getConfigNumber(String path) {
+    private ConfigNumber getConfigNumber(String path) {
         ConfigValue v = find(path, ConfigValueType.NUMBER);
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber) v;
+        return (ConfigNumber) v;
     }
 
     @Override
@@ -206,7 +205,7 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
 
     @Override
     public int getInt(String path) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber n = getConfigNumber(path);
+        ConfigNumber n = getConfigNumber(path);
         return n.intValueRangeChecked(path);
     }
 
@@ -228,19 +227,19 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
 
     @Override
     public ConfigList getList(String path) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v = find(path, ConfigValueType.LIST);
+        AbstractConfigValue v = find(path, ConfigValueType.LIST);
         return (ConfigList) v;
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject getObject(String path) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject
-                obj = (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) find(path, ConfigValueType.OBJECT);
+    public AbstractConfigObject getObject(String path) {
+        AbstractConfigObject
+                obj = (AbstractConfigObject) find(path, ConfigValueType.OBJECT);
         return obj;
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig getConfig(String path) {
+    public SimpleConfig getConfig(String path) {
         return getObject(path).toConfig();
     }
 
@@ -291,9 +290,9 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         List<? extends ConfigValue> list = getList(path);
         for (ConfigValue cv : list) {
             // variance would be nice, but stupid cast will do
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v = (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue) cv;
+            AbstractConfigValue v = (AbstractConfigValue) cv;
             if (expected != null) {
-                v = com.addthis.codec.embedded.com.typesafe.config.impl.DefaultTransformer.transform(v, expected);
+                v = DefaultTransformer.transform(v, expected);
             }
             if (v.valueType() != expected)
                 throw new ConfigException.WrongType(v.origin(), path,
@@ -317,9 +316,9 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
     @Override
     public List<Integer> getIntList(String path) {
         List<Integer> l = new ArrayList<Integer>();
-        List<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> numbers = getHomogeneousWrappedList(path, ConfigValueType.NUMBER);
-        for (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v : numbers) {
-            l.add(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber) v).intValueRangeChecked(path));
+        List<AbstractConfigValue> numbers = getHomogeneousWrappedList(path, ConfigValueType.NUMBER);
+        for (AbstractConfigValue v : numbers) {
+            l.add(((ConfigNumber) v).intValueRangeChecked(path));
         }
         return l;
     }
@@ -356,9 +355,9 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         List<? extends ConfigValue> list = getList(path);
         for (ConfigValue cv : list) {
             // variance would be nice, but stupid cast will do
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v = (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue) cv;
+            AbstractConfigValue v = (AbstractConfigValue) cv;
             if (expected != null) {
-                v = com.addthis.codec.embedded.com.typesafe.config.impl.DefaultTransformer.transform(v, expected);
+                v = DefaultTransformer.transform(v, expected);
             }
             if (v.valueType() != expected)
                 throw new ConfigException.WrongType(v.origin(), path,
@@ -452,12 +451,12 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject toFallbackValue() {
+    public AbstractConfigObject toFallbackValue() {
         return object;
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig withFallback(ConfigMergeable other) {
+    public SimpleConfig withFallback(ConfigMergeable other) {
         // this can return "this" if the withFallback doesn't need a new
         // ConfigObject
         return object.withFallback(other).toConfig();
@@ -465,8 +464,8 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
 
     @Override
     public final boolean equals(Object other) {
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig) {
-            return object.equals(((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig) other).object);
+        if (other instanceof SimpleConfig) {
+            return object.equals(((SimpleConfig) other).object);
         } else {
             return false;
         }
@@ -700,23 +699,23 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         }
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue peekPath(com.addthis.codec.embedded.com.typesafe.config.impl.Path path) {
+    private AbstractConfigValue peekPath(Path path) {
         return root().peekPath(path);
     }
 
-    private static void addProblem(List<ConfigException.ValidationProblem> accumulator, com.addthis.codec.embedded.com.typesafe.config.impl.Path path,
+    private static void addProblem(List<ConfigException.ValidationProblem> accumulator, Path path,
             ConfigOrigin origin, String problem) {
         accumulator.add(new ConfigException.ValidationProblem(path.render(), origin, problem));
     }
 
     private static String getDesc(ConfigValue refValue) {
-        if (refValue instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject obj = (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) refValue;
+        if (refValue instanceof AbstractConfigObject) {
+            AbstractConfigObject obj = (AbstractConfigObject) refValue;
             if (obj.isEmpty())
                 return "object";
             else
                 return "object with keys " + obj.keySet();
-        } else if (refValue instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) {
+        } else if (refValue instanceof SimpleConfigList) {
             return "list";
         } else {
             return refValue.valueType().name().toLowerCase();
@@ -724,46 +723,46 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
     }
 
     private static void addMissing(List<ConfigException.ValidationProblem> accumulator,
-            ConfigValue refValue, com.addthis.codec.embedded.com.typesafe.config.impl.Path path, ConfigOrigin origin) {
+            ConfigValue refValue, Path path, ConfigOrigin origin) {
         addProblem(accumulator, path, origin, "No setting at '" + path.render() + "', expecting: "
                 + getDesc(refValue));
     }
 
     private static void addWrongType(List<ConfigException.ValidationProblem> accumulator,
-            ConfigValue refValue, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue actual, com.addthis.codec.embedded.com.typesafe.config.impl.Path path) {
+            ConfigValue refValue, AbstractConfigValue actual, Path path) {
         addProblem(accumulator, path, actual.origin(), "Wrong value type at '" + path.render()
                 + "', expecting: " + getDesc(refValue) + " but got: "
                         + getDesc(actual));
     }
 
-    private static boolean couldBeNull(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v) {
-        return com.addthis.codec.embedded.com.typesafe.config.impl.DefaultTransformer.transform(v, ConfigValueType.NULL)
+    private static boolean couldBeNull(AbstractConfigValue v) {
+        return DefaultTransformer.transform(v, ConfigValueType.NULL)
                 .valueType() == ConfigValueType.NULL;
     }
 
-    private static boolean haveCompatibleTypes(ConfigValue reference, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue value) {
-        if (couldBeNull((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue) reference) || couldBeNull(value)) {
+    private static boolean haveCompatibleTypes(ConfigValue reference, AbstractConfigValue value) {
+        if (couldBeNull((AbstractConfigValue) reference) || couldBeNull(value)) {
             // we allow any setting to be null
             return true;
-        } else if (reference instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-            if (value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
+        } else if (reference instanceof AbstractConfigObject) {
+            if (value instanceof AbstractConfigObject) {
                 return true;
             } else {
                 return false;
             }
-        } else if (reference instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) {
+        } else if (reference instanceof SimpleConfigList) {
             // objects may be convertible to lists if they have numeric keys
-            if (value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList || value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject) {
+            if (value instanceof SimpleConfigList || value instanceof SimpleConfigObject) {
                 return true;
             } else {
                 return false;
             }
-        } else if (reference instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigString) {
+        } else if (reference instanceof ConfigString) {
             // assume a string could be gotten as any non-collection type;
             // allows things like getMilliseconds including domain-specific
             // interpretations of strings
             return true;
-        } else if (value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigString) {
+        } else if (value instanceof ConfigString) {
             // assume a string could be gotten as any non-collection type
             return true;
         } else {
@@ -776,19 +775,19 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
     }
 
     // path is null if we're at the root
-    private static void checkValidObject(com.addthis.codec.embedded.com.typesafe.config.impl.Path path, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject reference,
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject value,
+    private static void checkValidObject(Path path, AbstractConfigObject reference,
+            AbstractConfigObject value,
             List<ConfigException.ValidationProblem> accumulator) {
         for (Map.Entry<String, ConfigValue> entry : reference.entrySet()) {
             String key = entry.getKey();
 
-            com.addthis.codec.embedded.com.typesafe.config.impl.Path childPath;
+            Path childPath;
             if (path != null)
-                childPath = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newKey(key).prepend(path);
+                childPath = Path.newKey(key).prepend(path);
             else
-                childPath = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newKey(key);
+                childPath = Path.newKey(key);
 
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v = value.get(key);
+            AbstractConfigValue v = value.get(key);
             if (v == null) {
                 addMissing(accumulator, entry.getValue(), childPath, value.origin());
             } else {
@@ -797,14 +796,14 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         }
     }
 
-    private static void checkListCompatibility(com.addthis.codec.embedded.com.typesafe.config.impl.Path path, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList listRef,
-            com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList listValue, List<ConfigException.ValidationProblem> accumulator) {
+    private static void checkListCompatibility(Path path, SimpleConfigList listRef,
+            SimpleConfigList listValue, List<ConfigException.ValidationProblem> accumulator) {
         if (listRef.isEmpty() || listValue.isEmpty()) {
             // can't verify type, leave alone
         } else {
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue refElement = listRef.get(0);
+            AbstractConfigValue refElement = listRef.get(0);
             for (ConfigValue elem : listValue) {
-                com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue e = (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue) elem;
+                AbstractConfigValue e = (AbstractConfigValue) elem;
                 if (!haveCompatibleTypes(refElement, e)) {
                     addProblem(accumulator, path, e.origin(), "List at '" + path.render()
                             + "' contains wrong value type, expecting list of "
@@ -816,27 +815,27 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
         }
     }
 
-    private static void checkValid(com.addthis.codec.embedded.com.typesafe.config.impl.Path path, ConfigValue reference, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue value,
+    private static void checkValid(Path path, ConfigValue reference, AbstractConfigValue value,
             List<ConfigException.ValidationProblem> accumulator) {
         // Unmergeable is supposed to be impossible to encounter in here
         // because we check for resolve status up front.
 
         if (haveCompatibleTypes(reference, value)) {
-            if (reference instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject && value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-                checkValidObject(path, (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) reference,
-                        (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) value, accumulator);
-            } else if (reference instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList && value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) {
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList listRef = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) reference;
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList listValue = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) value;
+            if (reference instanceof AbstractConfigObject && value instanceof AbstractConfigObject) {
+                checkValidObject(path, (AbstractConfigObject) reference,
+                        (AbstractConfigObject) value, accumulator);
+            } else if (reference instanceof SimpleConfigList && value instanceof SimpleConfigList) {
+                SimpleConfigList listRef = (SimpleConfigList) reference;
+                SimpleConfigList listValue = (SimpleConfigList) value;
                 checkListCompatibility(path, listRef, listValue, accumulator);
-            } else if (reference instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList && value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject) {
+            } else if (reference instanceof SimpleConfigList && value instanceof SimpleConfigObject) {
                 // attempt conversion of indexed object to list
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList listRef = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) reference;
-                com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue
-                        listValue = com.addthis.codec.embedded.com.typesafe.config.impl.DefaultTransformer.transform(value,
+                SimpleConfigList listRef = (SimpleConfigList) reference;
+                AbstractConfigValue
+                        listValue = DefaultTransformer.transform(value,
                                                                                           ConfigValueType.LIST);
-                if (listValue instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList)
-                    checkListCompatibility(path, listRef, (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) listValue, accumulator);
+                if (listValue instanceof SimpleConfigList)
+                    checkListCompatibility(path, listRef, (SimpleConfigList) listValue, accumulator);
                 else
                     addWrongType(accumulator, reference, value, path);
             }
@@ -847,21 +846,21 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
 
     @Override
     public boolean isResolved() {
-        return root().resolveStatus() == com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED;
+        return root().resolveStatus() == ResolveStatus.RESOLVED;
     }
 
     @Override
     public void checkValid(Config reference, String... restrictToPaths) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig ref = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig) reference;
+        SimpleConfig ref = (SimpleConfig) reference;
 
         // unresolved reference config is a bug in the caller of checkValid
-        if (ref.root().resolveStatus() != com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED)
+        if (ref.root().resolveStatus() != ResolveStatus.RESOLVED)
             throw new ConfigException.BugOrBroken(
                     "do not call checkValid() with an unresolved reference config, call Config#resolve(), see Config#resolve() API docs");
 
         // unresolved config under validation is a bug in something,
         // NotResolved is a more specific subclass of BugOrBroken
-        if (root().resolveStatus() != com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED)
+        if (root().resolveStatus() != ResolveStatus.RESOLVED)
             throw new ConfigException.NotResolved(
                     "need to Config#resolve() each config before using it, see the API docs for Config#resolve()");
 
@@ -873,10 +872,10 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
             checkValidObject(null, ref.root(), root(), problems);
         } else {
             for (String p : restrictToPaths) {
-                com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(p);
-                com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue refValue = ref.peekPath(path);
+                Path path = Path.newPath(p);
+                AbstractConfigValue refValue = ref.peekPath(path);
                 if (refValue != null) {
-                    com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue child = peekPath(path);
+                    AbstractConfigValue child = peekPath(path);
                     if (child != null) {
                         checkValid(path, refValue, child, problems);
                     } else {
@@ -892,29 +891,29 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig withOnlyPath(String pathExpression) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(pathExpression);
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig(root().withOnlyPath(path));
+    public SimpleConfig withOnlyPath(String pathExpression) {
+        Path path = Path.newPath(pathExpression);
+        return new SimpleConfig(root().withOnlyPath(path));
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig withoutPath(String pathExpression) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(pathExpression);
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig(root().withoutPath(path));
+    public SimpleConfig withoutPath(String pathExpression) {
+        Path path = Path.newPath(pathExpression);
+        return new SimpleConfig(root().withoutPath(path));
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig withValue(String pathExpression, ConfigValue v) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path path = com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(pathExpression);
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig(root().withValue(path, v));
+    public SimpleConfig withValue(String pathExpression, ConfigValue v) {
+        Path path = Path.newPath(pathExpression);
+        return new SimpleConfig(root().withValue(path, v));
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig atKey(ConfigOrigin origin, String key) {
+    SimpleConfig atKey(ConfigOrigin origin, String key) {
         return root().atKey(origin, key);
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfig atKey(String key) {
+    public SimpleConfig atKey(String key) {
         return root().atKey(key);
     }
 
@@ -925,6 +924,6 @@ final class SimpleConfig implements Config, com.addthis.codec.embedded.com.types
 
     // serialization all goes through SerializedConfigValue
     private Object writeReplace() throws ObjectStreamException {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SerializedConfigValue(this);
+        return new SerializedConfigValue(this);
     }
 }

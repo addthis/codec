@@ -23,7 +23,7 @@ import java.util.Collection;
  * Interface that tags a ConfigValue that is not mergeable until after
  * substitutions are resolved. Basically these are special ConfigValue that
  * never appear in a resolved tree, like {@link ConfigSubstitution} and
- * {@link com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge}.
+ * {@link ConfigDelayedMerge}.
  */
 interface Unmergeable {
     Collection<? extends AbstractConfigValue> unmergedValues();

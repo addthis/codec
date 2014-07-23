@@ -28,15 +28,15 @@ import com.addthis.codec.embedded.com.typesafe.config.ConfigValueType;
  */
 final class ConfigReference extends AbstractConfigValue implements Unmergeable {
 
-    final private com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression expr;
+    final private SubstitutionExpression expr;
     // the length of any prefixes added with relativized()
     final private int prefixLength;
 
-    ConfigReference(ConfigOrigin origin, com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression expr) {
+    ConfigReference(ConfigOrigin origin, SubstitutionExpression expr) {
         this(origin, expr, 0);
     }
 
-    private ConfigReference(ConfigOrigin origin, com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression expr, int prefixLength) {
+    private ConfigReference(ConfigOrigin origin, SubstitutionExpression expr, int prefixLength) {
         super(origin);
         this.expr = expr;
         this.prefixLength = prefixLength;
@@ -59,8 +59,8 @@ final class ConfigReference extends AbstractConfigValue implements Unmergeable {
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference newCopy(ConfigOrigin newOrigin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference(newOrigin, expr, prefixLength);
+    protected ConfigReference newCopy(ConfigOrigin newOrigin) {
+        return new ConfigReference(newOrigin, expr, prefixLength);
     }
 
     @Override
@@ -69,7 +69,7 @@ final class ConfigReference extends AbstractConfigValue implements Unmergeable {
     }
 
     @Override
-    public Collection<com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference> unmergedValues() {
+    public Collection<ConfigReference> unmergedValues() {
         return Collections.singleton(this);
     }
 
@@ -77,8 +77,8 @@ final class ConfigReference extends AbstractConfigValue implements Unmergeable {
     // further up the stack; it should convert everything to ConfigException.
     // This way it's impossible for NotPossibleToResolve to "escape" since
     // any failure to resolve has to start with a ConfigReference.
-    @Override AbstractConfigValue resolveSubstitutions(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) {
-        context.source().replace(this, com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer.cycleResolveReplacer);
+    @Override AbstractConfigValue resolveSubstitutions(ResolveContext context) {
+        context.source().replace(this, ResolveReplacer.cycleResolveReplacer);
         try {
             AbstractConfigValue v;
             try {
@@ -114,21 +114,21 @@ final class ConfigReference extends AbstractConfigValue implements Unmergeable {
     // where you grafted it; but save prefixLength so
     // system property and env variable lookups don't get
     // broken.
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference relativized(Path prefix) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression newExpr = expr.changePath(expr.path().prepend(prefix));
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference(origin(), newExpr, prefixLength + prefix.length());
+    @Override ConfigReference relativized(Path prefix) {
+        SubstitutionExpression newExpr = expr.changePath(expr.path().prepend(prefix));
+        return new ConfigReference(origin(), newExpr, prefixLength + prefix.length());
     }
 
     @Override
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference;
+        return other instanceof ConfigReference;
     }
 
     @Override
     public boolean equals(Object other) {
         // note that "origin" is deliberately NOT part of equality
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference) {
-            return canEqual(other) && this.expr.equals(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigReference) other).expr);
+        if (other instanceof ConfigReference) {
+            return canEqual(other) && this.expr.equals(((ConfigReference) other).expr);
         } else {
             return false;
         }
@@ -145,7 +145,7 @@ final class ConfigReference extends AbstractConfigValue implements Unmergeable {
         sb.append(expr.toString());
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression expression() {
+    SubstitutionExpression expression() {
         return expr;
     }
 }

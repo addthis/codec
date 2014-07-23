@@ -25,9 +25,9 @@ import com.addthis.codec.embedded.com.typesafe.config.ConfigException;
 final class Path {
 
     final private String first;
-    final private com.addthis.codec.embedded.com.typesafe.config.impl.Path remainder;
+    final private Path remainder;
 
-    Path(String first, com.addthis.codec.embedded.com.typesafe.config.impl.Path remainder) {
+    Path(String first, Path remainder) {
         this.first = first;
         this.remainder = remainder;
     }
@@ -48,16 +48,16 @@ final class Path {
     }
 
     // append all the paths in the list together into one path
-    Path(List<com.addthis.codec.embedded.com.typesafe.config.impl.Path> pathsToConcat) {
+    Path(List<Path> pathsToConcat) {
         this(pathsToConcat.iterator());
     }
 
     // append all the paths in the iterator together into one path
-    Path(Iterator<com.addthis.codec.embedded.com.typesafe.config.impl.Path> i) {
+    Path(Iterator<Path> i) {
         if (!i.hasNext())
             throw new ConfigException.BugOrBroken("empty path");
 
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path firstPath = i.next();
+        Path firstPath = i.next();
         this.first = firstPath.first;
 
         PathBuilder pb = new PathBuilder();
@@ -78,7 +78,7 @@ final class Path {
      *
      * @return path minus the first element or null if no more elements
      */
-    com.addthis.codec.embedded.com.typesafe.config.impl.Path remainder() {
+    Path remainder() {
         return remainder;
     }
 
@@ -86,12 +86,12 @@ final class Path {
      *
      * @return path minus the last element or null if we have just one element
      */
-    com.addthis.codec.embedded.com.typesafe.config.impl.Path parent() {
+    Path parent() {
         if (remainder == null)
             return null;
 
         PathBuilder pb = new PathBuilder();
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path p = this;
+        Path p = this;
         while (p.remainder != null) {
             pb.appendKey(p.first);
             p = p.remainder;
@@ -104,14 +104,14 @@ final class Path {
      * @return last element in the path
      */
     String last() {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path p = this;
+        Path p = this;
         while (p.remainder != null) {
             p = p.remainder;
         }
         return p.first;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.Path prepend(com.addthis.codec.embedded.com.typesafe.config.impl.Path toPrepend) {
+    Path prepend(Path toPrepend) {
         PathBuilder pb = new PathBuilder();
         pb.appendPath(toPrepend);
         pb.appendPath(this);
@@ -120,7 +120,7 @@ final class Path {
 
     int length() {
         int count = 1;
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path p = remainder;
+        Path p = remainder;
         while (p != null) {
             count += 1;
             p = p.remainder;
@@ -128,9 +128,9 @@ final class Path {
         return count;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.Path subPath(int removeFromFront) {
+    Path subPath(int removeFromFront) {
         int count = removeFromFront;
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path p = this;
+        Path p = this;
         while (p != null && count > 0) {
             count -= 1;
             p = p.remainder;
@@ -138,11 +138,11 @@ final class Path {
         return p;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.Path subPath(int firstIndex, int lastIndex) {
+    Path subPath(int firstIndex, int lastIndex) {
         if (lastIndex < firstIndex)
             throw new ConfigException.BugOrBroken("bad call to subPath");
 
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path from = subPath(firstIndex);
+        Path from = subPath(firstIndex);
         PathBuilder pb = new PathBuilder();
         int count = lastIndex - firstIndex;
         while (count > 0) {
@@ -157,10 +157,10 @@ final class Path {
 
     @Override
     public boolean equals(Object other) {
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.Path) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.Path that = (com.addthis.codec.embedded.com.typesafe.config.impl.Path) other;
+        if (other instanceof Path) {
+            Path that = (Path) other;
             return this.first.equals(that.first)
-                    && com.addthis.codec.embedded.com.typesafe.config.impl.ConfigImplUtil.equalsHandlingNull(this.remainder,
+                    && ConfigImplUtil.equalsHandlingNull(this.remainder,
                                                                                   that.remainder);
         } else {
             return false;
@@ -230,11 +230,11 @@ final class Path {
         return sb.toString();
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.Path newKey(String key) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.Path(key, null);
+    static Path newKey(String key) {
+        return new Path(key, null);
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.Path newPath(String path) {
-        return com.addthis.codec.embedded.com.typesafe.config.impl.Parser.parsePath(path);
+    static Path newPath(String path) {
+        return Parser.parsePath(path);
     }
 }

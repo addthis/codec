@@ -23,17 +23,17 @@ import com.addthis.codec.embedded.com.typesafe.config.ConfigParseable;
 
 class SimpleIncludeContext implements ConfigIncludeContext {
 
-    private final com.addthis.codec.embedded.com.typesafe.config.impl.Parseable parseable;
+    private final Parseable parseable;
 
-    SimpleIncludeContext(com.addthis.codec.embedded.com.typesafe.config.impl.Parseable parseable) {
+    SimpleIncludeContext(Parseable parseable) {
         this.parseable = parseable;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleIncludeContext withParseable(Parseable parseable) {
+    SimpleIncludeContext withParseable(Parseable parseable) {
         if (parseable == this.parseable)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleIncludeContext(parseable);
+            return new SimpleIncludeContext(parseable);
     }
 
     @Override
@@ -46,6 +46,6 @@ class SimpleIncludeContext implements ConfigIncludeContext {
 
     @Override
     public ConfigParseOptions parseOptions() {
-        return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleIncluder.clearForInclude(parseable.options());
+        return SimpleIncluder.clearForInclude(parseable.options());
     }
 }

@@ -31,11 +31,11 @@ final class SubstitutionExpression {
         return optional;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression changePath(Path newPath) {
+    SubstitutionExpression changePath(Path newPath) {
         if (newPath == path)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression(newPath, optional);
+            return new SubstitutionExpression(newPath, optional);
     }
 
     @Override
@@ -45,8 +45,8 @@ final class SubstitutionExpression {
 
     @Override
     public boolean equals(Object other) {
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression otherExp = (com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression) other;
+        if (other instanceof SubstitutionExpression) {
+            SubstitutionExpression otherExp = (SubstitutionExpression) other;
             return otherExp.path.equals(this.path) && otherExp.optional == this.optional;
         } else {
             return false;

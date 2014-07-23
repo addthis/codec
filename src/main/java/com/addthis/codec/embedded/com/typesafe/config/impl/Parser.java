@@ -46,7 +46,7 @@ final class Parser {
             ConfigOrigin origin, ConfigParseOptions options,
             ConfigIncludeContext includeContext) {
         ParseContext context = new ParseContext(options.getSyntax(), origin, tokens,
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleIncluder.makeFull(options.getIncluder()), includeContext);
+                SimpleIncluder.makeFull(options.getIncluder()), includeContext);
         return context.parse();
     }
 
@@ -58,7 +58,7 @@ final class Parser {
             this.token = token;
             this.comments = comments;
 
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isComment(token))
+            if (Tokens.isComment(token))
                 throw new ConfigException.BugOrBroken("tried to annotate a comment with a comment");
         }
 
@@ -97,25 +97,25 @@ final class Parser {
             }
         }
 
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin prependComments(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin) {
+        SimpleConfigOrigin prependComments(SimpleConfigOrigin origin) {
             if (comments.isEmpty()) {
                 return origin;
             } else {
                 List<String> newComments = new ArrayList<String>();
                 for (Token c : comments) {
-                    newComments.add(com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getCommentText(c));
+                    newComments.add(Tokens.getCommentText(c));
                 }
                 return origin.prependComments(newComments);
             }
         }
 
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin appendComments(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin) {
+        SimpleConfigOrigin appendComments(SimpleConfigOrigin origin) {
             if (comments.isEmpty()) {
                 return origin;
             } else {
                 List<String> newComments = new ArrayList<String>();
                 for (Token c : comments) {
-                    newComments.add(com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getCommentText(c));
+                    newComments.add(Tokens.getCommentText(c));
                 }
                 return origin.appendComments(newComments);
             }
@@ -167,11 +167,9 @@ final class Parser {
             // went with the following field or element. Associating a comment
             // with a newline would mess up all the logic for comment tracking,
             // so don't do that either.
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isNewline(token) || token == com.addthis
-                    .codec.embedded.com.typesafe.config.impl.Tokens.START || token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY
-                    || token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE || token ==
-                                                                                                          com.addthis
-                                                                                                                  .codec.embedded.com.typesafe.config.impl.Tokens.END)
+            if (Tokens.isNewline(token) || token == Tokens.START || token == Tokens.OPEN_CURLY
+                    || token == Tokens.OPEN_SQUARE || token ==
+                                                                                                          Tokens.END)
                 return false;
             else
                 return true;
@@ -180,8 +178,8 @@ final class Parser {
         static private boolean attractsLeadingComments(Token token) {
             // a comment just before a close } generally doesn't go with the
             // value before it, unless it's on the same line as that value
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isNewline(token) || token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.START || token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_CURLY
-                    || token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_SQUARE || token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END)
+            if (Tokens.isNewline(token) || token == Tokens.START || token == Tokens.CLOSE_CURLY
+                    || token == Tokens.CLOSE_SQUARE || token == Tokens.END)
                 return false;
             else
                 return true;
@@ -202,14 +200,14 @@ final class Parser {
             Token previous = null;
             Token next = commentToken;
             while (true) {
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isNewline(next)) {
-                    if (previous != null && com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isNewline(previous)) {
+                if (Tokens.isNewline(next)) {
+                    if (previous != null && Tokens.isNewline(previous)) {
                         // blank line; drop all comments to this point and
                         // start a new comment block
                         comments.clear();
                     }
                     newlines.add(next);
-                } else if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isComment(next)) {
+                } else if (Tokens.isComment(next)) {
                     comments.add(next);
                 } else {
                     // a non-newline non-comment token
@@ -239,7 +237,7 @@ final class Parser {
         private TokenWithComments popTokenWithoutTrailingComment() {
             if (buffer.isEmpty()) {
                 Token t = tokens.next();
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isComment(t)) {
+                if (Tokens.isComment(t)) {
                     consolidateCommentBlock(t);
                     return buffer.pop();
                 } else {
@@ -263,7 +261,7 @@ final class Parser {
                 return withPrecedingComments;
             } else if (buffer.isEmpty()) {
                 Token after = tokens.next();
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isComment(after)) {
+                if (Tokens.isComment(after)) {
                     return withPrecedingComments.add(after);
                 } else {
                     buffer.push(new TokenWithComments(after));
@@ -272,7 +270,7 @@ final class Parser {
             } else {
                 // comments are supposed to get attached to a token,
                 // not put back in the buffer. Assert this as an invariant.
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isComment(buffer.peek().token))
+                if (Tokens.isComment(buffer.peek().token))
                     throw new ConfigException.BugOrBroken(
                             "comment token should not have been in buffer: " + buffer);
                 return withPrecedingComments;
@@ -285,11 +283,11 @@ final class Parser {
             withComments = popToken();
             Token t = withComments.token;
 
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isProblem(t)) {
+            if (Tokens.isProblem(t)) {
                 ConfigOrigin origin = t.origin();
-                String message = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getProblemMessage(t);
-                Throwable cause = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getProblemCause(t);
-                boolean suggestQuotes = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getProblemSuggestQuotes(t);
+                String message = Tokens.getProblemMessage(t);
+                Throwable cause = Tokens.getProblemCause(t);
+                boolean suggestQuotes = Tokens.getProblemSuggestQuotes(t);
                 if (suggestQuotes) {
                     message = addQuoteSuggestion(t.toString(), message);
                 } else {
@@ -298,10 +296,10 @@ final class Parser {
                 throw new ConfigException.Parse(origin, message, cause);
             } else {
                 if (flavor == ConfigSyntax.JSON) {
-                    if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t)) {
+                    if (Tokens.isUnquotedText(t)) {
                         throw parseError(addKeyName("Token not allowed in valid JSON: '"
-                                + com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t) + "'"));
-                    } else if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isSubstitution(t)) {
+                                + Tokens.getUnquotedText(t) + "'"));
+                    } else if (Tokens.isSubstitution(t)) {
                         throw parseError(addKeyName("Substitutions (${} syntax) not allowed in JSON"));
                     }
                 }
@@ -311,7 +309,7 @@ final class Parser {
         }
 
         private void putBack(TokenWithComments token) {
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isComment(token.token))
+            if (Tokens.isComment(token.token))
                 throw new ConfigException.BugOrBroken(
                         "comment token should have been stripped before it was available to put back");
             buffer.push(token);
@@ -320,7 +318,7 @@ final class Parser {
         private TokenWithComments nextTokenIgnoringNewline() {
             TokenWithComments t = nextToken();
 
-            while (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isNewline(t.token)) {
+            while (Tokens.isNewline(t.token)) {
                 // line number tokens have the line that was _ended_ by the
                 // newline, so we have to add one. We have to update lineNumber
                 // here and also below, because not all tokens store a line
@@ -341,7 +339,7 @@ final class Parser {
         private AbstractConfigValue addAnyCommentsAfterAnyComma(AbstractConfigValue v) {
             TokenWithComments t = nextToken(); // do NOT skip newlines, we only
                                                // want same-line comments
-            if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COMMA) {
+            if (t.token == Tokens.COMMA) {
                 // steal the comments from after the comma
                 putBack(t.removeAll());
                 return v.withOrigin(t.appendComments(v.origin()));
@@ -360,7 +358,7 @@ final class Parser {
         private boolean checkElementSeparator() {
             if (flavor == ConfigSyntax.JSON) {
                 TokenWithComments t = nextTokenIgnoringNewline();
-                if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COMMA) {
+                if (t.token == Tokens.COMMA) {
                     return true;
                 } else {
                     putBack(t);
@@ -370,14 +368,14 @@ final class Parser {
                 boolean sawSeparatorOrNewline = false;
                 TokenWithComments t = nextToken();
                 while (true) {
-                    if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isNewline(t.token)) {
+                    if (Tokens.isNewline(t.token)) {
                         // newline number is the line just ended, so add one
                         lineNumber = t.token.lineNumber() + 1;
                         sawSeparatorOrNewline = true;
 
                         // we want to continue to also eat
                         // a comma if there is one.
-                    } else if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COMMA) {
+                    } else if (t.token == Tokens.COMMA) {
                         return true;
                     } else {
                         // non-newline-or-comma
@@ -390,9 +388,9 @@ final class Parser {
         }
 
         private static SubstitutionExpression tokenToSubstitutionExpression(Token valueToken) {
-            List<Token> expression = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getSubstitutionPathExpression(valueToken);
+            List<Token> expression = Tokens.getSubstitutionPathExpression(valueToken);
             Path path = parsePathExpression(expression.iterator(), valueToken.origin());
-            boolean optional = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getSubstitutionOptional(valueToken);
+            boolean optional = Tokens.getSubstitutionOptional(valueToken);
 
             return new SubstitutionExpression(path, optional);
         }
@@ -412,12 +410,11 @@ final class Parser {
             TokenWithComments t = nextTokenIgnoringNewline();
             while (true) {
                 AbstractConfigValue v = null;
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(t.token) || com.addthis.codec
-                        .embedded.com.typesafe.config.impl.Tokens.isUnquotedText(
+                if (Tokens.isValue(t.token) || Tokens.isUnquotedText(
                         t.token)
-                        || com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isSubstitution(
-                        t.token) || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY
-                        || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE) {
+                        || Tokens.isSubstitution(
+                        t.token) || t.token == Tokens.OPEN_CURLY
+                        || t.token == Tokens.OPEN_SQUARE) {
                     // there may be newlines _within_ the objects and arrays
                     v = parseValue(t);
                 } else {
@@ -440,13 +437,13 @@ final class Parser {
             if (values == null)
                 return;
 
-            AbstractConfigValue consolidated = com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation.concatenate(values);
+            AbstractConfigValue consolidated = ConfigConcatenation.concatenate(values);
 
-            putBack(new TokenWithComments(com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newValue(consolidated)));
+            putBack(new TokenWithComments(Tokens.newValue(consolidated)));
         }
 
-        private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin lineOrigin() {
-            return ((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) baseOrigin).setLineNumber(lineNumber);
+        private SimpleConfigOrigin lineOrigin() {
+            return ((SimpleConfigOrigin) baseOrigin).setLineNumber(lineNumber);
         }
 
         private ConfigException parseError(String message) {
@@ -496,7 +493,7 @@ final class Parser {
             String previousFieldName = previousFieldName(lastPath);
 
             String part;
-            if (badToken.equals(com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END.toString())) {
+            if (badToken.equals(Tokens.END.toString())) {
                 // EOF requires special handling for the error to make sense.
                 if (previousFieldName != null)
                     part = message + " (if you intended '" + previousFieldName
@@ -529,18 +526,18 @@ final class Parser {
             int startingArrayCount = arrayCount;
             int startingEqualsCount = equalsCount;
 
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(t.token)) {
+            if (Tokens.isValue(t.token)) {
                 // if we consolidateValueTokens() multiple times then
                 // this value could be a concatenation, object, array,
                 // or substitution already.
-                v = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getValue(t.token);
-            } else if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t.token)) {
-                v = new ConfigString(t.token.origin(), com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t.token));
-            } else if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isSubstitution(t.token)) {
+                v = Tokens.getValue(t.token);
+            } else if (Tokens.isUnquotedText(t.token)) {
+                v = new ConfigString(t.token.origin(), Tokens.getUnquotedText(t.token));
+            } else if (Tokens.isSubstitution(t.token)) {
                 v = new ConfigReference(t.token.origin(), tokenToSubstitutionExpression(t.token));
-            } else if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY) {
+            } else if (t.token == Tokens.OPEN_CURLY) {
                 v = parseObject(true);
-            } else if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE) {
+            } else if (t.token == Tokens.OPEN_SQUARE) {
                 v = parseArray();
             } else {
                 throw parseError(addQuoteSuggestion(t.token.toString(),
@@ -595,8 +592,8 @@ final class Parser {
 
         private Path parseKey(TokenWithComments token) {
             if (flavor == ConfigSyntax.JSON) {
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValueWithType(token.token, ConfigValueType.STRING)) {
-                    String key = (String) com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getValue(token.token).unwrapped();
+                if (Tokens.isValueWithType(token.token, ConfigValueType.STRING)) {
+                    String key = (String) Tokens.getValue(token.token).unwrapped();
                     return Path.newKey(key);
                 } else {
                     throw parseError(addKeyName("Expecting close brace } or a field name here, got "
@@ -605,8 +602,8 @@ final class Parser {
             } else {
                 List<Token> expression = new ArrayList<Token>();
                 TokenWithComments t = token;
-                while (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(
-                        t.token) || com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t.token)) {
+                while (Tokens.isValue(
+                        t.token) || Tokens.isUnquotedText(t.token)) {
                     expression.add(t.token);
                     t = nextToken(); // note: don't cross a newline
                 }
@@ -622,15 +619,15 @@ final class Parser {
         }
 
         private static boolean isIncludeKeyword(Token t) {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t)
-                    && com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t).equals("include");
+            return Tokens.isUnquotedText(t)
+                    && Tokens.getUnquotedText(t).equals("include");
         }
 
         private static boolean isUnquotedWhitespace(Token t) {
-            if (!com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t))
+            if (!Tokens.isUnquotedText(t))
                 return false;
 
-            String s = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t);
+            String s = Tokens.getUnquotedText(t);
 
             for (int i = 0; i < s.length(); ++i) {
                 char c = s.charAt(i);
@@ -649,9 +646,9 @@ final class Parser {
             AbstractConfigObject obj;
 
             // we either have a quoted string or the "file()" syntax
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t.token)) {
+            if (Tokens.isUnquotedText(t.token)) {
                 // get foo(
-                String kind = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t.token);
+                String kind = Tokens.getUnquotedText(t.token);
 
                 if (kind.equals("url(")) {
 
@@ -672,8 +669,8 @@ final class Parser {
 
                 // quoted string
                 String name;
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValueWithType(t.token, ConfigValueType.STRING)) {
-                    name = (String) com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getValue(t.token).unwrapped();
+                if (Tokens.isValueWithType(t.token, ConfigValueType.STRING)) {
+                    name = (String) Tokens.getValue(t.token).unwrapped();
                 } else {
                     throw parseError("expecting a quoted string inside file(), classpath(), or url(), rather than: "
                             + t);
@@ -684,8 +681,8 @@ final class Parser {
                     t = nextTokenIgnoringNewline();
                 }
 
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(
-                        t.token) && com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t.token).equals(")")) {
+                if (Tokens.isUnquotedText(
+                        t.token) && Tokens.getUnquotedText(t.token).equals(")")) {
                     // OK, close paren
                 } else {
                     throw parseError("expecting a close parentheses ')' here, not: " + t);
@@ -707,8 +704,8 @@ final class Parser {
                 } else {
                     throw new ConfigException.BugOrBroken("should not be reached");
                 }
-            } else if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValueWithType(t.token, ConfigValueType.STRING)) {
-                String name = (String) com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getValue(t.token).unwrapped();
+            } else if (Tokens.isValueWithType(t.token, ConfigValueType.STRING)) {
+                String name = (String) Tokens.getValue(t.token).unwrapped();
                 obj = (AbstractConfigObject) includer
                         .include(includeContext, name);
             } else {
@@ -741,23 +738,23 @@ final class Parser {
 
         private boolean isKeyValueSeparatorToken(Token t) {
             if (flavor == ConfigSyntax.JSON) {
-                return t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COLON;
+                return t == Tokens.COLON;
             } else {
-                return t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COLON || t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.EQUALS || t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.PLUS_EQUALS;
+                return t == Tokens.COLON || t == Tokens.EQUALS || t == Tokens.PLUS_EQUALS;
             }
         }
 
         private AbstractConfigObject parseObject(boolean hadOpenCurly) {
             // invoked just after the OPEN_CURLY (or START, if !hadOpenCurly)
             Map<String, AbstractConfigValue> values = new HashMap<String, AbstractConfigValue>();
-            com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin objectOrigin = lineOrigin();
+            SimpleConfigOrigin objectOrigin = lineOrigin();
             boolean afterComma = false;
             Path lastPath = null;
             boolean lastInsideEquals = false;
 
             while (true) {
                 TokenWithComments t = nextTokenIgnoringNewline();
-                if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_CURLY) {
+                if (t.token == Tokens.CLOSE_CURLY) {
                     if (flavor == ConfigSyntax.JSON && afterComma) {
                         throw parseError(addQuoteSuggestion(t.toString(),
                                 "expecting a field name after a comma, got a close brace } instead"));
@@ -769,7 +766,7 @@ final class Parser {
                     objectOrigin = t.appendComments(objectOrigin);
 
                     break;
-                } else if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END && !hadOpenCurly) {
+                } else if (t.token == Tokens.END && !hadOpenCurly) {
                     putBack(t);
                     break;
                 } else if (flavor != ConfigSyntax.JSON && isIncludeKeyword(t.token)) {
@@ -784,7 +781,7 @@ final class Parser {
 
                     // path must be on-stack while we parse the value
                     pathStack.push(path);
-                    if (afterKey.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.PLUS_EQUALS) {
+                    if (afterKey.token == Tokens.PLUS_EQUALS) {
                         // we really should make this work, but for now throwing
                         // an exception is better than producing an incorrect
                         // result. See
@@ -802,7 +799,7 @@ final class Parser {
 
                     TokenWithComments valueToken;
                     AbstractConfigValue newValue;
-                    if (flavor == ConfigSyntax.CONF && afterKey.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY) {
+                    if (flavor == ConfigSyntax.CONF && afterKey.token == Tokens.OPEN_CURLY) {
                         // can omit the ':' or '=' before an object value
                         valueToken = afterKey;
                     } else {
@@ -812,7 +809,7 @@ final class Parser {
                                             + afterKey));
                         }
 
-                        if (afterKey.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.EQUALS) {
+                        if (afterKey.token == Tokens.EQUALS) {
                             insideEquals = true;
                             equalsCount += 1;
                         }
@@ -826,7 +823,7 @@ final class Parser {
                     // comments from the key token go to the value token
                     newValue = parseValue(valueToken.prepend(keyToken.comments));
 
-                    if (afterKey.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.PLUS_EQUALS) {
+                    if (afterKey.token == Tokens.PLUS_EQUALS) {
                         arrayCount -= 1;
 
                         List<AbstractConfigValue> concat = new ArrayList<AbstractConfigValue>(2);
@@ -836,7 +833,7 @@ final class Parser {
                                 Collections.singletonList(newValue));
                         concat.add(previousRef);
                         concat.add(list);
-                        newValue = com.addthis.codec.embedded.com.typesafe.config.impl.ConfigConcatenation.concatenate(concat);
+                        newValue = ConfigConcatenation.concatenate(concat);
                     }
 
                     newValue = addAnyCommentsAfterAnyComma(newValue);
@@ -891,7 +888,7 @@ final class Parser {
                     afterComma = true;
                 } else {
                     t = nextTokenIgnoringNewline();
-                    if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_CURLY) {
+                    if (t.token == Tokens.CLOSE_CURLY) {
                         if (!hadOpenCurly) {
                             throw parseError(addQuoteSuggestion(lastPath, lastInsideEquals,
                                     t.toString(), "unbalanced close brace '}' with no open brace"));
@@ -904,7 +901,7 @@ final class Parser {
                         throw parseError(addQuoteSuggestion(lastPath, lastInsideEquals,
                                 t.toString(), "Expecting close brace } or a comma, got " + t));
                     } else {
-                        if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END) {
+                        if (t.token == Tokens.END) {
                             putBack(t);
                             break;
                         } else {
@@ -922,7 +919,7 @@ final class Parser {
             // invoked just after the OPEN_SQUARE
             arrayCount += 1;
 
-            com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin arrayOrigin = lineOrigin();
+            SimpleConfigOrigin arrayOrigin = lineOrigin();
             List<AbstractConfigValue> values = new ArrayList<AbstractConfigValue>();
 
             consolidateValueTokens();
@@ -930,13 +927,13 @@ final class Parser {
             TokenWithComments t = nextTokenIgnoringNewline();
 
             // special-case the first element
-            if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_SQUARE) {
+            if (t.token == Tokens.CLOSE_SQUARE) {
                 arrayCount -= 1;
                 return new SimpleConfigList(t.appendComments(arrayOrigin),
                         Collections.<AbstractConfigValue> emptyList());
             } else if (
-                    com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(t.token) || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY
-                    || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE) {
+                    Tokens.isValue(t.token) || t.token == Tokens.OPEN_CURLY
+                    || t.token == Tokens.OPEN_SQUARE) {
                 AbstractConfigValue v = parseValue(t);
                 v = addAnyCommentsAfterAnyComma(v);
                 values.add(v);
@@ -955,7 +952,7 @@ final class Parser {
                     // comma (or newline equivalent) consumed
                 } else {
                     t = nextTokenIgnoringNewline();
-                    if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_SQUARE) {
+                    if (t.token == Tokens.CLOSE_SQUARE) {
                         arrayCount -= 1;
                         return new SimpleConfigList(t.appendComments(arrayOrigin), values);
                     } else {
@@ -971,12 +968,12 @@ final class Parser {
                 consolidateValueTokens();
 
                 t = nextTokenIgnoringNewline();
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(t.token) || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY
-                        || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE) {
+                if (Tokens.isValue(t.token) || t.token == Tokens.OPEN_CURLY
+                        || t.token == Tokens.OPEN_SQUARE) {
                     AbstractConfigValue v = parseValue(t);
                     v = addAnyCommentsAfterAnyComma(v);
                     values.add(v);
-                } else if (flavor != ConfigSyntax.JSON && t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_SQUARE) {
+                } else if (flavor != ConfigSyntax.JSON && t.token == Tokens.CLOSE_SQUARE) {
                     // we allow one trailing comma
                     putBack(t);
                 } else {
@@ -991,7 +988,7 @@ final class Parser {
 
         AbstractConfigValue parse() {
             TokenWithComments t = nextTokenIgnoringNewline();
-            if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.START) {
+            if (t.token == Tokens.START) {
                 // OK
             } else {
                 throw new ConfigException.BugOrBroken(
@@ -1000,11 +997,11 @@ final class Parser {
 
             t = nextTokenIgnoringNewline();
             AbstractConfigValue result = null;
-            if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY || t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE) {
+            if (t.token == Tokens.OPEN_CURLY || t.token == Tokens.OPEN_SQUARE) {
                 result = parseValue(t);
             } else {
                 if (flavor == ConfigSyntax.JSON) {
-                    if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END) {
+                    if (t.token == Tokens.END) {
                         throw parseError("Empty document");
                     } else {
                         throw parseError("Document must have an object or array at root, unexpected token: "
@@ -1023,7 +1020,7 @@ final class Parser {
             }
 
             t = nextTokenIgnoringNewline();
-            if (t.token == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END) {
+            if (t.token == Tokens.END) {
                 return result;
             } else {
                 throw parseError("Document has trailing tokens after first object or array: "
@@ -1088,14 +1085,14 @@ final class Parser {
 
         while (expression.hasNext()) {
             Token t = expression.next();
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValueWithType(t, ConfigValueType.STRING)) {
-                AbstractConfigValue v = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getValue(t);
+            if (Tokens.isValueWithType(t, ConfigValueType.STRING)) {
+                AbstractConfigValue v = Tokens.getValue(t);
                 // this is a quoted string; so any periods
                 // in here don't count as path separators
                 String s = v.transformToString();
 
                 addPathText(buf, true, s);
-            } else if (t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END) {
+            } else if (t == Tokens.END) {
                 // ignore this; when parsing a file, it should not happen
                 // since we're parsing a token list rather than the main
                 // token iterator, and when parsing a path expression from the
@@ -1104,7 +1101,7 @@ final class Parser {
                 // any periods outside of a quoted string count as
                 // separators
                 String text;
-                if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(t)) {
+                if (Tokens.isValue(t)) {
                     // appending a number here may add
                     // a period, but we _do_ count those as path
                     // separators, because we basically want
@@ -1112,10 +1109,10 @@ final class Parser {
                     // though there's a number in it. The fact that
                     // we tokenize non-string values is largely an
                     // implementation detail.
-                    AbstractConfigValue v = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getValue(t);
+                    AbstractConfigValue v = Tokens.getValue(t);
                     text = v.transformToString();
-                } else if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t)) {
-                    text = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.getUnquotedText(t);
+                } else if (Tokens.isUnquotedText(t)) {
+                    text = Tokens.getUnquotedText(t);
                 } else {
                     throw new ConfigException.BadPath(
                             origin,
@@ -1144,7 +1141,7 @@ final class Parser {
         return pb.result();
     }
 
-    static ConfigOrigin apiOrigin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("path parameter");
+    static ConfigOrigin apiOrigin = SimpleConfigOrigin.newSimple("path parameter");
 
     static Path parsePath(String path) {
         Path speculated = speculativeFastParsePath(path);
@@ -1154,7 +1151,7 @@ final class Parser {
         StringReader reader = new StringReader(path);
 
         try {
-            Iterator<Token> tokens = com.addthis.codec.embedded.com.typesafe.config.impl.Tokenizer.tokenize(apiOrigin, reader,
+            Iterator<Token> tokens = Tokenizer.tokenize(apiOrigin, reader,
                                                                                  ConfigSyntax.CONF);
             tokens.next(); // drop START
             return parsePathExpression(tokens, apiOrigin, path);

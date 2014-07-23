@@ -28,20 +28,20 @@ final class ResolveSource {
     // traversed node and therefore avoid circular dependencies.
     // We implement it with this somewhat hacky "patch a replacement"
     // mechanism instead of actually transforming the tree.
-    final private Map<AbstractConfigValue, com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer> replacements;
+    final private Map<AbstractConfigValue, ResolveReplacer> replacements;
 
     ResolveSource(AbstractConfigObject root) {
         this.root = root;
-        this.replacements = new IdentityHashMap<AbstractConfigValue, com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer>();
+        this.replacements = new IdentityHashMap<AbstractConfigValue, ResolveReplacer>();
     }
 
     static private AbstractConfigValue findInObject(AbstractConfigObject obj,
-            com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context, com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression subst)
+            ResolveContext context, SubstitutionExpression subst)
             throws AbstractConfigValue.NotPossibleToResolve {
         return obj.peekPath(subst.path(), context);
     }
 
-    AbstractConfigValue lookupSubst(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context, com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression subst,
+    AbstractConfigValue lookupSubst(ResolveContext context, SubstitutionExpression subst,
             int prefixLength) throws AbstractConfigValue.NotPossibleToResolve {
         context.trace(subst);
         try {
@@ -53,7 +53,7 @@ final class ResolveSource {
                 // Then we want to check relative to the root file. We don't
                 // want the prefix we were included at to be used when looking
                 // up env variables either.
-                com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression unprefixed = subst.changePath(subst.path().subPath(
+                SubstitutionExpression unprefixed = subst.changePath(subst.path().subPath(
                         prefixLength));
 
                 // replace the debug trace path
@@ -80,22 +80,22 @@ final class ResolveSource {
         }
     }
 
-    void replace(AbstractConfigValue value, com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer replacer) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer old = replacements.put(value, replacer);
+    void replace(AbstractConfigValue value, ResolveReplacer replacer) {
+        ResolveReplacer old = replacements.put(value, replacer);
         if (old != null)
             throw new ConfigException.BugOrBroken("should not have replaced the same value twice: "
                     + value);
     }
 
     void unreplace(AbstractConfigValue value) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer replacer = replacements.remove(value);
+        ResolveReplacer replacer = replacements.remove(value);
         if (replacer == null)
             throw new ConfigException.BugOrBroken("unreplace() without replace(): " + value);
     }
 
-    private AbstractConfigValue replacement(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context, AbstractConfigValue value)
+    private AbstractConfigValue replacement(ResolveContext context, AbstractConfigValue value)
             throws AbstractConfigValue.NotPossibleToResolve {
-        com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer replacer = replacements.get(value);
+        ResolveReplacer replacer = replacements.get(value);
         if (replacer == null) {
             return value;
         } else {
@@ -107,7 +107,7 @@ final class ResolveSource {
      * Conceptually, this is key.value().resolveSubstitutions() but using the
      * replacement for key.value() if any.
      */
-    AbstractConfigValue resolveCheckingReplacement(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context,
+    AbstractConfigValue resolveCheckingReplacement(ResolveContext context,
             AbstractConfigValue original) throws AbstractConfigValue.NotPossibleToResolve {
         AbstractConfigValue replacement;
 

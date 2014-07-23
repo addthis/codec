@@ -32,12 +32,12 @@ package com.addthis.codec.embedded.com.typesafe.config;
 public interface ConfigParseable {
     /**
      * Parse whatever it is. The options should come from
-     * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigParseable#options options()} but you could tweak them if you
+     * {@link ConfigParseable#options options()} but you could tweak them if you
      * like.
      *
      * @param options
      *            parse options, should be based on the ones from
-     *            {@link com.addthis.codec.embedded.com.typesafe.config.ConfigParseable#options options()}
+     *            {@link ConfigParseable#options options()}
      */
     ConfigObject parse(ConfigParseOptions options);
 

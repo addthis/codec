@@ -47,11 +47,11 @@ public interface ConfigIncludeContext {
      * @return parseable item relative to the resource doing the including, or
      *         null
      */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigParseable relativeTo(String filename);
+    ConfigParseable relativeTo(String filename);
 
     /**
      * Parse options to use (if you use another method to get a
-     * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigParseable} then use {@link ConfigParseable#options()}
+     * {@link ConfigParseable} then use {@link ConfigParseable#options()}
      * instead though).
      *
      * @return the parse options

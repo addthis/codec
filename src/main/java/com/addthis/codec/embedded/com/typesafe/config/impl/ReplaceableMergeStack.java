@@ -23,5 +23,5 @@ interface ReplaceableMergeStack {
      * Make a replacer for this object, skipping the given number of items in
      * the stack.
      */
-    com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer makeReplacer(int skipping);
+    ResolveReplacer makeReplacer(int skipping);
 }

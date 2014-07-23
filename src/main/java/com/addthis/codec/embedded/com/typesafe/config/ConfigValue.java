@@ -97,11 +97,11 @@ public interface ConfigValue extends ConfigMergeable {
      */
     String render(ConfigRenderOptions options);
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.ConfigValue withFallback(ConfigMergeable other);
+    @Override ConfigValue withFallback(ConfigMergeable other);
 
     /**
      * Places the value inside a {@link Config} at the given path. See also
-     * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigValue#atKey(String)}.
+     * {@link ConfigValue#atKey(String)}.
      *
      * @param path
      *            path to store this value at.
@@ -112,7 +112,7 @@ public interface ConfigValue extends ConfigMergeable {
 
     /**
      * Places the value inside a {@link Config} at the given key. See also
-     * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigValue#atPath(String)}.
+     * {@link ConfigValue#atPath(String)}.
      * 
      * @param key
      *            key to store this value at.

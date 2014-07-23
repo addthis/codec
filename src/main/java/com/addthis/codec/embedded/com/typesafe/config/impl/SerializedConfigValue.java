@@ -117,7 +117,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
         static SerializedValueType forValue(ConfigValue value) {
             ConfigValueType t = value.valueType();
             if (t == ConfigValueType.NUMBER) {
-                if (value instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigInt)
+                if (value instanceof ConfigInt)
                     return INT;
                 else if (value instanceof ConfigLong)
                     return LONG;
@@ -213,8 +213,8 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
     }
 
     // not private because we use it to serialize ConfigException
-    static void writeOrigin(DataOutput out, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin,
-            com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin baseOrigin) throws IOException {
+    static void writeOrigin(DataOutput out, SimpleConfigOrigin origin,
+            SimpleConfigOrigin baseOrigin) throws IOException {
         Map<SerializedField, Object> m;
         // to serialize a null origin, we write out no fields at all
         if (origin != null)
@@ -231,7 +231,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
     }
 
     // not private because we use it to deserialize ConfigException
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin readOrigin(DataInput in, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin baseOrigin)
+    static SimpleConfigOrigin readOrigin(DataInput in, SimpleConfigOrigin baseOrigin)
             throws IOException {
         Map<SerializedField, Object> m = new EnumMap<SerializedField, Object>(SerializedField.class);
         while (true) {
@@ -239,7 +239,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
             SerializedField field = readCode(in);
             switch (field) {
             case END_MARKER:
-                return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.fromBase(baseOrigin, m);
+                return SimpleConfigOrigin.fromBase(baseOrigin, m);
             case ORIGIN_DESCRIPTION:
                 in.readInt(); // discard length
                 v = in.readUTF();
@@ -295,31 +295,31 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
         out.writeByte(st.ordinal());
         switch (st) {
         case BOOLEAN:
-            out.writeBoolean(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigBoolean) value).unwrapped());
+            out.writeBoolean(((ConfigBoolean) value).unwrapped());
             break;
         case NULL:
             break;
         case INT:
             // saving numbers as both string and binary is redundant but easy
-            out.writeInt(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigInt) value).unwrapped());
-            out.writeUTF(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber) value).transformToString());
+            out.writeInt(((ConfigInt) value).unwrapped());
+            out.writeUTF(((ConfigNumber) value).transformToString());
             break;
         case LONG:
             out.writeLong(((ConfigLong) value).unwrapped());
-            out.writeUTF(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber) value).transformToString());
+            out.writeUTF(((ConfigNumber) value).transformToString());
             break;
         case DOUBLE:
             out.writeDouble(((ConfigDouble) value).unwrapped());
-            out.writeUTF(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber) value).transformToString());
+            out.writeUTF(((ConfigNumber) value).transformToString());
             break;
         case STRING:
-            out.writeUTF(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigString) value).unwrapped());
+            out.writeUTF(((ConfigString) value).unwrapped());
             break;
         case LIST:
             ConfigList list = (ConfigList) value;
             out.writeInt(list.size());
             for (ConfigValue v : list) {
-                writeValue(out, v, (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) list.origin());
+                writeValue(out, v, (SimpleConfigOrigin) list.origin());
             }
             break;
         case OBJECT:
@@ -327,13 +327,13 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
             out.writeInt(obj.size());
             for (Map.Entry<String, ConfigValue> e : obj.entrySet()) {
                 out.writeUTF(e.getKey());
-                writeValue(out, e.getValue(), (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) obj.origin());
+                writeValue(out, e.getValue(), (SimpleConfigOrigin) obj.origin());
             }
             break;
         }
     }
 
-    private static AbstractConfigValue readValueData(DataInput in, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin)
+    private static AbstractConfigValue readValueData(DataInput in, SimpleConfigOrigin origin)
             throws IOException {
         int stb = in.readUnsignedByte();
         SerializedValueType st = SerializedValueType.forInt(stb);
@@ -341,13 +341,13 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
             throw new IOException("Unknown serialized value type: " + stb);
         switch (st) {
         case BOOLEAN:
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigBoolean(origin, in.readBoolean());
+            return new ConfigBoolean(origin, in.readBoolean());
         case NULL:
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNull(origin);
+            return new ConfigNull(origin);
         case INT:
             int vi = in.readInt();
             String si = in.readUTF();
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigInt(origin, vi, si);
+            return new ConfigInt(origin, vi, si);
         case LONG:
             long vl = in.readLong();
             String sl = in.readUTF();
@@ -357,7 +357,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
             String sd = in.readUTF();
             return new ConfigDouble(origin, vd, sd);
         case STRING:
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigString(origin, in.readUTF());
+            return new ConfigString(origin, in.readUTF());
         case LIST:
             int listSize = in.readInt();
             List<AbstractConfigValue> list = new ArrayList<AbstractConfigValue>(listSize);
@@ -365,7 +365,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
                 AbstractConfigValue v = readValue(in, origin);
                 list.add(v);
             }
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList(origin, list);
+            return new SimpleConfigList(origin, list);
         case OBJECT:
             int mapSize = in.readInt();
             Map<String, AbstractConfigValue> map = new HashMap<String, AbstractConfigValue>(mapSize);
@@ -374,15 +374,15 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
                 AbstractConfigValue v = readValue(in, origin);
                 map.put(key, v);
             }
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin, map);
+            return new SimpleConfigObject(origin, map);
         }
         throw new IOException("Unhandled serialized value type: " + st);
     }
 
-    private static void writeValue(DataOutput out, ConfigValue value, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin baseOrigin)
+    private static void writeValue(DataOutput out, ConfigValue value, SimpleConfigOrigin baseOrigin)
             throws IOException {
         FieldOut origin = new FieldOut(SerializedField.VALUE_ORIGIN);
-        writeOrigin(origin.data, (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) value.origin(),
+        writeOrigin(origin.data, (SimpleConfigOrigin) value.origin(),
                 baseOrigin);
         writeField(out, origin);
 
@@ -393,10 +393,10 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
         writeEndMarker(out);
     }
 
-    private static AbstractConfigValue readValue(DataInput in, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin baseOrigin)
+    private static AbstractConfigValue readValue(DataInput in, SimpleConfigOrigin baseOrigin)
             throws IOException {
         AbstractConfigValue value = null;
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin = null;
+        SimpleConfigOrigin origin = null;
         while (true) {
             SerializedField code = readCode(in);
             if (code == SerializedField.END_MARKER) {
@@ -483,7 +483,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
     }
 
     private static ConfigException shouldNotBeUsed() {
-        return new ConfigException.BugOrBroken(com.addthis.codec.embedded.com.typesafe.config.impl.SerializedConfigValue.class.getName()
+        return new ConfigException.BugOrBroken(SerializedConfigValue.class.getName()
                 + " should not exist outside of serialization");
     }
 
@@ -498,7 +498,7 @@ class SerializedConfigValue extends AbstractConfigValue implements Externalizabl
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.SerializedConfigValue newCopy(ConfigOrigin origin) {
+    protected SerializedConfigValue newCopy(ConfigOrigin origin) {
         throw shouldNotBeUsed();
     }
 }

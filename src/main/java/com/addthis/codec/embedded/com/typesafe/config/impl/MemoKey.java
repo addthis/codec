@@ -15,13 +15,13 @@ package com.addthis.codec.embedded.com.typesafe.config.impl;
 
 /** The key used to memoize already-traversed nodes when resolving substitutions */
 final class MemoKey {
-    MemoKey(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue value, com.addthis.codec.embedded.com.typesafe.config.impl.Path restrictToChildOrNull) {
+    MemoKey(AbstractConfigValue value, Path restrictToChildOrNull) {
         this.value = value;
         this.restrictToChildOrNull = restrictToChildOrNull;
     }
 
-    final private com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue value;
-    final private com.addthis.codec.embedded.com.typesafe.config.impl.Path restrictToChildOrNull;
+    final private AbstractConfigValue value;
+    final private Path restrictToChildOrNull;
 
     @Override
     public final int hashCode() {
@@ -35,8 +35,8 @@ final class MemoKey {
 
     @Override
     public final boolean equals(Object other) {
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.MemoKey) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.MemoKey o = (com.addthis.codec.embedded.com.typesafe.config.impl.MemoKey) other;
+        if (other instanceof MemoKey) {
+            MemoKey o = (MemoKey) other;
             if (o.value != this.value)
                 return false;
             else if (o.restrictToChildOrNull == this.restrictToChildOrNull)

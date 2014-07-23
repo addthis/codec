@@ -66,14 +66,14 @@ abstract class ConfigNumber extends AbstractConfigValue implements Serializable 
 
     @Override
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber;
+        return other instanceof ConfigNumber;
     }
 
     @Override
     public boolean equals(Object other) {
         // note that "origin" is deliberately NOT part of equality
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber && canEqual(other)) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber n = (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber) other;
+        if (other instanceof ConfigNumber && canEqual(other)) {
+            ConfigNumber n = (ConfigNumber) other;
             if (isWhole()) {
                 return n.isWhole() && this.longValue() == n.longValue();
             } else {
@@ -99,7 +99,7 @@ abstract class ConfigNumber extends AbstractConfigValue implements Serializable 
         return (int) (asLong ^ (asLong >>> 32));
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber newNumber(ConfigOrigin origin, long number,
+    static ConfigNumber newNumber(ConfigOrigin origin, long number,
             String originalText) {
         if (number <= Integer.MAX_VALUE && number >= Integer.MIN_VALUE)
             return new ConfigInt(origin, (int) number, originalText);
@@ -107,7 +107,7 @@ abstract class ConfigNumber extends AbstractConfigValue implements Serializable 
             return new ConfigLong(origin, number, originalText);
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber newNumber(ConfigOrigin origin, double number,
+    static ConfigNumber newNumber(ConfigOrigin origin, double number,
             String originalText) {
         long asLong = (long) number;
         if (asLong == number) {

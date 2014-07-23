@@ -51,7 +51,7 @@ final class DefaultTransformer {
                 break;
             case NULL:
                 if (s.equals("null"))
-                    return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNull(value.origin());
+                    return new ConfigNull(value.origin());
                 break;
             case BOOLEAN:
                 if (s.equals("true") || s.equals("yes") || s.equals("on")) {

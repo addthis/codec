@@ -54,15 +54,15 @@ final class ConfigString extends AbstractConfigValue implements Serializable {
     protected void render(StringBuilder sb, int indent, boolean atRoot, ConfigRenderOptions options) {
         String rendered;
         if (options.getJson())
-            rendered = com.addthis.codec.embedded.com.typesafe.config.impl.ConfigImplUtil.renderJsonString(value);
+            rendered = ConfigImplUtil.renderJsonString(value);
         else
             rendered = ConfigImplUtil.renderStringUnquotedIfPossible(value);
         sb.append(rendered);
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigString newCopy(ConfigOrigin origin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigString(origin, value);
+    protected ConfigString newCopy(ConfigOrigin origin) {
+        return new ConfigString(origin, value);
     }
 
     // serialization all goes through SerializedConfigValue

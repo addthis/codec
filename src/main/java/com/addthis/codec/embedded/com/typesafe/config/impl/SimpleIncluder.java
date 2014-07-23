@@ -146,9 +146,9 @@ class SimpleIncluder implements FullIncluder {
         } else if (this.fallback == fallback) {
             return this;
         } else if (this.fallback != null) {
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleIncluder(this.fallback.withFallback(fallback));
+            return new SimpleIncluder(this.fallback.withFallback(fallback));
         } else {
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleIncluder(fallback);
+            return new SimpleIncluder(fallback);
         }
     }
 
@@ -195,7 +195,7 @@ class SimpleIncluder implements FullIncluder {
 
             ConfigSyntax syntax = options.getSyntax();
 
-            obj = SimpleConfigObject.empty(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(name));
+            obj = SimpleConfigObject.empty(SimpleConfigOrigin.newSimple(name));
             if (syntax == null || syntax == ConfigSyntax.CONF) {
                 try {
                     obj = confHandle.parse(confHandle.options().setAllowMissing(false)
@@ -248,7 +248,7 @@ class SimpleIncluder implements FullIncluder {
                         sb.append(", ");
                     }
                     sb.setLength(sb.length() - 2);
-                    throw new ConfigException.IO(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(name), sb.toString(),
+                    throw new ConfigException.IO(SimpleConfigOrigin.newSimple(name), sb.toString(),
                             fails.get(0));
                 }
             } else if (!gotSomething) {

@@ -46,26 +46,26 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject toFallbackValue() {
+    public AbstractConfigObject toFallbackValue() {
         return this;
     }
 
     @Override
-    abstract public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withOnlyKey(String key);
+    abstract public AbstractConfigObject withOnlyKey(String key);
 
     @Override
-    abstract public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withoutKey(String key);
+    abstract public AbstractConfigObject withoutKey(String key);
 
     @Override
-    abstract public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withValue(String key, ConfigValue value);
+    abstract public AbstractConfigObject withValue(String key, ConfigValue value);
 
-    abstract protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withOnlyPathOrNull(Path path);
+    abstract protected AbstractConfigObject withOnlyPathOrNull(Path path);
 
-    abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withOnlyPath(Path path);
+    abstract AbstractConfigObject withOnlyPath(Path path);
 
-    abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withoutPath(Path path);
+    abstract AbstractConfigObject withoutPath(Path path);
 
-    abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withValue(Path path, ConfigValue value);
+    abstract AbstractConfigObject withValue(Path path, ConfigValue value);
 
     /**
      * This looks up the key with no transformation or type conversion of any
@@ -79,7 +79,7 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
         try {
             return attemptPeekWithPartialResolve(key);
         } catch (ConfigException.NotResolved e) {
-            throw com.addthis.codec.embedded.com.typesafe.config.impl.ConfigImpl.improveNotResolved(originalPath, e);
+            throw ConfigImpl.improveNotResolved(originalPath, e);
         }
     }
 
@@ -105,7 +105,7 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
      * @throws NotPossibleToResolve
      *             if context is not null and resolution fails
      */
-    protected AbstractConfigValue peekPath(Path path, com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) throws
+    protected AbstractConfigValue peekPath(Path path, ResolveContext context) throws
                                                                                                        AbstractConfigValue.NotPossibleToResolve {
         return peekPath(this, path, context);
     }
@@ -126,16 +126,16 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
     // as a side effect, peekPath() will have to resolve all parents of the
     // child being peeked, but NOT the child itself. Caller has to resolve
     // the child itself if needed.
-    private static AbstractConfigValue peekPath(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject self, Path path,
-            com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) throws AbstractConfigValue.NotPossibleToResolve {
+    private static AbstractConfigValue peekPath(AbstractConfigObject self, Path path,
+            ResolveContext context) throws AbstractConfigValue.NotPossibleToResolve {
         try {
             if (context != null) {
                 // walk down through the path resolving only things along that
                 // path, and then recursively call ourselves with no resolve
                 // context.
                 AbstractConfigValue partiallyResolved = context.restrict(path).resolve(self);
-                if (partiallyResolved instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-                    return peekPath((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) partiallyResolved, path, null);
+                if (partiallyResolved instanceof AbstractConfigObject) {
+                    return peekPath((AbstractConfigObject) partiallyResolved, path, null);
                 } else {
                     throw new ConfigException.BugOrBroken("resolved object to non-object " + self
                             + " to " + partiallyResolved);
@@ -149,8 +149,8 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
                 if (next == null) {
                     return v;
                 } else {
-                    if (v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-                        return peekPath((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) v, next, null);
+                    if (v instanceof AbstractConfigObject) {
+                        return peekPath((AbstractConfigObject) v, next, null);
                     } else {
                         return null;
                     }
@@ -166,25 +166,25 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
         return ConfigValueType.OBJECT;
     }
 
-    protected abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject newCopy(ResolveStatus status, ConfigOrigin origin);
+    protected abstract AbstractConfigObject newCopy(ResolveStatus status, ConfigOrigin origin);
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject newCopy(ConfigOrigin origin) {
+    protected AbstractConfigObject newCopy(ConfigOrigin origin) {
         return newCopy(resolveStatus(), origin);
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject constructDelayedMerge(ConfigOrigin origin,
+    protected AbstractConfigObject constructDelayedMerge(ConfigOrigin origin,
             List<AbstractConfigValue> stack) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject(origin, stack);
+        return new ConfigDelayedMergeObject(origin, stack);
     }
 
     @Override
-    protected abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject mergedWithObject(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject fallback);
+    protected abstract AbstractConfigObject mergedWithObject(AbstractConfigObject fallback);
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject withFallback(ConfigMergeable mergeable) {
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) super.withFallback(mergeable);
+    public AbstractConfigObject withFallback(ConfigMergeable mergeable) {
+        return (AbstractConfigObject) super.withFallback(mergeable);
     }
 
     static ConfigOrigin mergeOrigins(
@@ -199,8 +199,8 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
             if (firstOrigin == null)
                 firstOrigin = v.origin();
 
-            if (v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject
-                    && ((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) v).resolveStatus() == ResolveStatus.RESOLVED
+            if (v instanceof AbstractConfigObject
+                    && ((AbstractConfigObject) v).resolveStatus() == ResolveStatus.RESOLVED
                     && ((ConfigObject) v).isEmpty()) {
                 // don't include empty files or the .empty()
                 // config in the description, since they are
@@ -216,19 +216,19 @@ abstract class AbstractConfigObject extends AbstractConfigValue implements Confi
             origins.add(firstOrigin);
         }
 
-        return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.mergeOrigins(origins);
+        return SimpleConfigOrigin.mergeOrigins(origins);
     }
 
-    static ConfigOrigin mergeOrigins(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject... stack) {
+    static ConfigOrigin mergeOrigins(AbstractConfigObject... stack) {
         return mergeOrigins(Arrays.asList(stack));
     }
 
     @Override
-    abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject resolveSubstitutions(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) throws
+    abstract AbstractConfigObject resolveSubstitutions(ResolveContext context) throws
                                                                                                                                  AbstractConfigValue.NotPossibleToResolve;
 
     @Override
-    abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject relativized(final Path prefix);
+    abstract AbstractConfigObject relativized(final Path prefix);
 
     @Override
     public abstract AbstractConfigValue get(Object key);

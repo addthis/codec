@@ -25,7 +25,7 @@ import java.util.Map;
  * 
  * <p>
  * An object may also be viewed as a {@link Config} by calling
- * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigObject#toConfig()}.
+ * {@link ConfigObject#toConfig()}.
  *
  * <p>
  * {@code ConfigObject} implements {@code java.util.Map<String, ConfigValue>} so
@@ -55,13 +55,13 @@ import java.util.Map;
  * {@code Config} is a one-level map from paths to values.
  *
  * <p>
- * Use {@link com.addthis.codec.embedded.com.typesafe.config.ConfigUtil#joinPath} and {@link ConfigUtil#splitPath} to convert
+ * Use {@link ConfigUtil#joinPath} and {@link ConfigUtil#splitPath} to convert
  * between path expressions and individual path elements (keys).
  *
  * <p>
  * A {@code ConfigObject} may contain null values, which will have
  * {@link ConfigValue#valueType()} equal to {@link ConfigValueType#NULL}. If
- * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigObject#get(Object)} returns Java's null then the key was not
+ * {@link ConfigObject#get(Object)} returns Java's null then the key was not
  * present in the parsed file (or wherever this value tree came from). If
  * {@code get("key")} returns a {@link ConfigValue} with type
  * {@code ConfigValueType#NULL} then the key was set to null explicitly in the
@@ -94,7 +94,7 @@ public interface ConfigObject extends ConfigValue, Map<String, ConfigValue> {
     @Override
     Map<String, Object> unwrapped();
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.ConfigObject withFallback(ConfigMergeable other);
+    @Override ConfigObject withFallback(ConfigMergeable other);
 
     /**
      * Gets a {@link ConfigValue} at the given key, or returns null if there is
@@ -117,7 +117,7 @@ public interface ConfigObject extends ConfigValue, Map<String, ConfigValue> {
      *            key to keep
      * @return a copy of the object minus all keys except the one specified
      */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigObject withOnlyKey(String key);
+    ConfigObject withOnlyKey(String key);
 
     /**
      * Clone the object with the given key removed.
@@ -126,13 +126,13 @@ public interface ConfigObject extends ConfigValue, Map<String, ConfigValue> {
      *            key to remove
      * @return a copy of the object minus the specified key
      */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigObject withoutKey(String key);
+    ConfigObject withoutKey(String key);
 
     /**
      * Returns a {@code ConfigObject} based on this one, but with the given key
      * set to the given value. Does not modify this instance (since it's
      * immutable). If the key already has a value, that value is replaced. To
-     * remove a value, use {@link com.addthis.codec.embedded.com.typesafe.config.ConfigObject#withoutKey(String)}.
+     * remove a value, use {@link ConfigObject#withoutKey(String)}.
      * 
      * @param key
      *            key to add
@@ -140,5 +140,5 @@ public interface ConfigObject extends ConfigValue, Map<String, ConfigValue> {
      *            value at the new key
      * @return the new instance with the new map entry
      */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigObject withValue(String key, ConfigValue value);
+    ConfigObject withValue(String key, ConfigValue value);
 }

@@ -50,8 +50,8 @@ final class ConfigBoolean extends AbstractConfigValue implements Serializable {
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigBoolean newCopy(ConfigOrigin origin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigBoolean(origin, value);
+    protected ConfigBoolean newCopy(ConfigOrigin origin) {
+        return new ConfigBoolean(origin, value);
     }
 
     // serialization all goes through SerializedConfigValue

@@ -18,6 +18,8 @@
 package com.addthis.codec.embedded.com.typesafe.config;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import java.lang.reflect.Field;
@@ -68,19 +70,19 @@ public abstract class ConfigException extends RuntimeException implements Serial
     // we customize serialization because ConfigOrigin isn't
     // serializable and we don't want it to be (don't want to
     // support it)
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
         ConfigImplUtil.writeOrigin(out, origin);
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws IOException,
+    private void readObject(ObjectInputStream in) throws IOException,
             ClassNotFoundException {
         in.defaultReadObject();
         ConfigOrigin origin = ConfigImplUtil.readOrigin(in);
         // circumvent "final"
         Field f;
         try {
-            f = com.addthis.codec.embedded.com.typesafe.config.ConfigException.class.getDeclaredField("origin");
+            f = ConfigException.class.getDeclaredField("origin");
         } catch (NoSuchFieldException e) {
             throw new IOException("ConfigException has no origin field?", e);
         } catch (SecurityException e) {
@@ -101,7 +103,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * requested.
      *
      */
-    public static class WrongType extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class WrongType extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public WrongType(ConfigOrigin origin, String path, String expected, String actual,
@@ -126,7 +128,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * Exception indicates that the setting was never set to anything, not even
      * null.
      */
-    public static class Missing extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class Missing extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public Missing(String path, Throwable cause) {
@@ -179,7 +181,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * duration.
      *
      */
-    public static class BadValue extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class BadValue extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public BadValue(ConfigOrigin origin, String path, String message,
@@ -205,7 +207,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * double quotes around path elements that contain "special" characters.
      *
      */
-    public static class BadPath extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class BadPath extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public BadPath(ConfigOrigin origin, String path, String message,
@@ -240,7 +242,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * exception from occurring. This exception can be thrown by any method in
      * the library.
      */
-    public static class BugOrBroken extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class BugOrBroken extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public BugOrBroken(String message, Throwable cause) {
@@ -256,7 +258,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * Exception indicating that there was an IO error.
      *
      */
-    public static class IO extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class IO extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public IO(ConfigOrigin origin, String message, Throwable cause) {
@@ -272,7 +274,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * Exception indicating that there was a parse error.
      *
      */
-    public static class Parse extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class Parse extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public Parse(ConfigOrigin origin, String message, Throwable cause) {
@@ -286,7 +288,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
 
     /**
      * Exception indicating that a substitution did not resolve to anything.
-     * Thrown by {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve}.
+     * Thrown by {@link Config#resolve}.
      */
     public static class UnresolvedSubstitution extends Parse {
         private static final long serialVersionUID = 1L;
@@ -303,10 +305,10 @@ public abstract class ConfigException extends RuntimeException implements Serial
     /**
      * Exception indicating that you tried to use a function that requires
      * substitutions to be resolved, but substitutions have not been resolved
-     * (that is, {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve} was not called). This is always a bug in
+     * (that is, {@link Config#resolve} was not called). This is always a bug in
      * either application code or the library; it's wrong to write a handler for
      * this exception because you should be able to fix the code to avoid it by
-     * adding calls to {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve}.
+     * adding calls to {@link Config#resolve}.
      */
     public static class NotResolved extends BugOrBroken {
         private static final long serialVersionUID = 1L;
@@ -321,8 +323,8 @@ public abstract class ConfigException extends RuntimeException implements Serial
     }
 
     /**
-     * Information about a problem that occurred in {@link com.addthis.codec.embedded.com.typesafe.config.Config#checkValid}. A
-     * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigException.ValidationFailed} exception thrown from
+     * Information about a problem that occurred in {@link Config#checkValid}. A
+     * {@link ConfigException.ValidationFailed} exception thrown from
      * <code>checkValid()</code> includes a list of problems encountered.
      */
     public static class ValidationProblem {
@@ -367,7 +369,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
      * The <code>getMessage()</code> of this exception is a potentially very
      * long string listing all the problems found.
      */
-    public static class ValidationFailed extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class ValidationFailed extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         final private Iterable<ValidationProblem> problems;
@@ -392,7 +394,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
                 sb.append(", ");
             }
             if (sb.length() == 0)
-                throw new com.addthis.codec.embedded.com.typesafe.config.ConfigException.BugOrBroken(
+                throw new ConfigException.BugOrBroken(
                         "ValidationFailed must have a non-empty list of problems");
             sb.setLength(sb.length() - 2); // chop comma and space
 
@@ -403,7 +405,7 @@ public abstract class ConfigException extends RuntimeException implements Serial
     /**
      * Exception that doesn't fall into any other category.
      */
-    public static class Generic extends com.addthis.codec.embedded.com.typesafe.config.ConfigException {
+    public static class Generic extends ConfigException {
         private static final long serialVersionUID = 1L;
 
         public Generic(String message, Throwable cause) {

@@ -23,7 +23,7 @@ import java.io.Serializable;
 import com.addthis.codec.embedded.com.typesafe.config.ConfigOrigin;
 import com.addthis.codec.embedded.com.typesafe.config.ConfigValueType;
 
-final class ConfigDouble extends com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNumber implements Serializable {
+final class ConfigDouble extends ConfigNumber implements Serializable {
 
     private static final long serialVersionUID = 2L;
 
@@ -64,12 +64,12 @@ final class ConfigDouble extends com.addthis.codec.embedded.com.typesafe.config.
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDouble newCopy(ConfigOrigin origin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDouble(origin, value, originalText);
+    protected ConfigDouble newCopy(ConfigOrigin origin) {
+        return new ConfigDouble(origin, value, originalText);
     }
 
     // serialization all goes through SerializedConfigValue
     private Object writeReplace() throws ObjectStreamException {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SerializedConfigValue(this);
+        return new SerializedConfigValue(this);
     }
 }

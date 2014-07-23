@@ -49,7 +49,7 @@ final class ConfigDelayedMerge extends AbstractConfigValue implements Unmergeabl
                     "creating empty delayed merge value");
 
         for (AbstractConfigValue v : stack) {
-            if (v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge || v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject)
+            if (v instanceof ConfigDelayedMerge || v instanceof ConfigDelayedMergeObject)
                 throw new ConfigException.BugOrBroken(
                         "placed nested DelayedMerge in a ConfigDelayedMerge, should have consolidated stack");
         }
@@ -67,14 +67,14 @@ final class ConfigDelayedMerge extends AbstractConfigValue implements Unmergeabl
                 "called unwrapped() on value with unresolved substitutions, need to Config#resolve() first, see API docs");
     }
 
-    @Override AbstractConfigValue resolveSubstitutions(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context)
+    @Override AbstractConfigValue resolveSubstitutions(ResolveContext context)
             throws AbstractConfigValue.NotPossibleToResolve {
         return resolveSubstitutions(this, stack, context);
     }
 
     // static method also used by ConfigDelayedMergeObject
     static AbstractConfigValue resolveSubstitutions(ReplaceableMergeStack replaceable,
-            List<AbstractConfigValue> stack, com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) throws
+            List<AbstractConfigValue> stack, ResolveContext context) throws
                                                                                               AbstractConfigValue.NotPossibleToResolve {
         // to resolve substitutions, we need to recursively resolve
         // the stack of stuff to merge, and merge the stack so
@@ -126,18 +126,18 @@ final class ConfigDelayedMerge extends AbstractConfigValue implements Unmergeabl
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer makeReplacer(final int skipping) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer() {
+    public ResolveReplacer makeReplacer(final int skipping) {
+        return new ResolveReplacer() {
             @Override
-            protected AbstractConfigValue makeReplacement(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context)
+            protected AbstractConfigValue makeReplacement(ResolveContext context)
                     throws AbstractConfigValue.NotPossibleToResolve {
-                return com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge.makeReplacement(context, stack, skipping);
+                return ConfigDelayedMerge.makeReplacement(context, stack, skipping);
             }
         };
     }
 
     // static method also used by ConfigDelayedMergeObject
-    static AbstractConfigValue makeReplacement(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context,
+    static AbstractConfigValue makeReplacement(ResolveContext context,
             List<AbstractConfigValue> stack, int skipping) throws AbstractConfigValue.NotPossibleToResolve {
 
         List<AbstractConfigValue> subStack = stack.subList(skipping, stack.size());
@@ -161,12 +161,12 @@ final class ConfigDelayedMerge extends AbstractConfigValue implements Unmergeabl
         return ResolveStatus.UNRESOLVED;
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge relativized(Path prefix) {
+    @Override ConfigDelayedMerge relativized(Path prefix) {
         List<AbstractConfigValue> newStack = new ArrayList<AbstractConfigValue>();
         for (AbstractConfigValue o : stack) {
             newStack.add(o.relativized(prefix));
         }
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge(origin(), newStack);
+        return new ConfigDelayedMerge(origin(), newStack);
     }
 
     // static utility shared with ConfigDelayedMergeObject
@@ -182,22 +182,22 @@ final class ConfigDelayedMerge extends AbstractConfigValue implements Unmergeabl
 
     @Override
     protected AbstractConfigValue newCopy(ConfigOrigin newOrigin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge(newOrigin, stack);
+        return new ConfigDelayedMerge(newOrigin, stack);
     }
 
     @Override
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge mergedWithTheUnmergeable(Unmergeable fallback) {
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge) mergedWithTheUnmergeable(stack, fallback);
+    protected final ConfigDelayedMerge mergedWithTheUnmergeable(Unmergeable fallback) {
+        return (ConfigDelayedMerge) mergedWithTheUnmergeable(stack, fallback);
     }
 
     @Override
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge mergedWithObject(AbstractConfigObject fallback) {
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge) mergedWithObject(stack, fallback);
+    protected final ConfigDelayedMerge mergedWithObject(AbstractConfigObject fallback) {
+        return (ConfigDelayedMerge) mergedWithObject(stack, fallback);
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge mergedWithNonObject(AbstractConfigValue fallback) {
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge) mergedWithNonObject(stack, fallback);
+    protected ConfigDelayedMerge mergedWithNonObject(AbstractConfigValue fallback) {
+        return (ConfigDelayedMerge) mergedWithNonObject(stack, fallback);
     }
 
     @Override
@@ -207,15 +207,15 @@ final class ConfigDelayedMerge extends AbstractConfigValue implements Unmergeabl
 
     @Override
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge;
+        return other instanceof ConfigDelayedMerge;
     }
 
     @Override
     public boolean equals(Object other) {
         // note that "origin" is deliberately NOT part of equality
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge) {
+        if (other instanceof ConfigDelayedMerge) {
             return canEqual(other)
-                    && this.stack.equals(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge) other).stack);
+                    && this.stack.equals(((ConfigDelayedMerge) other).stack);
         } else {
             return false;
         }

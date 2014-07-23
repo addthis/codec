@@ -31,8 +31,8 @@ abstract class ResolveReplacer {
     protected abstract AbstractConfigValue makeReplacement(ResolveContext context)
             throws AbstractConfigValue.NotPossibleToResolve;
 
-    static final com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer
-            cycleResolveReplacer = new com.addthis.codec.embedded.com.typesafe.config.impl.ResolveReplacer() {
+    static final ResolveReplacer
+            cycleResolveReplacer = new ResolveReplacer() {
         @Override
         protected AbstractConfigValue makeReplacement(ResolveContext context)
                 throws AbstractConfigValue.NotPossibleToResolve {

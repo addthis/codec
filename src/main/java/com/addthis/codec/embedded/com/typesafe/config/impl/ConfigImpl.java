@@ -151,7 +151,7 @@ public class ConfigImpl {
     }
 
     static AbstractConfigObject emptyObject(String originDescription) {
-        ConfigOrigin origin = originDescription != null ? com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin
+        ConfigOrigin origin = originDescription != null ? SimpleConfigOrigin
                 .newSimple(originDescription) : null;
         return emptyObject(origin);
     }
@@ -166,7 +166,7 @@ public class ConfigImpl {
     }
 
     // default origin for values created with fromAnyRef and no origin specified
-    final private static ConfigOrigin defaultValueOrigin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin
+    final private static ConfigOrigin defaultValueOrigin = SimpleConfigOrigin
             .newSimple("hardcoded value");
     final private static ConfigBoolean defaultTrueValue = new ConfigBoolean(
             defaultValueOrigin, true);
@@ -200,7 +200,7 @@ public class ConfigImpl {
         if (originDescription == null)
             return defaultValueOrigin;
         else
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(originDescription);
+            return SimpleConfigOrigin.newSimple(originDescription);
     }
 
     /** For use ONLY by library internals, DO NOT TOUCH not guaranteed ABI */
@@ -273,7 +273,7 @@ public class ConfigImpl {
 
                 return new SimpleConfigObject(origin, values);
             } else {
-                return com.addthis.codec.embedded.com.typesafe.config.impl.PropertiesParser.fromPathMap(origin, (Map<?, ?>) object);
+                return PropertiesParser.fromPathMap(origin, (Map<?, ?>) object);
             }
         } else if (object instanceof Iterable) {
             Iterator<?> i = ((Iterable<?>) object).iterator();
@@ -354,10 +354,10 @@ public class ConfigImpl {
         for (Map.Entry<String, String> entry : env.entrySet()) {
             String key = entry.getKey();
             m.put(key,
-                    new ConfigString(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("env var " + key), entry
+                    new ConfigString(SimpleConfigOrigin.newSimple("env var " + key), entry
                             .getValue()));
         }
-        return new SimpleConfigObject(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("env variables"),
+        return new SimpleConfigObject(SimpleConfigOrigin.newSimple("env variables"),
                 m, ResolveStatus.RESOLVED, false /* ignoresFallbacks */);
     }
 

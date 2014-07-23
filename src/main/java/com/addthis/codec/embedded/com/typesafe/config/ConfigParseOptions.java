@@ -35,13 +35,13 @@ package com.addthis.codec.embedded.com.typesafe.config;
  *
  */
 public final class ConfigParseOptions {
-    final com.addthis.codec.embedded.com.typesafe.config.ConfigSyntax syntax;
+    final ConfigSyntax syntax;
     final String originDescription;
     final boolean allowMissing;
     final ConfigIncluder includer;
     final ClassLoader classLoader;
 
-    private ConfigParseOptions(com.addthis.codec.embedded.com.typesafe.config.ConfigSyntax syntax, String originDescription, boolean allowMissing,
+    private ConfigParseOptions(ConfigSyntax syntax, String originDescription, boolean allowMissing,
             ConfigIncluder includer, ClassLoader classLoader) {
         this.syntax = syntax;
         this.originDescription = originDescription;
@@ -50,23 +50,23 @@ public final class ConfigParseOptions {
         this.classLoader = classLoader;
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions defaults() {
-        return new com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions(null, null, true, null, null);
+    public static ConfigParseOptions defaults() {
+        return new ConfigParseOptions(null, null, true, null, null);
     }
 
     /**
      * Set the file format. If set to null, try to guess from any available
-     * filename extension; if guessing fails, assume {@link com.addthis.codec.embedded.com.typesafe.config.ConfigSyntax#CONF}.
+     * filename extension; if guessing fails, assume {@link ConfigSyntax#CONF}.
      *
      * @param syntax
      *            a syntax or {@code null} for best guess
      * @return options with the syntax set
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions setSyntax(com.addthis.codec.embedded.com.typesafe.config.ConfigSyntax syntax) {
+    public ConfigParseOptions setSyntax(ConfigSyntax syntax) {
         if (this.syntax == syntax)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions(syntax, this.originDescription, this.allowMissing,
+            return new ConfigParseOptions(syntax, this.originDescription, this.allowMissing,
                     this.includer, this.classLoader);
     }
 
@@ -84,7 +84,7 @@ public final class ConfigParseOptions {
      * @param originDescription
      * @return options with the origin description set
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions setOriginDescription(String originDescription) {
+    public ConfigParseOptions setOriginDescription(String originDescription) {
         // findbugs complains about == here but is wrong, do not "fix"
         if (this.originDescription == originDescription)
             return this;
@@ -92,7 +92,7 @@ public final class ConfigParseOptions {
                 && this.originDescription.equals(originDescription))
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions(this.syntax, originDescription, this.allowMissing,
+            return new ConfigParseOptions(this.syntax, originDescription, this.allowMissing,
                     this.includer, this.classLoader);
     }
 
@@ -101,7 +101,7 @@ public final class ConfigParseOptions {
     }
 
     /** this is package-private, not public API */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions withFallbackOriginDescription(String originDescription) {
+    ConfigParseOptions withFallbackOriginDescription(String originDescription) {
         if (this.originDescription == null)
             return setOriginDescription(originDescription);
         else
@@ -116,11 +116,11 @@ public final class ConfigParseOptions {
      * @param allowMissing
      * @return options with the "allow missing" flag set
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions setAllowMissing(boolean allowMissing) {
+    public ConfigParseOptions setAllowMissing(boolean allowMissing) {
         if (this.allowMissing == allowMissing)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions(this.syntax, this.originDescription, allowMissing,
+            return new ConfigParseOptions(this.syntax, this.originDescription, allowMissing,
                     this.includer, this.classLoader);
     }
 
@@ -134,15 +134,15 @@ public final class ConfigParseOptions {
      * @param includer
      * @return new version of the parse options with different includer
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions setIncluder(ConfigIncluder includer) {
+    public ConfigParseOptions setIncluder(ConfigIncluder includer) {
         if (this.includer == includer)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions(this.syntax, this.originDescription, this.allowMissing,
+            return new ConfigParseOptions(this.syntax, this.originDescription, this.allowMissing,
                     includer, this.classLoader);
     }
 
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions prependIncluder(ConfigIncluder includer) {
+    public ConfigParseOptions prependIncluder(ConfigIncluder includer) {
         if (this.includer == includer)
             return this;
         else if (this.includer != null)
@@ -151,7 +151,7 @@ public final class ConfigParseOptions {
             return setIncluder(includer);
     }
 
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions appendIncluder(ConfigIncluder includer) {
+    public ConfigParseOptions appendIncluder(ConfigIncluder includer) {
         if (this.includer == includer)
             return this;
         else if (this.includer != null)
@@ -173,11 +173,11 @@ public final class ConfigParseOptions {
      *            loader
      * @return options with the class loader set
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions setClassLoader(ClassLoader loader) {
+    public ConfigParseOptions setClassLoader(ClassLoader loader) {
         if (this.classLoader == loader)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.ConfigParseOptions(this.syntax, this.originDescription, this.allowMissing,
+            return new ConfigParseOptions(this.syntax, this.originDescription, this.allowMissing,
                     this.includer, loader);
     }
 

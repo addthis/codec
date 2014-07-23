@@ -57,58 +57,58 @@ final class SimpleConfigOrigin implements ConfigOrigin {
         this.commentsOrNull = commentsOrNull;
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin newSimple(String description) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(description, -1, -1, OriginType.GENERIC, null, null);
+    static SimpleConfigOrigin newSimple(String description) {
+        return new SimpleConfigOrigin(description, -1, -1, OriginType.GENERIC, null, null);
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin newFile(String filename) {
+    static SimpleConfigOrigin newFile(String filename) {
         String url;
         try {
             url = (new File(filename)).toURI().toURL().toExternalForm();
         } catch (MalformedURLException e) {
             url = null;
         }
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(filename, -1, -1, OriginType.FILE, url, null);
+        return new SimpleConfigOrigin(filename, -1, -1, OriginType.FILE, url, null);
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin newURL(URL url) {
+    static SimpleConfigOrigin newURL(URL url) {
         String u = url.toExternalForm();
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(u, -1, -1, OriginType.URL, u, null);
+        return new SimpleConfigOrigin(u, -1, -1, OriginType.URL, u, null);
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin newResource(String resource, URL url) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(resource, -1, -1, OriginType.RESOURCE,
+    static SimpleConfigOrigin newResource(String resource, URL url) {
+        return new SimpleConfigOrigin(resource, -1, -1, OriginType.RESOURCE,
                 url != null ? url.toExternalForm() : null, null);
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin newResource(String resource) {
+    static SimpleConfigOrigin newResource(String resource) {
         return newResource(resource, null);
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin setLineNumber(int lineNumber) {
+    SimpleConfigOrigin setLineNumber(int lineNumber) {
         if (lineNumber == this.lineNumber && lineNumber == this.endLineNumber) {
             return this;
         } else {
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(this.description, lineNumber, lineNumber,
+            return new SimpleConfigOrigin(this.description, lineNumber, lineNumber,
                     this.originType, this.urlOrNull, this.commentsOrNull);
         }
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin addURL(URL url) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(this.description, this.lineNumber, this.endLineNumber,
+    SimpleConfigOrigin addURL(URL url) {
+        return new SimpleConfigOrigin(this.description, this.lineNumber, this.endLineNumber,
                 this.originType, url != null ? url.toExternalForm() : null, this.commentsOrNull);
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin setComments(List<String> comments) {
+    SimpleConfigOrigin setComments(List<String> comments) {
         if (ConfigImplUtil.equalsHandlingNull(comments, this.commentsOrNull)) {
             return this;
         } else {
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(this.description, this.lineNumber, this.endLineNumber,
+            return new SimpleConfigOrigin(this.description, this.lineNumber, this.endLineNumber,
                     this.originType, this.urlOrNull, comments);
         }
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin prependComments(List<String> comments) {
+    SimpleConfigOrigin prependComments(List<String> comments) {
         if (ConfigImplUtil.equalsHandlingNull(comments, this.commentsOrNull) || comments == null) {
             return this;
         } else if (this.commentsOrNull == null) {
@@ -122,7 +122,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
         }
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin appendComments(List<String> comments) {
+    SimpleConfigOrigin appendComments(List<String> comments) {
         if (ConfigImplUtil.equalsHandlingNull(comments, this.commentsOrNull) || comments == null) {
             return this;
         } else if (this.commentsOrNull == null) {
@@ -151,8 +151,8 @@ final class SimpleConfigOrigin implements ConfigOrigin {
 
     @Override
     public boolean equals(Object other) {
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin otherOrigin = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) other;
+        if (other instanceof SimpleConfigOrigin) {
+            SimpleConfigOrigin otherOrigin = (SimpleConfigOrigin) other;
 
             return this.description.equals(otherOrigin.description)
                     && this.lineNumber == otherOrigin.lineNumber
@@ -244,7 +244,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
 
     static final String MERGE_OF_PREFIX = "merge of ";
 
-    private static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin mergeTwo(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin a, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin b) {
+    private static SimpleConfigOrigin mergeTwo(SimpleConfigOrigin a, SimpleConfigOrigin b) {
         String mergedDesc;
         int mergedStartLine;
         int mergedEndLine;
@@ -314,11 +314,11 @@ final class SimpleConfigOrigin implements ConfigOrigin {
                 mergedComments.addAll(b.commentsOrNull);
         }
 
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(mergedDesc, mergedStartLine, mergedEndLine, mergedType,
+        return new SimpleConfigOrigin(mergedDesc, mergedStartLine, mergedEndLine, mergedType,
                 mergedURL, mergedComments);
     }
 
-    private static int similarity(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin a, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin b) {
+    private static int similarity(SimpleConfigOrigin a, SimpleConfigOrigin b) {
         int count = 0;
 
         if (a.originType == b.originType)
@@ -344,8 +344,8 @@ final class SimpleConfigOrigin implements ConfigOrigin {
     // common. we want to merge two lines in the same file rather than something
     // else with one of the lines; because two lines in the same file can be
     // better consolidated.
-    private static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin mergeThree(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin a, com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin b,
-            com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin c) {
+    private static SimpleConfigOrigin mergeThree(SimpleConfigOrigin a, SimpleConfigOrigin b,
+            SimpleConfigOrigin c) {
         if (similarity(a, b) >= similarity(b, c)) {
             return mergeTwo(mergeTwo(a, b), c);
         } else {
@@ -354,7 +354,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
     }
 
     static ConfigOrigin mergeOrigins(ConfigOrigin a, ConfigOrigin b) {
-        return mergeTwo((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) a, (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) b);
+        return mergeTwo((SimpleConfigOrigin) a, (SimpleConfigOrigin) b);
     }
 
     static ConfigOrigin mergeOrigins(List<? extends AbstractConfigValue> stack) {
@@ -372,21 +372,21 @@ final class SimpleConfigOrigin implements ConfigOrigin {
             return stack.iterator().next();
         } else if (stack.size() == 2) {
             Iterator<? extends ConfigOrigin> i = stack.iterator();
-            return mergeTwo((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) i.next(), (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) i.next());
+            return mergeTwo((SimpleConfigOrigin) i.next(), (SimpleConfigOrigin) i.next());
         } else {
-            List<com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin> remaining = new ArrayList<com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin>();
+            List<SimpleConfigOrigin> remaining = new ArrayList<SimpleConfigOrigin>();
             for (ConfigOrigin o : stack) {
-                remaining.add((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) o);
+                remaining.add((SimpleConfigOrigin) o);
             }
             while (remaining.size() > 2) {
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin c = remaining.get(remaining.size() - 1);
+                SimpleConfigOrigin c = remaining.get(remaining.size() - 1);
                 remaining.remove(remaining.size() - 1);
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin b = remaining.get(remaining.size() - 1);
+                SimpleConfigOrigin b = remaining.get(remaining.size() - 1);
                 remaining.remove(remaining.size() - 1);
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin a = remaining.get(remaining.size() - 1);
+                SimpleConfigOrigin a = remaining.get(remaining.size() - 1);
                 remaining.remove(remaining.size() - 1);
 
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin merged = mergeThree(a, b, c);
+                SimpleConfigOrigin merged = mergeThree(a, b, c);
 
                 remaining.add(merged);
             }
@@ -416,7 +416,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
         return m;
     }
 
-    Map<SerializedConfigValue.SerializedField, Object> toFieldsDelta(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin baseOrigin) {
+    Map<SerializedConfigValue.SerializedField, Object> toFieldsDelta(SimpleConfigOrigin baseOrigin) {
         Map<SerializedConfigValue.SerializedField, Object> baseFields;
         if (baseOrigin != null)
             baseFields = baseOrigin.toFields();
@@ -480,7 +480,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
         return m;
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin fromFields(Map<SerializedConfigValue.SerializedField, Object> m) throws IOException {
+    static SimpleConfigOrigin fromFields(Map<SerializedConfigValue.SerializedField, Object> m) throws IOException {
         // we represent a null origin as one with no fields at all
         if (m.isEmpty())
             return null;
@@ -495,7 +495,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
         String urlOrNull = (String) m.get(SerializedConfigValue.SerializedField.ORIGIN_URL);
         @SuppressWarnings("unchecked")
         List<String> commentsOrNull = (List<String>) m.get(SerializedConfigValue.SerializedField.ORIGIN_COMMENTS);
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin(description, lineNumber != null ? lineNumber : -1,
+        return new SimpleConfigOrigin(description, lineNumber != null ? lineNumber : -1,
                 endLineNumber != null ? endLineNumber : -1, originType, urlOrNull, commentsOrNull);
     }
 
@@ -555,7 +555,7 @@ final class SimpleConfigOrigin implements ConfigOrigin {
         return m;
     }
 
-    static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin fromBase(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin baseOrigin,
+    static SimpleConfigOrigin fromBase(SimpleConfigOrigin baseOrigin,
             Map<SerializedConfigValue.SerializedField, Object> delta) throws IOException {
         Map<SerializedConfigValue.SerializedField, Object> baseFields;
         if (baseOrigin != null)

@@ -35,8 +35,8 @@ import java.util.concurrent.TimeUnit;
  * 
  * <p>
  * Fundamental operations on a {@code Config} include getting configuration
- * values, <em>resolving</em> substitutions with {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve()}, and
- * merging configs using {@link com.addthis.codec.embedded.com.typesafe.config.Config#withFallback(ConfigMergeable)}.
+ * values, <em>resolving</em> substitutions with {@link Config#resolve()}, and
+ * merging configs using {@link Config#withFallback(ConfigMergeable)}.
  *
  * <p>
  * All operations return a new immutable {@code Config} rather than modifying
@@ -57,7 +57,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>
  * <code>Config</code> is a view onto a tree of {@link ConfigObject}; the
- * corresponding object tree can be found through {@link com.addthis.codec.embedded.com.typesafe.config.Config#root()}.
+ * corresponding object tree can be found through {@link Config#root()}.
  * <code>ConfigObject</code> is a map from config <em>keys</em>, rather than
  * paths, to config values. Think of <code>ConfigObject</code> as a JSON object
  * and <code>Config</code> as a configuration API.
@@ -125,7 +125,7 @@ import java.util.concurrent.TimeUnit;
  * values.
  *
  * <p>
- * Before using a {@code Config} it's necessary to call {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve()}
+ * Before using a {@code Config} it's necessary to call {@link Config#resolve()}
  * to handle substitutions (though {@link ConfigFactory#load()} and similar
  * methods will do the resolve for you already).
  *
@@ -134,7 +134,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>
  * The full <code>Config</code> for your application can be constructed using
- * the associative operation {@link com.addthis.codec.embedded.com.typesafe.config.Config#withFallback(ConfigMergeable)}. If
+ * the associative operation {@link Config#withFallback(ConfigMergeable)}. If
  * you use {@link ConfigFactory#load()} (recommended), it merges system
  * properties over the top of <code>application.conf</code> over the top of
  * <code>reference.conf</code>, using <code>withFallback</code>. You can add in
@@ -150,7 +150,7 @@ import java.util.concurrent.TimeUnit;
  * Convert a <code>Config</code> to a JSON or HOCON string by calling
  * {@link ConfigObject#render()} on the root object,
  * <code>myConfig.root().render()</code>. There's also a variant
- * {@link ConfigObject#render(com.addthis.codec.embedded.com.typesafe.config.ConfigRenderOptions)} which allows you to control
+ * {@link ConfigObject#render(ConfigRenderOptions)} which allows you to control
  * the format of the rendered string. (See {@link ConfigRenderOptions}.) Note
  * that <code>Config</code> does not remember the formatting of the original
  * file, so if you load, modify, and re-save a config file, it will be
@@ -193,7 +193,7 @@ public interface Config extends ConfigMergeable {
      */
     ConfigOrigin origin();
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.Config withFallback(ConfigMergeable other);
+    @Override Config withFallback(ConfigMergeable other);
 
     /**
      * Returns a replacement config with all substitutions (the
@@ -206,13 +206,13 @@ public interface Config extends ConfigMergeable {
      *
      * <p>
      * This method uses {@link ConfigResolveOptions#defaults()}, there is
-     * another variant {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve(ConfigResolveOptions)} which lets
+     * another variant {@link Config#resolve(ConfigResolveOptions)} which lets
      * you specify non-default options.
      *
      * <p>
-     * A given {@link com.addthis.codec.embedded.com.typesafe.config.Config} must be resolved before using it to retrieve
+     * A given {@link Config} must be resolved before using it to retrieve
      * config values, but ideally should be resolved one time for your entire
-     * stack of fallbacks (see {@link com.addthis.codec.embedded.com.typesafe.config.Config#withFallback}). Otherwise, some
+     * stack of fallbacks (see {@link Config#withFallback}). Otherwise, some
      * substitutions that could have resolved with all fallbacks available may
      * not resolve, which will be potentially confusing for your application's
      * users.
@@ -250,22 +250,22 @@ public interface Config extends ConfigMergeable {
      * @throws ConfigException
      *             some other config exception if there are other problems
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config resolve();
+    Config resolve();
 
     /**
-     * Like {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve()} but allows you to specify non-default
+     * Like {@link Config#resolve()} but allows you to specify non-default
      * options.
      *
      * @param options
      *            resolve options
      * @return the resolved <code>Config</code> (may be only partially resolved if options are set to allow unresolved)
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config resolve(ConfigResolveOptions options);
+    Config resolve(ConfigResolveOptions options);
 
     /**
      * Checks whether the config is completely resolved. After a successful call
-     * to {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve()} it will be completely resolved, but after
-     * calling {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve(ConfigResolveOptions)} with
+     * to {@link Config#resolve()} it will be completely resolved, but after
+     * calling {@link Config#resolve(ConfigResolveOptions)} with
      * <code>allowUnresolved</code> set in the options, it may or may not be
      * completely resolved. A newly-loaded config may or may not be completely
      * resolved depending on whether there were substitutions present in the
@@ -278,17 +278,17 @@ public interface Config extends ConfigMergeable {
     boolean isResolved();
 
     /**
-     * Like {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve()} except that substitution values are looked
+     * Like {@link Config#resolve()} except that substitution values are looked
      * up in the given source, rather than in this instance. This is a
      * special-purpose method which doesn't make sense to use in most cases;
      * it's only needed if you're constructing some sort of app-specific custom
      * approach to configuration. The more usual approach if you have a source
      * of substitution values would be to merge that source into your config
-     * stack using {@link com.addthis.codec.embedded.com.typesafe.config.Config#withFallback} and then resolve.
+     * stack using {@link Config#withFallback} and then resolve.
      * <p>
      * Note that this method does NOT look in this instance for substitution
      * values. If you want to do that, you could either merge this instance into
-     * your value source using {@link com.addthis.codec.embedded.com.typesafe.config.Config#withFallback}, or you could resolve
+     * your value source using {@link Config#withFallback}, or you could resolve
      * multiple times with multiple sources (using
      * {@link ConfigResolveOptions#setAllowUnresolved(boolean)} so the partial
      * resolves don't fail).
@@ -303,10 +303,10 @@ public interface Config extends ConfigMergeable {
      *             some other config exception if there are other problems
      * @since 1.2.0
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config resolveWith(com.addthis.codec.embedded.com.typesafe.config.Config source);
+    Config resolveWith(Config source);
 
     /**
-     * Like {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolveWith(com.addthis.codec.embedded.com.typesafe.config.Config)} but allows you to specify
+     * Like {@link Config#resolveWith(Config)} but allows you to specify
      * non-default options.
      *
      * @param source
@@ -317,7 +317,7 @@ public interface Config extends ConfigMergeable {
      *         if options are set to allow unresolved)
      * @since 1.2.0
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config resolveWith(com.addthis.codec.embedded.com.typesafe.config.Config source, ConfigResolveOptions options);
+    Config resolveWith(Config source, ConfigResolveOptions options);
 
     /**
      * Validates this config against a reference config, throwing an exception
@@ -401,7 +401,7 @@ public interface Config extends ConfigMergeable {
      *             if the reference config is unresolved or caller otherwise
      *             misuses the API
      */
-    void checkValid(com.addthis.codec.embedded.com.typesafe.config.Config reference, String... restrictToPaths);
+    void checkValid(Config reference, String... restrictToPaths);
 
     /**
      * Checks whether a value is present and non-null at the given path. This
@@ -548,7 +548,7 @@ public interface Config extends ConfigMergeable {
      * @throws ConfigException.WrongType
      *             if value is not convertible to a Config
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config getConfig(String path);
+    Config getConfig(String path);
 
     /**
      * Gets the value at the path as an unwrapped Java boxed value (
@@ -567,7 +567,7 @@ public interface Config extends ConfigMergeable {
      * Gets the value at the given path, unless the value is a
      * null value or missing, in which case it throws just like
      * the other getters. Use {@code get()} on the {@link
-     * com.addthis.codec.embedded.com.typesafe.config.Config#root()} object (or other object in the tree) if you
+     * Config#root()} object (or other object in the tree) if you
      * want an unprocessed value.
      *
      * @param path
@@ -693,7 +693,7 @@ public interface Config extends ConfigMergeable {
 
     List<? extends ConfigObject> getObjectList(String path);
 
-    List<? extends com.addthis.codec.embedded.com.typesafe.config.Config> getConfigList(String path);
+    List<? extends Config> getConfigList(String path);
 
     List<? extends Object> getAnyRefList(String path);
 
@@ -733,7 +733,7 @@ public interface Config extends ConfigMergeable {
      *            path to keep
      * @return a copy of the config minus all paths except the one specified
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config withOnlyPath(String path);
+    Config withOnlyPath(String path);
 
     /**
      * Clone the config with the given path removed.
@@ -745,7 +745,7 @@ public interface Config extends ConfigMergeable {
      *            path expression to remove
      * @return a copy of the config minus the specified path
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config withoutPath(String path);
+    Config withoutPath(String path);
 
     /**
      * Places the config inside another {@code Config} at the given path.
@@ -758,7 +758,7 @@ public interface Config extends ConfigMergeable {
      * @return a {@code Config} instance containing this config at the given
      *         path.
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config atPath(String path);
+    Config atPath(String path);
 
     /**
      * Places the config inside a {@code Config} at the given key. See also
@@ -770,7 +770,7 @@ public interface Config extends ConfigMergeable {
      * @return a {@code Config} instance containing this config at the given
      *         key.
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config atKey(String key);
+    Config atKey(String key);
 
     /**
      * Returns a {@code Config} based on this one, but with the given path set
@@ -787,5 +787,5 @@ public interface Config extends ConfigMergeable {
      *            value at the new path
      * @return the new instance with the new map entry
      */
-    com.addthis.codec.embedded.com.typesafe.config.Config withValue(String path, ConfigValue value);
+    Config withValue(String path, ConfigValue value);
 }

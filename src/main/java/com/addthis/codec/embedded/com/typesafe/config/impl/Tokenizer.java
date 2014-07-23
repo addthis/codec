@@ -111,7 +111,7 @@ final class Tokenizer {
                     // need to save whitespace between the two so
                     // the parser has the option to concatenate it.
                     if (whitespace.length() > 0) {
-                        Token t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newUnquotedText(
+                        Token t = Tokens.newUnquotedText(
                                 lineOrigin(baseOrigin, lineNumber),
                                 whitespace.toString());
                         whitespace.setLength(0); // reset
@@ -128,7 +128,7 @@ final class Tokenizer {
             }
         }
 
-        final private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin;
+        final private SimpleConfigOrigin origin;
         final private Reader input;
         final private LinkedList<Integer> buffer;
         private int lineNumber;
@@ -138,14 +138,14 @@ final class Tokenizer {
         final private boolean allowComments;
 
         TokenIterator(ConfigOrigin origin, Reader input, boolean allowComments) {
-            this.origin = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) origin;
+            this.origin = (SimpleConfigOrigin) origin;
             this.input = input;
             this.allowComments = allowComments;
             this.buffer = new LinkedList<Integer>();
             lineNumber = 1;
             lineOrigin = this.origin.setLineNumber(lineNumber);
             tokens = new LinkedList<Token>();
-            tokens.add(com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.START);
+            tokens.add(Tokens.START);
             whitespaceSaver = new WhitespaceSaver();
         }
 
@@ -259,7 +259,7 @@ final class Tokenizer {
             if (what == null || message == null)
                 throw new ConfigException.BugOrBroken(
                         "internal error, creating bad ProblemException");
-            return new ProblemException(com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newProblem(origin, what, message, suggestQuotes,
+            return new ProblemException(Tokens.newProblem(origin, what, message, suggestQuotes,
                                                                                    cause));
         }
 
@@ -269,7 +269,7 @@ final class Tokenizer {
 
         private static ConfigOrigin lineOrigin(ConfigOrigin baseOrigin,
                 int lineNumber) {
-            return ((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) baseOrigin).setLineNumber(lineNumber);
+            return ((SimpleConfigOrigin) baseOrigin).setLineNumber(lineNumber);
         }
 
         // ONE char has always been consumed, either the # or the first /, but
@@ -286,7 +286,7 @@ final class Tokenizer {
                 int c = nextCharRaw();
                 if (c == -1 || c == '\n') {
                     putBack(c);
-                    return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newComment(lineOrigin, sb.toString());
+                    return Tokens.newComment(lineOrigin, sb.toString());
                 } else {
                     sb.appendCodePoint(c);
                 }
@@ -327,13 +327,13 @@ final class Tokenizer {
                 if (sb.length() == 4) {
                     String s = sb.toString();
                     if (s.equals("true"))
-                        return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newBoolean(origin, true);
+                        return Tokens.newBoolean(origin, true);
                     else if (s.equals("null"))
-                        return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newNull(origin);
+                        return Tokens.newNull(origin);
                 } else if (sb.length() == 5) {
                     String s = sb.toString();
                     if (s.equals("false"))
-                        return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newBoolean(origin, false);
+                        return Tokens.newBoolean(origin, false);
                 }
 
                 c = nextCharRaw();
@@ -343,7 +343,7 @@ final class Tokenizer {
             putBack(c);
 
             String s = sb.toString();
-            return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newUnquotedText(origin, s);
+            return Tokens.newUnquotedText(origin, s);
         }
 
         private Token pullNumber(int firstChar) throws ProblemException {
@@ -364,10 +364,10 @@ final class Tokenizer {
             try {
                 if (containedDecimalOrE) {
                     // force floating point representation
-                    return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newDouble(lineOrigin, Double.parseDouble(s), s);
+                    return Tokens.newDouble(lineOrigin, Double.parseDouble(s), s);
                 } else {
                     // this should throw if the integer is too large for Long
-                    return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newLong(lineOrigin, Long.parseLong(s), s);
+                    return Tokens.newLong(lineOrigin, Long.parseLong(s), s);
                 }
             } catch (NumberFormatException e) {
                 // not a number after all, see if it's an unquoted string.
@@ -378,7 +378,7 @@ final class Tokenizer {
                 }
                 // no evil chars so we just decide this was a string and
                 // not a number.
-                return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newUnquotedText(lineOrigin, s);
+                return Tokens.newUnquotedText(lineOrigin, s);
             }
         }
 
@@ -500,7 +500,7 @@ final class Tokenizer {
                 }
             }
 
-            return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newString(lineOrigin, sb.toString());
+            return Tokens.newString(lineOrigin, sb.toString());
         }
 
         private Token pullPlusEquals() throws ProblemException {
@@ -510,7 +510,7 @@ final class Tokenizer {
                 throw problem(asString(c), "'+' not followed by =, '" + asString(c)
                         + "' not allowed after '+'", true /* suggestQuotes */);
             }
-            return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.PLUS_EQUALS;
+            return Tokens.PLUS_EQUALS;
         }
 
         private Token pullSubstitution() throws ProblemException {
@@ -540,10 +540,10 @@ final class Tokenizer {
                 // note that we avoid validating the allowed tokens inside
                 // the substitution here; we even allow nested substitutions
                 // in the tokenizer. The parser sorts it out.
-                if (t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_CURLY) {
+                if (t == Tokens.CLOSE_CURLY) {
                     // end the loop, done!
                     break;
-                } else if (t == com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END) {
+                } else if (t == Tokens.END) {
                     throw problem(origin,
                             "Substitution ${ was not closed with a }");
                 } else {
@@ -554,16 +554,16 @@ final class Tokenizer {
                 }
             } while (true);
 
-            return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newSubstitution(origin, optional, expression);
+            return Tokens.newSubstitution(origin, optional, expression);
         }
 
         private Token pullNextToken(WhitespaceSaver saver) throws ProblemException {
             int c = nextCharAfterWhitespace(saver);
             if (c == -1) {
-                return com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END;
+                return Tokens.END;
             } else if (c == '\n') {
                 // newline tokens have the just-ended line number
-                Token line = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.newLine(lineOrigin);
+                Token line = Tokens.newLine(lineOrigin);
                 lineNumber += 1;
                 lineOrigin = origin.setLineNumber(lineNumber);
                 return line;
@@ -580,25 +580,25 @@ final class Tokenizer {
                         t = pullSubstitution();
                         break;
                     case ':':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COLON;
+                        t = Tokens.COLON;
                         break;
                     case ',':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.COMMA;
+                        t = Tokens.COMMA;
                         break;
                     case '=':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.EQUALS;
+                        t = Tokens.EQUALS;
                         break;
                     case '{':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_CURLY;
+                        t = Tokens.OPEN_CURLY;
                         break;
                     case '}':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_CURLY;
+                        t = Tokens.CLOSE_CURLY;
                         break;
                     case '[':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.OPEN_SQUARE;
+                        t = Tokens.OPEN_SQUARE;
                         break;
                     case ']':
-                        t = com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.CLOSE_SQUARE;
+                        t = Tokens.CLOSE_SQUARE;
                         break;
                     case '+':
                         t = pullPlusEquals();
@@ -630,9 +630,8 @@ final class Tokenizer {
         }
 
         private static boolean isSimpleValue(Token t) {
-            if (com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isSubstitution(t) || com.addthis.codec
-                    .embedded.com.typesafe.config.impl.Tokens.isUnquotedText(t)
-                    || com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.isValue(t)) {
+            if (Tokens.isSubstitution(t) || Tokens.isUnquotedText(t)
+                    || Tokens.isValue(t)) {
                 return true;
             } else {
                 return false;
@@ -656,7 +655,7 @@ final class Tokenizer {
         @Override
         public Token next() {
             Token t = tokens.remove();
-            if (tokens.isEmpty() && t != com.addthis.codec.embedded.com.typesafe.config.impl.Tokens.END) {
+            if (tokens.isEmpty() && t != Tokens.END) {
                 try {
                     queueNextToken();
                 } catch (ProblemException e) {

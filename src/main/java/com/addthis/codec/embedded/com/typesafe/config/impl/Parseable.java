@@ -61,10 +61,10 @@ public abstract class Parseable implements ConfigParseable {
     private ConfigParseOptions initialOptions;
     private ConfigOrigin initialOrigin;
 
-    private static final ThreadLocal<LinkedList<com.addthis.codec.embedded.com.typesafe.config.impl.Parseable>> parseStack = new ThreadLocal<LinkedList<com.addthis.codec.embedded.com.typesafe.config.impl.Parseable>>() {
+    private static final ThreadLocal<LinkedList<Parseable>> parseStack = new ThreadLocal<LinkedList<Parseable>>() {
         @Override
-        protected LinkedList<com.addthis.codec.embedded.com.typesafe.config.impl.Parseable> initialValue() {
-            return new LinkedList<com.addthis.codec.embedded.com.typesafe.config.impl.Parseable>();
+        protected LinkedList<Parseable> initialValue() {
+            return new LinkedList<Parseable>();
         }
     };
 
@@ -97,7 +97,7 @@ public abstract class Parseable implements ConfigParseable {
         this.includeContext = new SimpleIncludeContext(this);
 
         if (initialOptions.getOriginDescription() != null)
-            initialOrigin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(initialOptions.getOriginDescription());
+            initialOrigin = SimpleConfigOrigin.newSimple(initialOptions.getOriginDescription());
         else
             initialOrigin = createOrigin();
     }
@@ -152,7 +152,7 @@ public abstract class Parseable implements ConfigParseable {
     @Override
     public ConfigObject parse(ConfigParseOptions baseOptions) {
 
-        LinkedList<com.addthis.codec.embedded.com.typesafe.config.impl.Parseable> stack = parseStack.get();
+        LinkedList<Parseable> stack = parseStack.get();
         if (stack.size() >= MAX_INCLUDE_DEPTH) {
             throw new ConfigException.Parse(initialOrigin, "include statements nested more than "
                     + MAX_INCLUDE_DEPTH
@@ -180,7 +180,7 @@ public abstract class Parseable implements ConfigParseable {
         // passed-in options can override origin
         ConfigOrigin origin;
         if (options.getOriginDescription() != null)
-            origin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(options.getOriginDescription());
+            origin = SimpleConfigOrigin.newSimple(options.getOriginDescription());
         else
             origin = initialOrigin;
         return parseValue(origin, options);
@@ -232,9 +232,9 @@ public abstract class Parseable implements ConfigParseable {
     protected AbstractConfigValue rawParseValue(Reader reader, ConfigOrigin origin,
             ConfigParseOptions finalOptions) throws IOException {
         if (finalOptions.getSyntax() == ConfigSyntax.PROPERTIES) {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.PropertiesParser.parse(reader, origin);
+            return PropertiesParser.parse(reader, origin);
         } else {
-            Iterator<Token> tokens = com.addthis.codec.embedded.com.typesafe.config.impl.Tokenizer.tokenize(origin, reader,
+            Iterator<Token> tokens = Tokenizer.tokenize(origin, reader,
                                                                                  finalOptions.getSyntax());
             return Parser.parse(tokens, origin, finalOptions, includeContext());
         }
@@ -343,7 +343,7 @@ public abstract class Parseable implements ConfigParseable {
 
     // this is a parseable that doesn't exist and just throws when you try to
     // parse it
-    private final static class ParseableNotFound extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableNotFound extends Parseable {
         final private String what;
         final private String message;
 
@@ -360,16 +360,16 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(what);
+            return SimpleConfigOrigin.newSimple(what);
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newNotFound(String whatNotFound, String message,
+    public static Parseable newNotFound(String whatNotFound, String message,
             ConfigParseOptions options) {
         return new ParseableNotFound(whatNotFound, message, options);
     }
 
-    private final static class ParseableReader extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableReader extends Parseable {
         final private Reader reader;
 
         ParseableReader(Reader reader, ConfigParseOptions options) {
@@ -386,7 +386,7 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("Reader");
+            return SimpleConfigOrigin.newSimple("Reader");
         }
     }
 
@@ -394,12 +394,12 @@ public abstract class Parseable implements ConfigParseable {
      * note that we will never close this reader; you have to do it when parsing
      * is complete.
      */
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newReader(Reader reader, ConfigParseOptions options) {
+    public static Parseable newReader(Reader reader, ConfigParseOptions options) {
 
         return new ParseableReader(doNotClose(reader), options);
     }
 
-    private final static class ParseableString extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableString extends Parseable {
         final private String input;
 
         ParseableString(String input, ConfigParseOptions options) {
@@ -416,7 +416,7 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("String");
+            return SimpleConfigOrigin.newSimple("String");
         }
 
         @Override
@@ -425,11 +425,11 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newString(String input, ConfigParseOptions options) {
+    public static Parseable newString(String input, ConfigParseOptions options) {
         return new ParseableString(input, options);
     }
 
-    private final static class ParseableURL extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableURL extends Parseable {
         final private URL input;
         private String contentType = null;
 
@@ -492,7 +492,7 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newURL(input);
+            return SimpleConfigOrigin.newURL(input);
         }
 
         @Override
@@ -501,7 +501,7 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newURL(URL input, ConfigParseOptions options) {
+    public static Parseable newURL(URL input, ConfigParseOptions options) {
         // we want file: URLs and files to always behave the same, so switch
         // to a file if it's a file: URL
         if (input.getProtocol().equals("file")) {
@@ -511,7 +511,7 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    private final static class ParseableFile extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableFile extends Parseable {
         final private File input;
 
         ParseableFile(File input, ConfigParseOptions options) {
@@ -550,7 +550,7 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newFile(input.getPath());
+            return SimpleConfigOrigin.newFile(input.getPath());
         }
 
         @Override
@@ -559,11 +559,11 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newFile(File input, ConfigParseOptions options) {
+    public static Parseable newFile(File input, ConfigParseOptions options) {
         return new ParseableFile(input, options);
     }
 
-    private final static class ParseableResources extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableResources extends Parseable {
         final private String resource;
 
         ParseableResources(String resource, ConfigParseOptions options) {
@@ -598,7 +598,7 @@ public abstract class Parseable implements ConfigParseable {
                     trace("Loading config from URL " + url.toExternalForm() + " from class loader "
                             + loader);
 
-                ConfigOrigin elementOrigin = ((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) origin).addURL(url);
+                ConfigOrigin elementOrigin = ((SimpleConfigOrigin) origin).addURL(url);
 
                 AbstractConfigValue v;
 
@@ -666,7 +666,7 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newResource(resource);
+            return SimpleConfigOrigin.newResource(resource);
         }
 
         @Override
@@ -675,7 +675,7 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newResources(Class<?> klass, String resource, ConfigParseOptions options) {
+    public static Parseable newResources(Class<?> klass, String resource, ConfigParseOptions options) {
         return newResources(convertResourceName(klass, resource),
                 options.setClassLoader(klass.getClassLoader()));
     }
@@ -705,14 +705,14 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newResources(String resource, ConfigParseOptions options) {
+    public static Parseable newResources(String resource, ConfigParseOptions options) {
         if (options.getClassLoader() == null)
             throw new ConfigException.BugOrBroken(
                     "null class loader; pass in a class loader or use Thread.currentThread().setContextClassLoader()");
         return new ParseableResources(resource, options);
     }
 
-    private final static class ParseableProperties extends com.addthis.codec.embedded.com.typesafe.config.impl.Parseable {
+    private final static class ParseableProperties extends Parseable {
         final private Properties props;
 
         ParseableProperties(Properties props, ConfigParseOptions options) {
@@ -730,7 +730,7 @@ public abstract class Parseable implements ConfigParseable {
                 ConfigParseOptions finalOptions) {
             if (ConfigImpl.traceLoadsEnabled())
                 trace("Loading config from properties " + props);
-            return com.addthis.codec.embedded.com.typesafe.config.impl.PropertiesParser.fromProperties(origin, props);
+            return PropertiesParser.fromProperties(origin, props);
         }
 
         @Override ConfigSyntax guessSyntax() {
@@ -739,7 +739,7 @@ public abstract class Parseable implements ConfigParseable {
 
         @Override
         protected ConfigOrigin createOrigin() {
-            return com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("properties");
+            return SimpleConfigOrigin.newSimple("properties");
         }
 
         @Override
@@ -748,7 +748,7 @@ public abstract class Parseable implements ConfigParseable {
         }
     }
 
-    public static com.addthis.codec.embedded.com.typesafe.config.impl.Parseable newProperties(Properties properties, ConfigParseOptions options) {
+    public static Parseable newProperties(Properties properties, ConfigParseOptions options) {
         return new ParseableProperties(properties, options);
     }
 }

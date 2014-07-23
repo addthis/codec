@@ -24,7 +24,7 @@ package com.addthis.codec.embedded.com.typesafe.config;
  * spec.
  * <p>
  * Typically this class would be used with the method
- * {@link com.addthis.codec.embedded.com.typesafe.config.Config#resolve(com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions)}.
+ * {@link Config#resolve(ConfigResolveOptions)}.
  * <p>
  * This object is immutable, so the "setters" return a new object.
  * <p>
@@ -35,8 +35,8 @@ package com.addthis.codec.embedded.com.typesafe.config;
  *         .setUseSystemEnvironment(false)
  * </pre>
  * <p>
- * In addition to {@link com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions#defaults}, there's a prebuilt
- * {@link com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions#noSystem} which avoids looking at any system
+ * In addition to {@link ConfigResolveOptions#defaults}, there's a prebuilt
+ * {@link ConfigResolveOptions#noSystem} which avoids looking at any system
  * environment variables or other external system information. (Right now,
  * environment variables are the only example.)
  */
@@ -55,8 +55,8 @@ public final class ConfigResolveOptions {
      *
      * @return the default resolve options
      */
-    public static com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions defaults() {
-        return new com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions(true, false);
+    public static ConfigResolveOptions defaults() {
+        return new ConfigResolveOptions(true, false);
     }
 
     /**
@@ -65,7 +65,7 @@ public final class ConfigResolveOptions {
      *
      * @return the resolve options with env variables disabled
      */
-    public static com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions noSystem() {
+    public static ConfigResolveOptions noSystem() {
         return defaults().setUseSystemEnvironment(false);
     }
 
@@ -77,8 +77,8 @@ public final class ConfigResolveOptions {
      *            variables.
      * @return options with requested setting for use of environment variables
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions setUseSystemEnvironment(boolean value) {
-        return new com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions(value, allowUnresolved);
+    public ConfigResolveOptions setUseSystemEnvironment(boolean value) {
+        return new ConfigResolveOptions(value, allowUnresolved);
     }
 
     /**
@@ -96,7 +96,7 @@ public final class ConfigResolveOptions {
      * Returns options with "allow unresolved" set to the given value. By
      * default, unresolved substitutions are an error. If unresolved
      * substitutions are allowed, then a future attempt to use the unresolved
-     * value may fail, but {@link Config#resolve(com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions)} itself
+     * value may fail, but {@link Config#resolve(ConfigResolveOptions)} itself
      * will now throw.
      * 
      * @param value
@@ -104,8 +104,8 @@ public final class ConfigResolveOptions {
      * @return options with requested setting for whether to allow substitutions
      * @since 1.2.0
      */
-    public com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions setAllowUnresolved(boolean value) {
-        return new com.addthis.codec.embedded.com.typesafe.config.ConfigResolveOptions(useSystemEnvironment, value);
+    public ConfigResolveOptions setAllowUnresolved(boolean value) {
+        return new ConfigResolveOptions(useSystemEnvironment, value);
     }
 
     /**

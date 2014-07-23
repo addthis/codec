@@ -49,18 +49,18 @@ final class ConfigDelayedMergeObject extends AbstractConfigObject implements Unm
                     "created a delayed merge object not guaranteed to be an object");
 
         for (AbstractConfigValue v : stack) {
-            if (v instanceof ConfigDelayedMerge || v instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject)
+            if (v instanceof ConfigDelayedMerge || v instanceof ConfigDelayedMergeObject)
                 throw new ConfigException.BugOrBroken(
                         "placed nested DelayedMerge in a ConfigDelayedMergeObject, should have consolidated stack");
         }
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject newCopy(ResolveStatus status, ConfigOrigin origin) {
+    protected ConfigDelayedMergeObject newCopy(ResolveStatus status, ConfigOrigin origin) {
         if (status != resolveStatus())
             throw new ConfigException.BugOrBroken(
                     "attempt to create resolved ConfigDelayedMergeObject");
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject(origin, stack);
+        return new ConfigDelayedMergeObject(origin, stack);
     }
 
     @Override AbstractConfigObject resolveSubstitutions(ResolveContext context)
@@ -89,12 +89,12 @@ final class ConfigDelayedMergeObject extends AbstractConfigObject implements Unm
         return ResolveStatus.UNRESOLVED;
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject relativized(Path prefix) {
+    @Override ConfigDelayedMergeObject relativized(Path prefix) {
         List<AbstractConfigValue> newStack = new ArrayList<AbstractConfigValue>();
         for (AbstractConfigValue o : stack) {
             newStack.add(o.relativized(prefix));
         }
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject(origin(), newStack);
+        return new ConfigDelayedMergeObject(origin(), newStack);
     }
 
     @Override
@@ -103,37 +103,37 @@ final class ConfigDelayedMergeObject extends AbstractConfigObject implements Unm
     }
 
     @Override
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject mergedWithTheUnmergeable(Unmergeable fallback) {
+    protected final ConfigDelayedMergeObject mergedWithTheUnmergeable(Unmergeable fallback) {
         requireNotIgnoringFallbacks();
 
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject) mergedWithTheUnmergeable(stack, fallback);
+        return (ConfigDelayedMergeObject) mergedWithTheUnmergeable(stack, fallback);
     }
 
     @Override
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject mergedWithObject(AbstractConfigObject fallback) {
+    protected final ConfigDelayedMergeObject mergedWithObject(AbstractConfigObject fallback) {
         return mergedWithNonObject(fallback);
     }
 
     @Override
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject mergedWithNonObject(AbstractConfigValue fallback) {
+    protected final ConfigDelayedMergeObject mergedWithNonObject(AbstractConfigValue fallback) {
 
         requireNotIgnoringFallbacks();
 
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject) mergedWithNonObject(stack, fallback);
+        return (ConfigDelayedMergeObject) mergedWithNonObject(stack, fallback);
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject withFallback(ConfigMergeable mergeable) {
-        return (com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject) super.withFallback(mergeable);
+    public ConfigDelayedMergeObject withFallback(ConfigMergeable mergeable) {
+        return (ConfigDelayedMergeObject) super.withFallback(mergeable);
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject withOnlyKey(String key) {
+    public ConfigDelayedMergeObject withOnlyKey(String key) {
         throw notResolved();
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject withoutKey(String key) {
+    public ConfigDelayedMergeObject withoutKey(String key) {
         throw notResolved();
     }
 
@@ -151,11 +151,11 @@ final class ConfigDelayedMergeObject extends AbstractConfigObject implements Unm
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject withValue(String key, ConfigValue value) {
+    public ConfigDelayedMergeObject withValue(String key, ConfigValue value) {
         throw notResolved();
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject withValue(Path path, ConfigValue value) {
+    @Override ConfigDelayedMergeObject withValue(Path path, ConfigValue value) {
         throw notResolved();
     }
 
@@ -166,16 +166,16 @@ final class ConfigDelayedMergeObject extends AbstractConfigObject implements Unm
 
     @Override
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject;
+        return other instanceof ConfigDelayedMergeObject;
     }
 
     @Override
     public boolean equals(Object other) {
         // note that "origin" is deliberately NOT part of equality
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject) {
+        if (other instanceof ConfigDelayedMergeObject) {
             return canEqual(other)
                     && this.stack
-                            .equals(((com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMergeObject) other).stack);
+                            .equals(((ConfigDelayedMergeObject) other).stack);
         } else {
             return false;
         }

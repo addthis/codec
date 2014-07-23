@@ -61,8 +61,8 @@ final class ConfigNull extends AbstractConfigValue implements Serializable {
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNull newCopy(ConfigOrigin origin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigNull(origin);
+    protected ConfigNull newCopy(ConfigOrigin origin) {
+        return new ConfigNull(origin);
     }
 
     // serialization all goes through SerializedConfigValue

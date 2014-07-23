@@ -126,7 +126,7 @@ public final class ConfigFactory {
     public static Config load(String resourceBasename, ConfigParseOptions parseOptions,
             ConfigResolveOptions resolveOptions) {
         ConfigParseOptions withLoader = ensureClassLoader(parseOptions, "load");
-        Config appConfig = com.addthis.codec.embedded.com.typesafe.config.ConfigFactory.parseResourcesAnySyntax(resourceBasename, withLoader);
+        Config appConfig = ConfigFactory.parseResourcesAnySyntax(resourceBasename, withLoader);
         return load(withLoader.getClassLoader(), appConfig, resolveOptions);
     }
 
@@ -155,7 +155,7 @@ public final class ConfigFactory {
     private static ClassLoader checkedContextClassLoader(String methodName) {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null)
-            throw new com.addthis.codec.embedded.com.typesafe.config.ConfigException.BugOrBroken("Context class loader is not set for the current thread; "
+            throw new ConfigException.BugOrBroken("Context class loader is not set for the current thread; "
                     + "if Thread.currentThread().getContextClassLoader() returns null, you must pass a ClassLoader "
                     + "explicitly to ConfigFactory." + methodName);
         else
@@ -222,7 +222,7 @@ public final class ConfigFactory {
     private static Config loadDefaultConfig(ConfigParseOptions parseOptions, ConfigResolveOptions resolveOptions) {
         ClassLoader loader = parseOptions.getClassLoader();
         if (loader == null)
-            throw new com.addthis.codec.embedded.com.typesafe.config.ConfigException.BugOrBroken(
+            throw new ConfigException.BugOrBroken(
                     "ClassLoader should have been set here; bug in ConfigFactory. "
                             + "(You can probably work around this bug by passing in a class loader or calling currentThread().setContextClassLoader() though.)");
 
@@ -243,7 +243,7 @@ public final class ConfigFactory {
         if (specified == 0) {
             return load(loader, "application", parseOptions, resolveOptions);
         } else if (specified > 1) {
-            throw new com.addthis.codec.embedded.com.typesafe.config.ConfigException.Generic("You set more than one of config.file='" + file
+            throw new ConfigException.Generic("You set more than one of config.file='" + file
                     + "', config.url='" + url + "', config.resource='" + resource
                     + "'; don't know which one to use!");
         } else {

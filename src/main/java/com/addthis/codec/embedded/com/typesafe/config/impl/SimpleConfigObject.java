@@ -68,12 +68,12 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withOnlyKey(String key) {
+    public SimpleConfigObject withOnlyKey(String key) {
         return withOnlyPath(Path.newKey(key));
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withoutKey(String key) {
+    public SimpleConfigObject withoutKey(String key) {
         return withoutPath(Path.newKey(key));
     }
 
@@ -83,7 +83,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
     // withOnlyPath("a.b.c") that we don't keep an empty
     // "a" object.
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withOnlyPathOrNull(Path path) {
+    protected SimpleConfigObject withOnlyPathOrNull(Path path) {
         String key = path.first();
         Path next = path.remainder();
         AbstractConfigValue v = value.get(key);
@@ -101,15 +101,15 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
         if (v == null) {
             return null;
         } else {
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin(), Collections.singletonMap(key, v),
+            return new SimpleConfigObject(origin(), Collections.singletonMap(key, v),
                     v.resolveStatus(), ignoresFallbacks);
         }
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withOnlyPath(Path path) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject o = withOnlyPathOrNull(path);
+    @Override SimpleConfigObject withOnlyPath(Path path) {
+        SimpleConfigObject o = withOnlyPathOrNull(path);
         if (o == null) {
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin(),
+            return new SimpleConfigObject(origin(),
                     Collections.<String, AbstractConfigValue> emptyMap(), ResolveStatus.RESOLVED,
                     ignoresFallbacks);
         } else {
@@ -117,7 +117,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
         }
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withoutPath(Path path) {
+    @Override SimpleConfigObject withoutPath(Path path) {
         String key = path.first();
         Path next = path.remainder();
         AbstractConfigValue v = value.get(key);
@@ -127,7 +127,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
             Map<String, AbstractConfigValue> updated = new HashMap<String, AbstractConfigValue>(
                     value);
             updated.put(key, v);
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin(), updated, ResolveStatus.fromValues(updated
+            return new SimpleConfigObject(origin(), updated, ResolveStatus.fromValues(updated
                                                                                                                        .values()), ignoresFallbacks);
         } else if (next != null || v == null) {
             // can't descend, nothing to remove
@@ -139,13 +139,13 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
                 if (!old.getKey().equals(key))
                     smaller.put(old.getKey(), old.getValue());
             }
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin(), smaller, ResolveStatus.fromValues(smaller
+            return new SimpleConfigObject(origin(), smaller, ResolveStatus.fromValues(smaller
                                                                                                                        .values()), ignoresFallbacks);
         }
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withValue(String key, ConfigValue v) {
+    public SimpleConfigObject withValue(String key, ConfigValue v) {
         if (v == null)
             throw new ConfigException.BugOrBroken(
                     "Trying to store null ConfigValue in a ConfigObject");
@@ -158,12 +158,12 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
             newMap.put(key, (AbstractConfigValue) v);
         }
 
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin(), newMap, ResolveStatus.fromValues(
+        return new SimpleConfigObject(origin(), newMap, ResolveStatus.fromValues(
                 newMap.values()),
                 ignoresFallbacks);
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withValue(Path path, ConfigValue v) {
+    @Override SimpleConfigObject withValue(Path path, ConfigValue v) {
         String key = path.first();
         Path next = path.remainder();
 
@@ -177,7 +177,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
             } else {
                 // as soon as we have a non-object, replace it entirely
                 SimpleConfig subtree = ((AbstractConfigValue) v).atPath(
-                        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("withValue(" + next.render() + ")"), next);
+                        SimpleConfigOrigin.newSimple("withValue(" + next.render() + ")"), next);
 
                 return withValue(key, subtree.root());
             }
@@ -189,18 +189,18 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
         return value.get(key);
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject newCopy(ResolveStatus newStatus, ConfigOrigin newOrigin,
+    private SimpleConfigObject newCopy(ResolveStatus newStatus, ConfigOrigin newOrigin,
             boolean newIgnoresFallbacks) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(newOrigin, value, newStatus, newIgnoresFallbacks);
+        return new SimpleConfigObject(newOrigin, value, newStatus, newIgnoresFallbacks);
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject newCopy(ResolveStatus newStatus, ConfigOrigin newOrigin) {
+    protected SimpleConfigObject newCopy(ResolveStatus newStatus, ConfigOrigin newOrigin) {
         return newCopy(newStatus, newOrigin, ignoresFallbacks);
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject withFallbacksIgnored() {
+    protected SimpleConfigObject withFallbacksIgnored() {
         if (ignoresFallbacks)
             return this;
         else
@@ -226,15 +226,15 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject mergedWithObject(AbstractConfigObject abstractFallback) {
+    protected SimpleConfigObject mergedWithObject(AbstractConfigObject abstractFallback) {
         requireNotIgnoringFallbacks();
 
-        if (!(abstractFallback instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject)) {
+        if (!(abstractFallback instanceof SimpleConfigObject)) {
             throw new ConfigException.BugOrBroken(
                     "should not be reached (merging non-SimpleConfigObject)");
         }
 
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject fallback = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject) abstractFallback;
+        SimpleConfigObject fallback = (SimpleConfigObject) abstractFallback;
 
         boolean changed = false;
         boolean allResolved = true;
@@ -266,7 +266,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
         boolean newIgnoresFallbacks = fallback.ignoresFallbacks();
 
         if (changed)
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(mergeOrigins(this, fallback), merged, newResolveStatus,
+            return new SimpleConfigObject(mergeOrigins(this, fallback), merged, newResolveStatus,
                     newIgnoresFallbacks);
         else if (newResolveStatus != resolveStatus() || newIgnoresFallbacks != ignoresFallbacks())
             return newCopy(newResolveStatus, origin(), newIgnoresFallbacks);
@@ -274,7 +274,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
             return this;
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject modify(NoExceptionsModifier modifier) {
+    private SimpleConfigObject modify(NoExceptionsModifier modifier) {
         try {
             return modifyMayThrow(modifier);
         } catch (RuntimeException e) {
@@ -284,7 +284,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
         }
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject modifyMayThrow(Modifier modifier) throws Exception {
+    private SimpleConfigObject modifyMayThrow(Modifier modifier) throws Exception {
         Map<String, AbstractConfigValue> changes = null;
         for (String k : keySet()) {
             AbstractConfigValue v = value.get(k);
@@ -319,13 +319,13 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
                         sawUnresolved = true;
                 }
             }
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin(), modified,
+            return new SimpleConfigObject(origin(), modified,
                     sawUnresolved ? ResolveStatus.UNRESOLVED : ResolveStatus.RESOLVED,
                     ignoresFallbacks());
         }
     }
 
-    @Override AbstractConfigObject resolveSubstitutions(final com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) throws
+    @Override AbstractConfigObject resolveSubstitutions(final ResolveContext context) throws
                                                                                                                AbstractConfigValue.NotPossibleToResolve {
         if (resolveStatus() == ResolveStatus.RESOLVED)
             return this;
@@ -365,7 +365,7 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
         }
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject relativized(final Path prefix) {
+    @Override SimpleConfigObject relativized(final Path prefix) {
         return modify(new NoExceptionsModifier() {
 
             @Override
@@ -551,25 +551,25 @@ final class SimpleConfigObject extends AbstractConfigObject implements Serializa
     }
 
     final private static String EMPTY_NAME = "empty config";
-    final private static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject
-            emptyInstance = empty(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin
+    final private static SimpleConfigObject
+            emptyInstance = empty(SimpleConfigOrigin
             .newSimple(EMPTY_NAME));
 
-    final static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject empty() {
+    final static SimpleConfigObject empty() {
         return emptyInstance;
     }
 
-    final static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject empty(ConfigOrigin origin) {
+    final static SimpleConfigObject empty(ConfigOrigin origin) {
         if (origin == null)
             return empty();
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin,
+            return new SimpleConfigObject(origin,
                     Collections.<String, AbstractConfigValue> emptyMap());
     }
 
-    final static com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject emptyMissing(ConfigOrigin baseOrigin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(
-                com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple(
+    final static SimpleConfigObject emptyMissing(ConfigOrigin baseOrigin) {
+        return new SimpleConfigObject(
+                SimpleConfigOrigin.newSimple(
                 baseOrigin.description() + " (not found)"),
                 Collections.<String, AbstractConfigValue> emptyMap());
     }

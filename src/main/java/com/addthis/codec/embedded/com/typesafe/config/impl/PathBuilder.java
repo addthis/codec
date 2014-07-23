@@ -24,7 +24,7 @@ import com.addthis.codec.embedded.com.typesafe.config.ConfigException;
 final class PathBuilder {
     // the keys are kept "backward" (top of stack is end of path)
     final private Stack<String> keys;
-    private com.addthis.codec.embedded.com.typesafe.config.impl.Path result;
+    private Path result;
 
     PathBuilder() {
         keys = new Stack<String>();
@@ -42,11 +42,11 @@ final class PathBuilder {
         keys.push(key);
     }
 
-    void appendPath(com.addthis.codec.embedded.com.typesafe.config.impl.Path path) {
+    void appendPath(Path path) {
         checkCanAppend();
 
         String first = path.first();
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path remainder = path.remainder();
+        Path remainder = path.remainder();
         while (true) {
             keys.push(first);
             if (remainder != null) {
@@ -58,14 +58,14 @@ final class PathBuilder {
         }
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.Path result() {
+    Path result() {
         // note: if keys is empty, we want to return null, which is a valid
         // empty path
         if (result == null) {
-            com.addthis.codec.embedded.com.typesafe.config.impl.Path remainder = null;
+            Path remainder = null;
             while (!keys.isEmpty()) {
                 String key = keys.pop();
-                remainder = new com.addthis.codec.embedded.com.typesafe.config.impl.Path(key, remainder);
+                remainder = new Path(key, remainder);
             }
             result = remainder;
         }

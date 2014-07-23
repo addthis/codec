@@ -40,7 +40,7 @@ public interface ConfigIncluder {
      * @param fallback
      * @return a new includer
      */
-    com.addthis.codec.embedded.com.typesafe.config.ConfigIncluder withFallback(com.addthis.codec.embedded.com.typesafe.config.ConfigIncluder fallback);
+    ConfigIncluder withFallback(ConfigIncluder fallback);
 
     /**
      * Parses another item to be included. The returned object typically would
@@ -49,7 +49,7 @@ public interface ConfigIncluder {
      * 
      * This method is used for a "heuristic" include statement that does not
      * specify file, URL, or classpath resource. If the include statement does
-     * specify, then the same class implementing {@link com.addthis.codec.embedded.com.typesafe.config.ConfigIncluder} must
+     * specify, then the same class implementing {@link ConfigIncluder} must
      * also implement {@link ConfigIncluderClasspath},
      * {@link ConfigIncluderFile}, or {@link ConfigIncluderURL} as needed, or a
      * default includer will be used.

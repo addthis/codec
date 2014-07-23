@@ -37,16 +37,16 @@ import com.addthis.codec.embedded.com.typesafe.config.ConfigValue;
  * improperly-factored and non-modular code. Please don't add parent().
  *
  */
-abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.embedded.com.typesafe.config.impl.MergeableValue {
+abstract class AbstractConfigValue implements ConfigValue, MergeableValue {
 
-    final private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin;
+    final private SimpleConfigOrigin origin;
 
     AbstractConfigValue(ConfigOrigin origin) {
-        this.origin = (com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin) origin;
+        this.origin = (SimpleConfigOrigin) origin;
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin origin() {
+    public SimpleConfigOrigin origin() {
         return this.origin;
     }
 
@@ -67,7 +67,7 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
 
         final private String traceString;
 
-        NotPossibleToResolve(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) {
+        NotPossibleToResolve(ResolveContext context) {
             super("was not possible to resolve");
             this.traceString = context.traceString();
         }
@@ -84,13 +84,13 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
      *            state of the current resolve
      * @return a new value if there were changes, or this if no changes
      */
-    com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue resolveSubstitutions(com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context)
+    AbstractConfigValue resolveSubstitutions(ResolveContext context)
             throws NotPossibleToResolve {
         return this;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus resolveStatus() {
-        return com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED;
+    ResolveStatus resolveStatus() {
+        return ResolveStatus.RESOLVED;
     }
 
     /**
@@ -105,20 +105,20 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
      * @return value relativized to the given path or the same value if nothing
      *         to do
      */
-    com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue relativized(com.addthis.codec.embedded.com.typesafe.config.impl.Path prefix) {
+    AbstractConfigValue relativized(Path prefix) {
         return this;
     }
 
     protected interface Modifier {
         // keyOrNull is null for non-objects
-        com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue modifyChildMayThrow(String keyOrNull,
-                                                                         com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v)
+        AbstractConfigValue modifyChildMayThrow(String keyOrNull,
+                                                                         AbstractConfigValue v)
                 throws Exception;
     }
 
     protected abstract class NoExceptionsModifier implements Modifier {
         @Override
-        public final com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue modifyChildMayThrow(String keyOrNull, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v)
+        public final AbstractConfigValue modifyChildMayThrow(String keyOrNull, AbstractConfigValue v)
                 throws Exception {
             try {
                 return modifyChild(keyOrNull, v);
@@ -129,15 +129,15 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
             }
         }
 
-        abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue modifyChild(String keyOrNull, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue v);
+        abstract AbstractConfigValue modifyChild(String keyOrNull, AbstractConfigValue v);
     }
 
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue toFallbackValue() {
+    public AbstractConfigValue toFallbackValue() {
         return this;
     }
 
-    protected abstract com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue newCopy(ConfigOrigin origin);
+    protected abstract AbstractConfigValue newCopy(ConfigOrigin origin);
 
     // this is virtualized rather than a field because only some subclasses
     // really need to store the boolean, and they may be able to pack it
@@ -145,10 +145,10 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
     protected boolean ignoresFallbacks() {
         // if we are not resolved, then somewhere in this value there's
         // a substitution that may need to look at the fallbacks.
-        return resolveStatus() == com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED;
+        return resolveStatus() == ResolveStatus.RESOLVED;
     }
 
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue withFallbacksIgnored() {
+    protected AbstractConfigValue withFallbacksIgnored() {
         if (ignoresFallbacks())
             return this;
         else
@@ -165,50 +165,50 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
                             + getClass().getSimpleName());
     }
 
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue constructDelayedMerge(ConfigOrigin origin,
-            List<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> stack) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.ConfigDelayedMerge(origin, stack);
+    protected AbstractConfigValue constructDelayedMerge(ConfigOrigin origin,
+            List<AbstractConfigValue> stack) {
+        return new ConfigDelayedMerge(origin, stack);
     }
 
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue mergedWithTheUnmergeable(
-            Collection<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> stack, com.addthis.codec.embedded.com.typesafe.config.impl.Unmergeable fallback) {
+    protected final AbstractConfigValue mergedWithTheUnmergeable(
+            Collection<AbstractConfigValue> stack, Unmergeable fallback) {
         requireNotIgnoringFallbacks();
 
         // if we turn out to be an object, and the fallback also does,
         // then a merge may be required; delay until we resolve.
-        List<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> newStack = new ArrayList<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue>();
+        List<AbstractConfigValue> newStack = new ArrayList<AbstractConfigValue>();
         newStack.addAll(stack);
         newStack.addAll(fallback.unmergedValues());
-        return constructDelayedMerge(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject.mergeOrigins(newStack), newStack);
+        return constructDelayedMerge(AbstractConfigObject.mergeOrigins(newStack), newStack);
     }
 
-    private final com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue delayMerge(Collection<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> stack,
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue fallback) {
+    private final AbstractConfigValue delayMerge(Collection<AbstractConfigValue> stack,
+            AbstractConfigValue fallback) {
         // if we turn out to be an object, and the fallback also does,
         // then a merge may be required.
         // if we contain a substitution, resolving it may need to look
         // back to the fallback.
-        List<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> newStack = new ArrayList<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue>();
+        List<AbstractConfigValue> newStack = new ArrayList<AbstractConfigValue>();
         newStack.addAll(stack);
         newStack.add(fallback);
-        return constructDelayedMerge(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject.mergeOrigins(newStack), newStack);
+        return constructDelayedMerge(AbstractConfigObject.mergeOrigins(newStack), newStack);
     }
 
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue mergedWithObject(Collection<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> stack,
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject fallback) {
+    protected final AbstractConfigValue mergedWithObject(Collection<AbstractConfigValue> stack,
+            AbstractConfigObject fallback) {
         requireNotIgnoringFallbacks();
 
-        if (this instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject)
+        if (this instanceof AbstractConfigObject)
             throw new ConfigException.BugOrBroken("Objects must reimplement mergedWithObject");
 
         return mergedWithNonObject(stack, fallback);
     }
 
-    protected final com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue mergedWithNonObject(Collection<com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> stack,
-            com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue fallback) {
+    protected final AbstractConfigValue mergedWithNonObject(Collection<AbstractConfigValue> stack,
+            AbstractConfigValue fallback) {
         requireNotIgnoringFallbacks();
 
-        if (resolveStatus() == com.addthis.codec.embedded.com.typesafe.config.impl.ResolveStatus.RESOLVED) {
+        if (resolveStatus() == ResolveStatus.RESOLVED) {
             // falling back to a non-object doesn't merge anything, and also
             // prohibits merging any objects that we fall back to later.
             // so we have to switch to ignoresFallbacks mode.
@@ -220,25 +220,25 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
         }
     }
 
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue mergedWithTheUnmergeable(com.addthis.codec.embedded.com.typesafe.config.impl.Unmergeable fallback) {
+    protected AbstractConfigValue mergedWithTheUnmergeable(Unmergeable fallback) {
         requireNotIgnoringFallbacks();
 
         return mergedWithTheUnmergeable(Collections.singletonList(this), fallback);
     }
 
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue mergedWithObject(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject fallback) {
+    protected AbstractConfigValue mergedWithObject(AbstractConfigObject fallback) {
         requireNotIgnoringFallbacks();
 
         return mergedWithObject(Collections.singletonList(this), fallback);
     }
 
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue mergedWithNonObject(com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue fallback) {
+    protected AbstractConfigValue mergedWithNonObject(AbstractConfigValue fallback) {
         requireNotIgnoringFallbacks();
 
         return mergedWithNonObject(Collections.singletonList(this), fallback);
     }
 
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue withOrigin(ConfigOrigin origin) {
+    public AbstractConfigValue withOrigin(ConfigOrigin origin) {
         if (this.origin == origin)
             return this;
         else
@@ -247,18 +247,18 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
 
     // this is only overridden to change the return type
     @Override
-    public com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue withFallback(ConfigMergeable mergeable) {
+    public AbstractConfigValue withFallback(ConfigMergeable mergeable) {
         if (ignoresFallbacks()) {
             return this;
         } else {
-            ConfigValue other = ((com.addthis.codec.embedded.com.typesafe.config.impl.MergeableValue) mergeable).toFallbackValue();
+            ConfigValue other = ((MergeableValue) mergeable).toFallbackValue();
 
-            if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.Unmergeable) {
-                return mergedWithTheUnmergeable((com.addthis.codec.embedded.com.typesafe.config.impl.Unmergeable) other);
-            } else if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) {
-                return mergedWithObject((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigObject) other);
+            if (other instanceof Unmergeable) {
+                return mergedWithTheUnmergeable((Unmergeable) other);
+            } else if (other instanceof AbstractConfigObject) {
+                return mergedWithObject((AbstractConfigObject) other);
             } else {
-                return mergedWithNonObject((com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue) other);
+                return mergedWithNonObject((AbstractConfigValue) other);
             }
         }
     }
@@ -363,17 +363,17 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
     }
 
     SimpleConfig atKey(ConfigOrigin origin, String key) {
-        Map<String, com.addthis.codec.embedded.com.typesafe.config.impl.AbstractConfigValue> m = Collections.singletonMap(key, this);
-        return (new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigObject(origin, m)).toConfig();
+        Map<String, AbstractConfigValue> m = Collections.singletonMap(key, this);
+        return (new SimpleConfigObject(origin, m)).toConfig();
     }
 
     @Override
     public SimpleConfig atKey(String key) {
-        return atKey(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("atKey(" + key + ")"), key);
+        return atKey(SimpleConfigOrigin.newSimple("atKey(" + key + ")"), key);
     }
 
-    SimpleConfig atPath(ConfigOrigin origin, com.addthis.codec.embedded.com.typesafe.config.impl.Path path) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.Path parent = path.parent();
+    SimpleConfig atPath(ConfigOrigin origin, Path path) {
+        Path parent = path.parent();
         SimpleConfig result = atKey(origin, path.last());
         while (parent != null) {
             String key = parent.last();
@@ -385,8 +385,8 @@ abstract class AbstractConfigValue implements ConfigValue, com.addthis.codec.emb
 
     @Override
     public SimpleConfig atPath(String pathExpression) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin
-                origin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.newSimple("atPath(" + pathExpression + ")");
-        return atPath(origin, com.addthis.codec.embedded.com.typesafe.config.impl.Path.newPath(pathExpression));
+        SimpleConfigOrigin
+                origin = SimpleConfigOrigin.newSimple("atPath(" + pathExpression + ")");
+        return atPath(origin, Path.newPath(pathExpression));
     }
 }

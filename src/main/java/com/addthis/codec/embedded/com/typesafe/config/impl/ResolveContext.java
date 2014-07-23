@@ -39,10 +39,10 @@ final class ResolveContext {
     // another mutable unfortunate. This is
     // used to make nice error messages when
     // resolution fails.
-    final private List<com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression> expressionTrace;
+    final private List<SubstitutionExpression> expressionTrace;
 
     ResolveContext(ResolveSource source, ResolveMemos memos, ConfigResolveOptions options,
-            Path restrictToChild, List<com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression> expressionTrace) {
+            Path restrictToChild, List<SubstitutionExpression> expressionTrace) {
         this.source = source;
         this.memos = memos;
         this.options = options;
@@ -54,7 +54,7 @@ final class ResolveContext {
         // LinkedHashSet keeps the traversal order which is at least useful
         // in error messages if nothing else
         this(new ResolveSource(root), new ResolveMemos(), options, restrictToChild,
-                new ArrayList<com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression>());
+                new ArrayList<SubstitutionExpression>());
     }
 
     ResolveSource source() {
@@ -73,18 +73,18 @@ final class ResolveContext {
         return restrictToChild;
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext restrict(Path restrictTo) {
+    ResolveContext restrict(Path restrictTo) {
         if (restrictTo == restrictToChild)
             return this;
         else
-            return new com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext(source, memos, options, restrictTo, expressionTrace);
+            return new ResolveContext(source, memos, options, restrictTo, expressionTrace);
     }
 
-    com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext unrestricted() {
+    ResolveContext unrestricted() {
         return restrict(null);
     }
 
-    void trace(com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression expr) {
+    void trace(SubstitutionExpression expr) {
         expressionTrace.add(expr);
     }
 
@@ -95,7 +95,7 @@ final class ResolveContext {
     String traceString() {
         String separator = ", ";
         StringBuilder sb = new StringBuilder();
-        for (com.addthis.codec.embedded.com.typesafe.config.impl.SubstitutionExpression expr : expressionTrace) {
+        for (SubstitutionExpression expr : expressionTrace) {
             sb.append(expr.toString());
             sb.append(separator);
         }
@@ -155,8 +155,8 @@ final class ResolveContext {
 
     static AbstractConfigValue resolve(AbstractConfigValue value, AbstractConfigObject root,
             ConfigResolveOptions options) {
-        com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext
-                context = new com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext(root, options, null /* restrictToChild */);
+        ResolveContext
+                context = new ResolveContext(root, options, null /* restrictToChild */);
 
         try {
             return context.resolve(value);

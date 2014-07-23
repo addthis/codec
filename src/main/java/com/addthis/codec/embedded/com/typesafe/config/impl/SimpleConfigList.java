@@ -75,7 +75,7 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
         return ResolveStatus.fromBoolean(resolved);
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList modify(NoExceptionsModifier modifier, ResolveStatus newResolveStatus) {
+    private SimpleConfigList modify(NoExceptionsModifier modifier, ResolveStatus newResolveStatus) {
         try {
             return modifyMayThrow(modifier, newResolveStatus);
         } catch (RuntimeException e) {
@@ -85,7 +85,7 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
         }
     }
 
-    private com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList modifyMayThrow(Modifier modifier, ResolveStatus newResolveStatus)
+    private SimpleConfigList modifyMayThrow(Modifier modifier, ResolveStatus newResolveStatus)
             throws Exception {
         // lazy-create for optimization
         List<AbstractConfigValue> changed = null;
@@ -113,9 +113,9 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
 
         if (changed != null) {
             if (newResolveStatus != null) {
-                return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList(origin(), changed, newResolveStatus);
+                return new SimpleConfigList(origin(), changed, newResolveStatus);
             } else {
-                return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList(origin(), changed);
+                return new SimpleConfigList(origin(), changed);
             }
         } else {
             return this;
@@ -123,7 +123,7 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
     }
 
     @Override
-    com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList resolveSubstitutions(final com.addthis.codec.embedded.com.typesafe.config.impl.ResolveContext context) throws
+    SimpleConfigList resolveSubstitutions(final ResolveContext context) throws
                                                                                                                           AbstractConfigValue.NotPossibleToResolve {
         if (resolved)
             return this;
@@ -152,7 +152,7 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
         }
     }
 
-    @Override com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList relativized(final Path prefix) {
+    @Override SimpleConfigList relativized(final Path prefix) {
         return modify(new NoExceptionsModifier() {
             @Override
             public AbstractConfigValue modifyChild(String key, AbstractConfigValue v) {
@@ -164,15 +164,15 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
 
     @Override
     protected boolean canEqual(Object other) {
-        return other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList;
+        return other instanceof SimpleConfigList;
     }
 
     @Override
     public boolean equals(Object other) {
         // note that "origin" is deliberately NOT part of equality
-        if (other instanceof com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) {
+        if (other instanceof SimpleConfigList) {
             // optimization to avoid unwrapped() for two ConfigList
-            return canEqual(other) && value.equals(((com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList) other).value);
+            return canEqual(other) && value.equals(((SimpleConfigList) other).value);
         } else {
             return false;
         }
@@ -417,17 +417,17 @@ final class SimpleConfigList extends AbstractConfigValue implements ConfigList, 
     }
 
     @Override
-    protected com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList newCopy(ConfigOrigin newOrigin) {
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList(newOrigin, value);
+    protected SimpleConfigList newCopy(ConfigOrigin newOrigin) {
+        return new SimpleConfigList(newOrigin, value);
     }
 
-    final com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList concatenate(com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList other) {
-        ConfigOrigin combinedOrigin = com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigOrigin.mergeOrigins(origin(), other.origin());
+    final SimpleConfigList concatenate(SimpleConfigList other) {
+        ConfigOrigin combinedOrigin = SimpleConfigOrigin.mergeOrigins(origin(), other.origin());
         List<AbstractConfigValue> combined = new ArrayList<AbstractConfigValue>(value.size()
                 + other.value.size());
         combined.addAll(value);
         combined.addAll(other.value);
-        return new com.addthis.codec.embedded.com.typesafe.config.impl.SimpleConfigList(combinedOrigin, combined);
+        return new SimpleConfigList(combinedOrigin, combined);
     }
 
     // serialization all goes through SerializedConfigValue
