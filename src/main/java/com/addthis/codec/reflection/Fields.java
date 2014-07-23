@@ -1,5 +1,15 @@
 package com.addthis.codec.reflection;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,8 +46,65 @@ public final class Fields {
         fieldMaps.clear();
     }
 
-    public static boolean isNative(Class<?> type) {
+    public static boolean isNative(@Nonnull Class<?> type) {
         return (type == String.class) || (type == AtomicBoolean.class) ||
                (type == Boolean.class) || type.isPrimitive() || Number.class.isAssignableFrom(type);
+    }
+
+    @Nullable static Type[] collectTypes(Class<?> type, Type node) {
+        List<Type> l = collectTypes(new ArrayList<Type>(), type, node);
+        while (!l.isEmpty()) {
+            int ni = l.lastIndexOf(null);
+            if (ni < 0) {
+                break;
+            }
+            if (ni >= (l.size() - 1)) {
+                l.remove(ni);
+            } else {
+                l.set(ni, l.get(l.size() - 1));
+                l.remove(l.size() - 1);
+            }
+        }
+        if (l.isEmpty()) {
+            return null;
+        } else {
+            Type[] t = new Type[l.size()];
+            l.toArray(t);
+            return t;
+        }
+    }
+
+    @Nonnull private static List<Type> collectTypes(@Nonnull List<Type> list,
+                                                    @Nullable Class<?> type,
+                                                    @Nullable Type node) {
+        if ((type == null) && (node == null)) {
+            return list;
+        }
+        if (node instanceof Class) {
+            if (type != null) {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), type.getGenericSuperclass());
+            } else {
+                collectTypes(list, ((Class<?>) node).getSuperclass(), null);
+            }
+        } else {
+            if (type != null) {
+                collectTypes(list, null, type.getGenericSuperclass());
+            } else {
+                collectTypes(list, null, null);
+            }
+        }
+        if (node instanceof ParameterizedType) {
+            List<Type> tl = Arrays.asList(((ParameterizedType) node).getActualTypeArguments());
+            for (Type t : tl) {
+                if ((t instanceof Class) || (t instanceof GenericArrayType)) {
+                    list.add(t);
+                } else if (t instanceof ParameterizedType) {
+                    list.add(((ParameterizedType) t).getRawType());
+                } else {
+                    list.add(null);
+                }
+            }
+        }
+        return list;
     }
 }
