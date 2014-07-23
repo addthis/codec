@@ -52,7 +52,8 @@ public final class Fields {
     }
 
     @Nullable static Type[] collectTypes(Class<?> type, Type node) {
-        List<Type> l = collectTypes(new ArrayList<Type>(), type, node);
+        List<Type> l = new ArrayList<>();
+        collectTypes(l, type, node);
         while (!l.isEmpty()) {
             int ni = l.lastIndexOf(null);
             if (ni < 0) {
@@ -74,11 +75,9 @@ public final class Fields {
         }
     }
 
-    @Nonnull private static List<Type> collectTypes(@Nonnull List<Type> list,
-                                                    @Nullable Class<?> type,
-                                                    @Nullable Type node) {
+    private static void collectTypes(@Nonnull List<Type> list, @Nullable Class<?> type, @Nullable Type node) {
         if ((type == null) && (node == null)) {
-            return list;
+            return;
         }
         if (node instanceof Class) {
             if (type != null) {
@@ -105,6 +104,5 @@ public final class Fields {
                 }
             }
         }
-        return list;
     }
 }

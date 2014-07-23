@@ -61,11 +61,14 @@ public final class CodableFieldInfo {
     private final Validator    validator;
     private final Class<?>     typeOrComponentType;
     private final int          bits;
-    private       Type[]       genTypes;
-    private       boolean[]    genArray;
+
+    @Nullable private final Type[]    genTypes;
+    @Nullable private final boolean[] genArray;
 
     public CodableFieldInfo(Field field) {
         this.field = field;
+        field.setAccessible(true);
+        fieldConfig = field.getAnnotation(FieldConfig.class);
 
         Class<?> type = field.getType();
         boolean array = type.isArray();
@@ -81,10 +84,16 @@ public final class CodableFieldInfo {
         }
         // extract generics info
         if (!Fields.isNative(typeOrComponentType)) {
-            setGenericTypes(Fields.collectTypes(typeOrComponentType, field.getGenericType()));
+            genTypes = Fields.collectTypes(typeOrComponentType, field.getGenericType());
+        } else {
+            genTypes = null;
         }
-        fieldConfig = field.getAnnotation(FieldConfig.class);
-        field.setAccessible(true);
+        if (genTypes == null) {
+            genArray = null;
+        } else {
+            genArray = new boolean[genTypes.length];
+            mutateGenericTypes(genTypes, genArray);
+        }
         Validator tryValidator = null;
         if ((fieldConfig != null) && (fieldConfig.validator() != Validator.class)) {
             try {
@@ -148,61 +157,57 @@ public final class CodableFieldInfo {
         return typeOrComponentType;
     }
 
-    public Type[] getGenericTypes() {
+    @Nullable public Type[] getGenericTypes() {
         return genTypes;
     }
 
-    private void setGenericTypes(@Nullable final Type[] genTypes) {
-        if (genTypes == null) {
-            return;
-        }
-        boolean[] gen = new boolean[genTypes.length];
-        for (int i = 0; i < genTypes.length; i++) {
-            Type currentType = genTypes[i];
+    // interacts with the ill-defined generic support
+    private void mutateGenericTypes(@Nonnull final Type[] collectedTypes,
+                                    @Nonnull final boolean[] genericFlags) {
+        for (int i = 0; i < collectedTypes.length; i++) {
+            Type currentType = collectedTypes[i];
             if (currentType instanceof GenericArrayType) {
-                gen[i] = true;
-                genTypes[i] = ((GenericArrayType) currentType).getGenericComponentType();
+                genericFlags[i] = true;
+                collectedTypes[i] = ((GenericArrayType) currentType).getGenericComponentType();
             } else if ((currentType instanceof Class) && ((Class) currentType).isArray()) {
-                gen[i] = true;
-                genTypes[i] = ((Class) currentType).getComponentType();
+                genericFlags[i] = true;
+                collectedTypes[i] = ((Class) currentType).getComponentType();
             } else {
-                gen[i] = false;
+                genericFlags[i] = false;
             }
         }
-        this.genTypes = genTypes;
-        this.genArray = gen;
     }
 
     public Object newInstance() throws Exception {
         return typeOrComponentType.newInstance();
     }
 
-    public Class<?> getCollectionClass() {
-        return (genTypes != null && genTypes.length == 1) ? (Class<?>) genTypes[0] : null;
+    @Nullable public Class<?> getCollectionClass() {
+        return ((genTypes != null) && (genTypes.length == 1)) ? (Class<?>) genTypes[0] : null;
     }
 
-    public Class<?> getMapKeyClass() {
-        return (genTypes != null && genTypes.length == 2) ? (Class<?>) genTypes[0] : null;
+    @Nullable public Class<?> getMapKeyClass() {
+        return ((genTypes != null) && (genTypes.length == 2)) ? (Class<?>) genTypes[0] : null;
     }
 
-    public Class<?> getMapValueClass() {
-        return (genTypes != null && genTypes.length == 2) ? (Class<?>) genTypes[1] : null;
+    @Nullable public Class<?> getMapValueClass() {
+        return ((genTypes != null) && (genTypes.length == 2)) ? (Class<?>) genTypes[1] : null;
     }
 
     public boolean isCollectionArray() {
-        return (genArray != null && genArray.length == 1) ? genArray[0] : false;
+        return ((genArray != null) && (genArray.length == 1)) ? genArray[0] : false;
     }
 
     public boolean isMapKeyArray() {
-        return (genArray != null && genArray.length == 2) ? genArray[0] : false;
+        return ((genArray != null) && (genArray.length == 2)) ? genArray[0] : false;
     }
 
     public boolean isMapValueArray() {
-        return (genArray != null && genArray.length == 2) ? genArray[1] : false;
+        return ((genArray != null) && (genArray.length == 2)) ? genArray[1] : false;
     }
 
     public boolean validate(Object value) {
-        return validator != null ? validator.validate(this, value) : true;
+        return (validator != null) ? validator.validate(this, value) : true;
     }
 
     public Object get(Object src) {
@@ -267,7 +272,7 @@ public final class CodableFieldInfo {
 
     public void set(@Nonnull Object dst, @Nullable Object value) {
         if (value == null) {
-            if (isRequired() && get(dst) == null) {
+            if (isRequired() && (get(dst) == null)) {
                 throw new RequiredFieldException("missing required field '" +
                     this.getName() + "' for " + dst, getName());
             }
@@ -278,7 +283,7 @@ public final class CodableFieldInfo {
                 this.getName() + " in " + dst, getName());
         }
         try {
-            if (value.getClass() == String.class && isInterned()) {
+            if ((value.getClass() == String.class) && isInterned()) {
                 value = ((String) value).intern();
             }
             field.set(dst, value);
