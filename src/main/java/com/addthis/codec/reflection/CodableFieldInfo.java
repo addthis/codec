@@ -64,20 +64,21 @@ public final class CodableFieldInfo {
     private       Type[]      genTypes;
     private       boolean[]   genArray;
 
-    public CodableFieldInfo(Field field, Class<?> type, @Nullable FieldConfig fieldConfig) {
+    public CodableFieldInfo(Field field, Class<?> type) {
         this.field = field;
         this.type  = type;
-        this.fieldConfig = fieldConfig;
+        fieldConfig = field.getAnnotation(FieldConfig.class);
+        field.setAccessible(true);
+        cacheFlags();
         Validator tryValidator = null;
         if ((fieldConfig != null) && (fieldConfig.validator() != Validator.class)) {
             try {
                 tryValidator = fieldConfig.validator().newInstance();
             } catch (InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
+                log.warn("error while trying to create validator ({}) for {}", fieldConfig.validator(), field, e);
             }
         }
         validator = tryValidator;
-        cacheFlags();
     }
 
     private void cacheFlags() {

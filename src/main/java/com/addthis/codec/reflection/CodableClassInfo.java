@@ -177,39 +177,42 @@ public class CodableClassInfo {
         return classData;
     }
 
+    /**
+     * Decide whether it is okay to read/ write a field. If configured via an annotation on the field, use that.
+     * Otherwise return true only if the field is both public and non-final.
+     */
+    private static boolean isCodable(Field field) {
+        FieldConfig fieldConfigPolicy = field.getAnnotation(FieldConfig.class);
+        if (fieldConfigPolicy != null) {
+            return fieldConfigPolicy.codable();
+        }
+        int modifierBitSet = field.getModifiers();
+        return !Modifier.isFinal(modifierBitSet) && Modifier.isPublic(modifierBitSet);
+    }
+
     @Nonnull private static Map<String, CodableFieldInfo> buildFieldInfoMap(Iterable<Field> fields) {
         SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
         for (Field field : fields) {
-            int mod = field.getModifiers();
-            boolean store = ((mod & Modifier.FINAL) == 0) && ((mod & Modifier.PUBLIC) != 0);
-            // extract annotations
-            FieldConfig fieldConfigPolicy = field.getAnnotation(FieldConfig.class);
-            if (fieldConfigPolicy != null) {
-                field.setAccessible(true);
-                store |= fieldConfigPolicy.codable();
-            }
-            // field must be public and non-final or annotated with a store policy
-            if (!store) {
-                continue;
-            }
-            Class<?> type = field.getType();
-            boolean array = type.isArray();
-            if (array) {
-                type = type.getComponentType();
-                if (type == null) {
-                    throw new IllegalStateException("!! null array type for " + field + " !!");
+            if (isCodable(field)) {
+                Class<?> type = field.getType();
+                boolean array = type.isArray();
+                if (array) {
+                    type = type.getComponentType();
+                    if (type == null) {
+                        throw new IllegalStateException("!! null array type for " + field + " !!");
+                    }
                 }
+                CodableFieldInfo info = new CodableFieldInfo(field, type);
+                // extract info bits
+                if (array) {
+                    info.updateBits(CodableFieldInfo.ARRAY);
+                }
+                // extract generics info
+                if (!Fields.isNative(type)) {
+                    info.setGenericTypes(Fields.collectTypes(type, field.getGenericType()));
+                }
+                buildClassData.put(field.getName(), info);
             }
-            CodableFieldInfo info = new CodableFieldInfo(field, type, fieldConfigPolicy);
-            // extract info bits
-            if (array) {
-                info.updateBits(CodableFieldInfo.ARRAY);
-            }
-            // extract generics info
-            if (!Fields.isNative(type)) {
-                info.setGenericTypes(Fields.collectTypes(type, field.getGenericType()));
-            }
-            buildClassData.put(field.getName(), info);
         }
         return buildClassData;
     }
