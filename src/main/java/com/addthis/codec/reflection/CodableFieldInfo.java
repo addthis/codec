@@ -56,16 +56,16 @@ public final class CodableFieldInfo {
     public static final int ENUM       = 1 << 10;
     public static final int INTERN     = 1 << 11;
 
-    private final Field        field;
-    private final FieldConfig  fieldConfig;
-    private final Validator    validator;
-    private final Class<?>     typeOrComponentType;
-    private final int          bits;
+    @Nonnull private final Field    field;
+    @Nonnull private final Class<?> typeOrComponentType;
+    private final int bits;
 
-    @Nullable private final Type[]    genTypes;
-    @Nullable private final boolean[] genArray;
+    @Nullable private final Validator   validator;
+    @Nullable private final FieldConfig fieldConfig;
+    @Nullable private final Type[]      genTypes;
+    @Nullable private final boolean[]   genArray;
 
-    public CodableFieldInfo(Field field) {
+    public CodableFieldInfo(@Nonnull Field field) {
         this.field = field;
         field.setAccessible(true);
         fieldConfig = field.getAnnotation(FieldConfig.class);
@@ -74,9 +74,6 @@ public final class CodableFieldInfo {
         boolean array = type.isArray();
         if (array) {
             typeOrComponentType = type.getComponentType();
-            if (typeOrComponentType == null) {
-                throw new IllegalStateException("!! null array type for " + field + " !!");
-            }
             this.bits = cacheFlags(CodableFieldInfo.ARRAY);
         } else {
             typeOrComponentType = type;
@@ -145,7 +142,7 @@ public final class CodableFieldInfo {
         return partialBits;
     }
 
-    public Field getField() {
+    @Nonnull public Field getField() {
         return field;
     }
 
@@ -153,7 +150,7 @@ public final class CodableFieldInfo {
         return field.getName();
     }
 
-    public Class<?> getTypeOrComponentType() {
+    @Nonnull public Class<?> getTypeOrComponentType() {
         return typeOrComponentType;
     }
 
@@ -290,8 +287,7 @@ public final class CodableFieldInfo {
         } catch (RuntimeException ex) {
             throw ex;
         } catch (Exception ex) {
-            log.warn("error setting (" + value + ")(" + value.getClass() +
-                ") on (" + dst + ") in " + toString());
+            log.warn("error setting ({})({}) on ({}) in {}", value, value.getClass(), dst, toString());
             throw new RuntimeException(ex);
         }
     }
