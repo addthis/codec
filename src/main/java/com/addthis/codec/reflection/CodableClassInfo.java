@@ -194,23 +194,7 @@ public class CodableClassInfo {
         SortedMap<String, CodableFieldInfo> buildClassData = new TreeMap<>();
         for (Field field : fields) {
             if (isCodable(field)) {
-                Class<?> type = field.getType();
-                boolean array = type.isArray();
-                if (array) {
-                    type = type.getComponentType();
-                    if (type == null) {
-                        throw new IllegalStateException("!! null array type for " + field + " !!");
-                    }
-                }
-                CodableFieldInfo info = new CodableFieldInfo(field, type);
-                // extract info bits
-                if (array) {
-                    info.updateBits(CodableFieldInfo.ARRAY);
-                }
-                // extract generics info
-                if (!Fields.isNative(type)) {
-                    info.setGenericTypes(Fields.collectTypes(type, field.getGenericType()));
-                }
+                CodableFieldInfo info = new CodableFieldInfo(field);
                 buildClassData.put(field.getName(), info);
             }
         }
