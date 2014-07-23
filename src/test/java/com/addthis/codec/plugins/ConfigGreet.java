@@ -19,10 +19,10 @@ import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.config.ConfigCodable;
 import com.addthis.codec.config.ValueCodable;
 
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigRenderOptions;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueType;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigObject;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigRenderOptions;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValue;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValueType;
 
 public class ConfigGreet implements Greeter, ConfigCodable, ValueCodable {
 

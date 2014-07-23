@@ -15,9 +15,9 @@ package com.addthis.codec.plugins;
 
 import java.util.Map;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValueFactory;
 
 import org.junit.Assert;
 import org.junit.Rule;

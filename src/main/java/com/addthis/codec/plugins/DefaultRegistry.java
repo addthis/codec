@@ -13,7 +13,7 @@
  */
 package com.addthis.codec.plugins;
 
-import com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -32,14 +32,14 @@ import com.addthis.codec.reflection.CodableFieldInfo;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigList;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueFactory;
-import com.typesafe.config.ConfigValueType;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigException;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigList;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigObject;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValue;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValueFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValueType;
 
 @Beta
 public final class Configs {

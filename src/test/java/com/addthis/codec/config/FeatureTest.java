@@ -18,9 +18,9 @@ import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
 import com.addthis.maljson.JSONObject;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigObject;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigObject;
 
 import org.junit.Assert;
 import org.junit.Test;

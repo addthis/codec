@@ -36,6 +36,13 @@ import com.addthis.basis.collect.ConcurrentHashMapV8;
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.annotations.Time;
 import com.addthis.codec.codables.SuperCodable;
+import com.addthis.codec.embedded.com.typesafe.config.Config;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigException;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigFactory;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigList;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigObject;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValue;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigValueType;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.plugins.Plugins;
@@ -48,14 +55,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Shorts;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigList;
-import com.typesafe.config.ConfigObject;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

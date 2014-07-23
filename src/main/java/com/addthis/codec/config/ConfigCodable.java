@@ -17,10 +17,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.addthis.codec.codables.Codable;
+import com.addthis.codec.embedded.com.typesafe.config.ConfigObject;
 
 import com.google.common.annotations.Beta;
-
-import com.typesafe.config.ConfigObject;
 
 /**
  * Note: This is only intended for unusual cases. Possibly debugging or classes that manipulate Config objects as a
