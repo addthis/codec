@@ -73,17 +73,21 @@ public class CodableClassInfo {
 
         Class<?> ptr = clazz;
         while (ptr != null) {
+            if (pluginRegistry.byClass().containsKey(ptr)) {
+                findPluginMap = pluginRegistry.byClass().get(ptr);
+                findBaseClass = ptr;
+                break;
+            }
             Pluggable pluggable = ptr.getAnnotation(Pluggable.class);
             if (pluggable != null) {
                 String category = pluggable.value();
                 findPluginMap = pluginRegistry.asMap().get(category);
-                if (findPluginMap != null) {
-                    findBaseClass = ptr;
-                    break;
-                } else {
+                findBaseClass = ptr;
+                if (findPluginMap == null) {
                     log.warn("missing plugin map for {}, reached from {}", ptr, clazz);
                     findPluginMap = PluginMap.EMPTY;
                 }
+                break;
             }
             ptr = ptr.getSuperclass();
         }

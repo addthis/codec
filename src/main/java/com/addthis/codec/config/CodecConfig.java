@@ -683,21 +683,26 @@ public final class CodecConfig {
         Class<?> type = field.getTypeOrComponentType();
         Map map;
         if (Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
-            if (objectShell != null) {
-                map = (Map) field.get(objectShell);
+            PluginMap typeMap = pluginRegistry.byClass().get(type);
+            @Nullable Class<?> defaultType;
+            if (typeMap != null) {
+                defaultType = typeMap.defaultSugar();
+            } else {
+                defaultType = null;
+            }
+            if (defaultType != null) {
+                try {
+                    map = (Map) defaultType.newInstance();
+                } catch (IllegalAccessException | InstantiationException ex) {
+                    throw new ConfigException.BadValue(config.origin(), field.getName(),
+                                                       "failed to instantiate default " + type
+                                                       + " implementation", ex);
+                }
             } else {
                 throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
-                                                      "Map subclass and there is no enclosing object provided " +
-                                                      "to check for an existing Map to mutate");
+                                                      "Map subclass and there is no default implementation " +
+                                                      "specified for " + type);
             }
-            if (map == null) {
-                throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
-                                                      "Map subclass and there was no default instantiated object to " +
-                                                      "add configured key-value pairs to. Problem is most likely in " +
-                                                      "the java source code for the field's enclosing class: " +
-                                                      objectShell.getClass());
-            }
-            map.clear();
         } else {
             try {
                 map = (Map) type.newInstance();
@@ -733,21 +738,26 @@ public final class CodecConfig {
         Class<?> type = field.getTypeOrComponentType();
         Collection<Object> col;
         if (Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
-            if (objectShell != null) {
-                col = (Collection<Object>) field.get(objectShell);
+            PluginMap typeMap = pluginRegistry.byClass().get(type);
+            @Nullable Class<?> defaultType;
+            if (typeMap != null) {
+                defaultType = typeMap.defaultSugar();
+            } else {
+                defaultType = null;
+            }
+            if (defaultType != null) {
+                try {
+                    col = (Collection<Object>) defaultType.newInstance();
+                } catch (IllegalAccessException | InstantiationException ex) {
+                    throw new ConfigException.BadValue(config.origin(), field.getName(),
+                                                       "failed to instantiate default " + type
+                                                       + " implementation", ex);
+                }
             } else {
                 throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
-                                                      "Collection subclass and there is no enclosing object provided " +
-                                                      "to check for an existing Collection to mutate");
+                                                      "collection subclass and there is no default implementation " +
+                                                      "specified for " + type);
             }
-            if (col == null) {
-                throw new ConfigException.BugOrBroken("field: " + field + " is not declared as a concrete " +
-                                                      "Collection subclass and there was no default instantiated " +
-                                                      "object to add configured values to. Problem is most likely in " +
-                                                      "the java source code for the field's enclosing class: " +
-                                                      objectShell.getClass());
-            }
-            col.clear();
         } else {
             try {
                 col = (Collection<Object>) field.getTypeOrComponentType().newInstance();

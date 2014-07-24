@@ -57,6 +57,16 @@ public class PluginRegistryTest {
     }
 
     @Test
+    public void loadAndGetWithBaseClass() {
+        Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass");
+        PluginRegistry pluginRegistry = new PluginRegistry(testPluginConfig);
+        Map<String, PluginMap> byCategory = pluginRegistry.asMap();
+        Map<Class<?>, PluginMap> byClass = pluginRegistry.byClass();
+        Assert.assertEquals(byCategory.size(), byClass.size());
+        Assert.assertEquals(byCategory.get("greet"), byClass.get(Greeter.class));
+    }
+
+    @Test
     public void loadErrorWithBaseClass() {
         thrown.expect(isA(ClassCastException.class));
         Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass-bad");
@@ -82,12 +92,12 @@ public class PluginRegistryTest {
     public void loadInterestingBaseClasses() throws ClassNotFoundException {
         Config testPluginConfig = ConfigFactory.load("plugins/greet-with-baseclass");
         testPluginConfig = testPluginConfig.withValue(
-                "plugins.greet._class",
+                "plugins-test.greet._class",
                 ConfigValueFactory.fromAnyRef("com.addthis.codec.plugins.SimpleGreet"));
         thrown.expect(isA(ClassCastException.class));
         PluginRegistry shouldThrowClassCastException = new PluginRegistry(testPluginConfig);
         testPluginConfig = testPluginConfig.withValue(
-                "plugins.greet._class",
+                "plugins-test.greet._class",
                 ConfigValueFactory.fromAnyRef(".addthis.codec.plugins.SimpleGreet"));
         thrown.expectCause(isA(ClassNotFoundException.class));
         PluginRegistry shouldThrowClassNotFoundException = new PluginRegistry(testPluginConfig);

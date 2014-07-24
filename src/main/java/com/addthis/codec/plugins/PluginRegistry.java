@@ -22,6 +22,9 @@ import java.util.Set;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 
 import com.typesafe.config.Config;
 
@@ -40,7 +43,8 @@ public class PluginRegistry {
         return DefaultRegistry.DEFAULT;
     }
 
-    @Nonnull private final Map<String, PluginMap> pluginMaps;
+    @Nonnull private final Map<String,   PluginMap> pluginMapsByCategory;
+    @Nonnull private final BiMap<Class<?>, PluginMap> pluginMapsByClass;
 
     public PluginRegistry(Config config) {
         Config defaultPluginMapSettings = config.getConfig(PLUGIN_DEFAULTS_PATH);
@@ -48,24 +52,37 @@ public class PluginRegistry {
         Config pluginConfigs = config.getConfig(pluginPath);
 
         Set<String> categories = pluginConfigs.root().keySet();
-        Map<String, PluginMap> pluginsFromConfig = new HashMap<>(categories.size());
+        Map<String, PluginMap> mapsFromConfig = new HashMap<>(categories.size());
+        BiMap<Class<?>, PluginMap> mapsFromConfigByClass = HashBiMap.create(categories.size());
         for (String category : categories) {
             Config pluginConfig = pluginConfigs.getConfig(category)
                                                .withFallback(defaultPluginMapSettings);
             PluginMap pluginMap = new PluginMap(category, pluginConfig);
-            pluginsFromConfig.put(category, pluginMap);
+            mapsFromConfig.put(category, pluginMap);
+            if (pluginMap.baseClass() != null) {
+                mapsFromConfigByClass.put(pluginMap.baseClass(), pluginMap);
+            }
         }
-        pluginMaps = Collections.unmodifiableMap(pluginsFromConfig);
+        pluginMapsByCategory = Collections.unmodifiableMap(mapsFromConfig);
+        pluginMapsByClass = Maps.unmodifiableBiMap(mapsFromConfigByClass);
     }
 
     public Map<String, PluginMap> asMap() {
-        return pluginMaps;
+        return pluginMapsByCategory;
     }
 
-    @Override
-    public String toString() {
+    public Map<String, PluginMap> byCategory() {
+        return pluginMapsByCategory;
+    }
+
+    public Map<Class<?>, PluginMap> byClass() {
+        return pluginMapsByClass;
+    }
+
+    @Override public String toString() {
         return Objects.toStringHelper(this)
-                      .add("pluginMaps", pluginMaps)
+                      .add("pluginMapsByCategory", pluginMapsByCategory)
+                      .add("pluginMapsByClass", pluginMapsByClass)
                       .toString();
     }
 }

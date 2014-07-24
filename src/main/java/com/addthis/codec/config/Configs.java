@@ -272,13 +272,12 @@ public final class Configs {
                         ConfigObject aliasDefaults = pluginMap.aliasDefaults("_array");
                         String arrayFieldName = aliasDefaults.toConfig().getString("_primary");
                         String arraySugarName = pluginMap.getLastAlias("_array");
-                        return ConfigFactory.empty().withValue(
+                        return ConfigFactory.empty().root().withValue(
                                 classField, ConfigValueFactory.fromAnyRef(
                                         arraySugarName, pluginMap.category() + " array sugar : " +
                                                         pluginMap.config().root().get("_array").origin().description()))
                                             .withValue(arrayFieldName, configValue)
-                                            .withFallback(aliasDefaults)
-                                            .root();
+                                            .withFallback(aliasDefaults);
                     } else {
                         throw new ConfigException.WrongType(configValue.origin(),
                                                             "found an array instead of an object, but no array type set");
