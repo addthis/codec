@@ -100,6 +100,13 @@ public class FeatureTest {
     }
 
     @Test
+    public void primaryNestedObject() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.parse-primary {simple.suffix = WOW}");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "extra extra! other Hello WorldWOW bytes: 1024 millis: 1000";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+    @Test
     public void primaryNested() throws Exception {
         Config greet = ConfigFactory.parseString("greet.parse-simple: WOW");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
