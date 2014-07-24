@@ -388,6 +388,53 @@ public final class CodecConfig {
         return hydrateObject(info, pluginMap, type, (ConfigObject) configValue);
     }
 
+    @Nullable private <T> T hydrateSingleKeyObject(PluginMap pluginMap, ConfigObject configObject) {
+        /* "type-value : {...}"  syntax; ie. if there is only one key, see if it would be a valid type */
+        if (configObject.size() == 1) {
+            String singleKeyName = configObject.keySet().iterator().next();
+            try {
+                Class<T> singleKeyType = (Class<T>) pluginMap.getClass(singleKeyName);
+                CodableClassInfo singleKeyInfo = getOrCreateClassInfo(singleKeyType);
+                ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
+                ConfigValue configValue = configObject.get(singleKeyName);
+                if (configValue.valueType() != ConfigValueType.OBJECT) {
+                    if (aliasDefaults.get("_primary") != null) {
+                        // if value is not an object, try supporting _primary syntax to derive one
+                        configValue = configValue.atPath((String) aliasDefaults.get("_primary").unwrapped()).root();
+                    } else if (ValueCodable.class.isAssignableFrom(singleKeyType)) {
+                        // see if the resolved type is innately okay with non-objects
+                        try {
+                            T objectShell = singleKeyType.newInstance();
+                            Config fieldDefaults = singleKeyInfo.getFieldDefaults();
+                            // do not merge objects between global defaults and user defaults (incl. alias defaults)
+                            ConfigObject mergedDefaults = aliasDefaults;
+                            for (Map.Entry<String, ConfigValue> pair : fieldDefaults.entrySet()) {
+                                if (!mergedDefaults.containsKey(pair.getKey())) {
+                                    mergedDefaults = mergedDefaults.withValue(pair.getKey(), pair.getValue());
+                                }
+                            }
+                            ((ValueCodable) objectShell).fromConfigValue(configValue, mergedDefaults);
+                            return objectShell;
+                        } catch (InstantiationException | IllegalAccessException | RuntimeException ex) {
+                            throw new ConfigException.BadValue(configValue.origin(), singleKeyType.getName(),
+                                                               "exception during instantiation of a ValueCodable", ex);
+                        }
+                    } else {
+                        throw new ConfigException.WrongType(configValue.origin(), singleKeyName,
+                                                            "OBJECT", configValue.valueType().toString());
+                    }
+                }
+                ConfigObject fieldValues = ((ConfigObject) configValue).withFallback(aliasDefaults);
+                return createAndPopulate(singleKeyInfo, singleKeyType, fieldValues);
+            } catch (ClassNotFoundException ignored) {
+                // expected when the single key is not a valid alias or class. could avoid exception if we dropped
+                // support for single-keys that are just classes (ie. anonymous aliases), but we'll leave it in
+                // until we have some, more concrete, reason to remove it.
+            }
+        }
+        return null;
+    }
+
     /** called when the expected type is a codable object whose type may need to be resolved */
     private <T> T hydrateObject(@Nullable CodableClassInfo info,
                                 PluginMap pluginMap,
@@ -417,49 +464,9 @@ public final class CodecConfig {
 
         /* if no chance of instantiating current type, try to get a new type from various special syntax/ settings */
         if ((type == null) || Modifier.isAbstract(type.getModifiers()) || Modifier.isInterface(type.getModifiers())) {
-
-            /* "type-value : {...}"  syntax; ie. if there is only one key, see if it would be a valid type */
-            if (configObject.size() == 1) {
-                String singleKeyName = configObject.keySet().iterator().next();
-                try {
-                    Class<T> singleKeyType = (Class<T>) pluginMap.getClass(singleKeyName);
-                    CodableClassInfo singleKeyInfo = getOrCreateClassInfo(singleKeyType);
-                    ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
-                    ConfigValue configValue = configObject.get(singleKeyName);
-                    if (configValue.valueType() != ConfigValueType.OBJECT) {
-                        if (aliasDefaults.get("_primary") != null) {
-                            // if value is not an object, try supporting _primary syntax to derive one
-                            configValue = configValue.atPath((String) aliasDefaults.get("_primary").unwrapped()).root();
-                        } else if (ValueCodable.class.isAssignableFrom(singleKeyType)) {
-                            // see if the resolved type is innately okay with non-objects
-                            try {
-                                T objectShell = singleKeyType.newInstance();
-                                Config fieldDefaults = singleKeyInfo.getFieldDefaults();
-                                // do not merge objects between global defaults and user defaults (incl. alias defaults)
-                                ConfigObject mergedDefaults = aliasDefaults;
-                                for (Map.Entry<String, ConfigValue> pair : fieldDefaults.entrySet()) {
-                                    if (!mergedDefaults.containsKey(pair.getKey())) {
-                                        mergedDefaults = mergedDefaults.withValue(pair.getKey(), pair.getValue());
-                                    }
-                                }
-                                ((ValueCodable) objectShell).fromConfigValue(configValue, mergedDefaults);
-                                return objectShell;
-                            } catch (InstantiationException | IllegalAccessException | RuntimeException ex) {
-                                throw new ConfigException.BadValue(configValue.origin(), singleKeyType.getName(),
-                                                                   "exception during instantiation of a ValueCodable", ex);
-                            }
-                        } else {
-                            throw new ConfigException.WrongType(configValue.origin(), singleKeyName,
-                                                                "OBJECT", configValue.valueType().toString());
-                        }
-                    }
-                    ConfigObject fieldValues = ((ConfigObject) configValue).withFallback(aliasDefaults);
-                    return createAndPopulate(singleKeyInfo, singleKeyType, fieldValues);
-                } catch (ClassNotFoundException ignored) {
-                    // expected when the single key is not a valid alias or class. could avoid exception if we dropped
-                    // support for single-keys that are just classes (ie. anonymous aliases), but we'll leave it in
-                    // until we have some, more concrete, reason to remove it.
-                }
+            T maybeSingleKey = hydrateSingleKeyObject(pluginMap, configObject);
+            if (maybeSingleKey != null) {
+                return maybeSingleKey;
             }
 
             /* inlined types syntax ie "{ type-value: some-value, some-field: some-other-value, ...}".
@@ -797,8 +804,18 @@ public final class CodecConfig {
                                       @Nonnull Config config) throws IllegalAccessException {
         Config fieldDefaults = classInfo.getFieldDefaults();
         Collection<String> unusedKeys = new HashSet<>(config.root().keySet());
+        ConfigValue primaryFieldNameValue = config.root().get("_primary");
+        String primaryFieldName = null;
+        if ((primaryFieldNameValue != null) && (primaryFieldNameValue.valueType() != ConfigValueType.NULL)) {
+            primaryFieldName = (String) primaryFieldNameValue.unwrapped();
+            unusedKeys.remove(primaryFieldName);
+        }
+        CodableFieldInfo primaryField = null;
         for (CodableFieldInfo field : classInfo.values()) {
             if (field.isWriteOnly()) {
+                continue;
+            } else if (field.getName().equals(primaryFieldName)) {
+                primaryField = field;
                 continue;
             }
             unusedKeys.remove(field.getName());
@@ -821,9 +838,40 @@ public final class CodecConfig {
                     unusedKeyIterator.remove();
                 }
             }
-            if (!unusedKeys.isEmpty()) {
-                throw new ConfigException.BadPath(config.origin(), "unrecognized key(s) " + unusedKeys.toString());
+        }
+        if (primaryField != null) {
+            Object value = null;
+            if (unusedKeys.size() == 1) {
+                String onlyUnusedKey = unusedKeys.iterator().next();
+                ConfigObject onlyObject = config.root().withOnlyKey(onlyUnusedKey);
+                if (config.root().containsKey(primaryFieldName)) {
+                    onlyObject = onlyObject.withFallback(
+                            config.root().get(primaryFieldName).atKey(onlyUnusedKey));
+                }
+                CodableClassInfo primaryInfo = getOrCreateClassInfo(
+                        primaryField.getTypeOrComponentType());
+                PluginMap primaryMap = primaryInfo.getPluginMap();
+                value = hydrateSingleKeyObject(primaryMap, onlyObject);
+                if (value != null) {
+                    unusedKeys.clear();
+                }
             }
+
+            if (value == null) {
+                value = hydrateField(primaryField, config, objectShell);
+            }
+            if (value == null) {
+                value = hydrateField(primaryField, fieldDefaults, objectShell);
+            }
+            try {
+                primaryField.setStrict(objectShell, value);
+            } catch (RequiredFieldException ex) {
+                throw new ConfigException.Null(config.origin(), primaryField.getName(),
+                                               primaryField.toString(), ex);
+            }
+        }
+        if (!unusedKeys.isEmpty()) {
+            throw new ConfigException.BadPath(config.origin(), "unrecognized key(s) " + unusedKeys.toString());
         }
     }
 
