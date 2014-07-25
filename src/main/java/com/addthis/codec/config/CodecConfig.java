@@ -815,6 +815,7 @@ public final class CodecConfig {
 
         ConfigValue primaryFieldNameValue = config.root().get("_primary");
         String primaryFieldName = null;
+        boolean usedPrimaryField = false;
         if ((primaryFieldNameValue != null) && (primaryFieldNameValue.valueType() != ConfigValueType.NULL)) {
             primaryFieldName = (String) primaryFieldNameValue.unwrapped();
         }
@@ -824,10 +825,16 @@ public final class CodecConfig {
                 continue;
             }
             String fieldName = field.getName();
-            unusedKeys.remove(fieldName);
             if (fieldAliases.containsKey(fieldName)) {
                 String aliasName = (String) fieldAliases.get(fieldName).unwrapped();
                 unusedKeys.remove(aliasName);
+                if (config.root().containsKey(fieldName)
+                    && (config.root().get(fieldName).valueType() == ConfigValueType.NULL)) {
+                    // complain about values for renamed fields unless null or used elsewhere
+                    unusedKeys.remove(fieldName);
+                }
+            } else {
+                unusedKeys.remove(fieldName);
             }
         }
         if (!unusedKeys.isEmpty()) {
@@ -848,35 +855,40 @@ public final class CodecConfig {
                 continue;
             }
             String fieldName = field.getName();
+            String resolvedName;
+            Config resolvedConfig;
+            if (fieldAliases.containsKey(fieldName)) {
+                String aliasName = (String) fieldAliases.get(fieldName).unwrapped();
+                ConfigValue aliasValue = config.getValue(aliasName); // alias targets are paths
+                resolvedConfig = config.root().withValue(fieldName, aliasValue).toConfig();
+                resolvedName = aliasName;
+            } else {
+                resolvedName   = fieldName;
+                resolvedConfig = config;
+            }
 
             Object value = null;
-            if (fieldName.equals(primaryFieldName)) {
+            if (resolvedName.equals(primaryFieldName)) {
                 if (unusedKeys.size() == 1) {
                     String onlyUnusedKey = unusedKeys.iterator().next();
-                    ConfigObject onlyObject = config.root().withOnlyKey(onlyUnusedKey);
-                    if (config.root().containsKey(primaryFieldName)) {
+                    ConfigObject onlyObject = resolvedConfig.root().withOnlyKey(onlyUnusedKey);
+                    if (resolvedConfig.root().containsKey(primaryFieldName)) {
                         onlyObject = onlyObject.withFallback(
-                                config.root().get(primaryFieldName).atKey(onlyUnusedKey));
+                                resolvedConfig.root().get(primaryFieldName).atKey(onlyUnusedKey));
                     }
                     CodableClassInfo primaryInfo = getOrCreateClassInfo(
                             field.getTypeOrComponentType());
                     PluginMap primaryMap = primaryInfo.getPluginMap();
                     value = hydrateSingleKeyObject(primaryMap, onlyObject);
                     if (value != null) {
-                        unusedKeys.clear();
+                        usedPrimaryField = true;
+                    } else {
+                        throw new ConfigException.BadPath(config.origin(), "unrecognized key(s) " + unusedKeys.toString());
                     }
                 }
             }
 
             if (value == null) {
-                Config resolvedConfig;
-                if (fieldAliases.containsKey(fieldName)) {
-                    String aliasName = (String) fieldAliases.get(fieldName).unwrapped();
-                    ConfigValue aliasValue = config.getValue(aliasName); // alias targets are paths
-                    resolvedConfig = config.root().withValue(fieldName, aliasValue).toConfig();
-                } else {
-                    resolvedConfig = config;
-                }
                 value = hydrateField(field, resolvedConfig, objectShell);
             }
             if (value == null) {
@@ -889,7 +901,7 @@ public final class CodecConfig {
                                                field.toString(), ex);
             }
         }
-        if (!unusedKeys.isEmpty()) {
+        if (!usedPrimaryField && !unusedKeys.isEmpty()) {
             throw new ConfigException.BadPath(config.origin(), "unrecognized key(s) " + unusedKeys.toString());
         }
     }
