@@ -351,7 +351,7 @@ public final class CodecConfig {
                     Class<T> arrayType = (Class<T>) pluginMap.arraySugar();
                     if (arrayType != null) {
                         Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
-                        ConfigObject fieldsValues = configValue.atKey(aliasDefaults.getString("_primary")).root()
+                        ConfigObject fieldsValues = configValue.atPath(aliasDefaults.getString("_primary")).root()
                                                                .withFallback(aliasDefaults);
                         CodableClassInfo arrayInfo = getOrCreateClassInfo(arrayType);
                         return createAndPopulate(arrayInfo, arrayType, fieldsValues);
@@ -491,8 +491,8 @@ public final class CodecConfig {
                 ConfigObject aliasDefaults = pluginMap.aliasDefaults(matched);
                 ConfigValue configValue = configObject.get(matched);
                 String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
-                ConfigObject fieldValues =  configObject.toConfig().withValue(primaryField, configValue).root()
-                                                        .withoutKey(matched)
+                ConfigObject fieldValues =  configObject.withoutKey(matched).toConfig()
+                                                        .withValue(primaryField, configValue).root()
                                                         .withFallback(aliasDefaults);
                 return createAndPopulate(inlinedInfo, inlinedType, fieldValues);
             }
@@ -859,8 +859,12 @@ public final class CodecConfig {
             Config resolvedConfig;
             if (fieldAliases.containsKey(fieldName)) {
                 String aliasName = (String) fieldAliases.get(fieldName).unwrapped();
-                ConfigValue aliasValue = config.getValue(aliasName); // alias targets are paths
-                resolvedConfig = config.root().withValue(fieldName, aliasValue).toConfig();
+                if (config.hasPath(aliasName)) {
+                    ConfigValue aliasValue = config.getValue(aliasName); // alias targets are paths
+                    resolvedConfig = config.root().withValue(fieldName, aliasValue).toConfig();
+                } else {
+                    resolvedConfig = config.root().withoutKey(fieldName).toConfig();
+                }
                 resolvedName = aliasName;
             } else {
                 resolvedName   = fieldName;
@@ -872,9 +876,9 @@ public final class CodecConfig {
                 if (unusedKeys.size() == 1) {
                     String onlyUnusedKey = unusedKeys.iterator().next();
                     ConfigObject onlyObject = resolvedConfig.root().withOnlyKey(onlyUnusedKey);
-                    if (resolvedConfig.root().containsKey(primaryFieldName)) {
+                    if (resolvedConfig.hasPath(primaryFieldName)) {
                         onlyObject = onlyObject.withFallback(
-                                resolvedConfig.root().get(primaryFieldName).atKey(onlyUnusedKey));
+                                resolvedConfig.getValue(primaryFieldName).atKey(onlyUnusedKey));
                     }
                     CodableClassInfo primaryInfo = getOrCreateClassInfo(
                             field.getTypeOrComponentType());
@@ -897,7 +901,7 @@ public final class CodecConfig {
             try {
                 field.setStrict(objectShell, value);
             } catch (RequiredFieldException ex) {
-                throw new ConfigException.Null(config.origin(), field.getName(),
+                throw new ConfigException.Null(config.origin(), resolvedName,
                                                field.toString(), ex);
             }
         }
