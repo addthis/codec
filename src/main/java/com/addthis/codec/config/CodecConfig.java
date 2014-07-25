@@ -804,30 +804,30 @@ public final class CodecConfig {
                                       @Nonnull Config config) throws IllegalAccessException {
         Config fieldDefaults = classInfo.getFieldDefaults();
         Collection<String> unusedKeys = new HashSet<>(config.root().keySet());
+
+        ConfigValue fieldAliasesValue = config.root().get("_rename");
+        ConfigObject fieldAliases;
+        if ((fieldAliasesValue != null) && (fieldAliasesValue.valueType() != ConfigValueType.NULL)) {
+            fieldAliases = (ConfigObject) fieldAliasesValue;
+        } else {
+            fieldAliases = ConfigFactory.empty().root();
+        }
+
         ConfigValue primaryFieldNameValue = config.root().get("_primary");
         String primaryFieldName = null;
         if ((primaryFieldNameValue != null) && (primaryFieldNameValue.valueType() != ConfigValueType.NULL)) {
             primaryFieldName = (String) primaryFieldNameValue.unwrapped();
-            unusedKeys.remove(primaryFieldName);
         }
-        CodableFieldInfo primaryField = null;
+
         for (CodableFieldInfo field : classInfo.values()) {
             if (field.isWriteOnly()) {
                 continue;
-            } else if (field.getName().equals(primaryFieldName)) {
-                primaryField = field;
-                continue;
             }
-            unusedKeys.remove(field.getName());
-            Object value = hydrateField(field, config, objectShell);
-            if (value == null) {
-                value = hydrateField(field, fieldDefaults, objectShell);
-            }
-            try {
-                field.setStrict(objectShell, value);
-            } catch (RequiredFieldException ex) {
-                throw new ConfigException.Null(config.origin(), field.getName(),
-                                               field.toString(), ex);
+            String fieldName = field.getName();
+            unusedKeys.remove(fieldName);
+            if (fieldAliases.containsKey(fieldName)) {
+                String aliasName = (String) fieldAliases.get(fieldName).unwrapped();
+                unusedKeys.remove(aliasName);
             }
         }
         if (!unusedKeys.isEmpty()) {
@@ -839,35 +839,54 @@ public final class CodecConfig {
                 }
             }
         }
-        if (primaryField != null) {
+        if (unusedKeys.size() > 1) {
+            throw new ConfigException.BadPath(config.origin(), "unrecognized key(s) " + unusedKeys.toString());
+        }
+
+        for (CodableFieldInfo field : classInfo.values()) {
+            if (field.isWriteOnly()) {
+                continue;
+            }
+            String fieldName = field.getName();
+
             Object value = null;
-            if (unusedKeys.size() == 1) {
-                String onlyUnusedKey = unusedKeys.iterator().next();
-                ConfigObject onlyObject = config.root().withOnlyKey(onlyUnusedKey);
-                if (config.root().containsKey(primaryFieldName)) {
-                    onlyObject = onlyObject.withFallback(
-                            config.root().get(primaryFieldName).atKey(onlyUnusedKey));
-                }
-                CodableClassInfo primaryInfo = getOrCreateClassInfo(
-                        primaryField.getTypeOrComponentType());
-                PluginMap primaryMap = primaryInfo.getPluginMap();
-                value = hydrateSingleKeyObject(primaryMap, onlyObject);
-                if (value != null) {
-                    unusedKeys.clear();
+            if (fieldName.equals(primaryFieldName)) {
+                if (unusedKeys.size() == 1) {
+                    String onlyUnusedKey = unusedKeys.iterator().next();
+                    ConfigObject onlyObject = config.root().withOnlyKey(onlyUnusedKey);
+                    if (config.root().containsKey(primaryFieldName)) {
+                        onlyObject = onlyObject.withFallback(
+                                config.root().get(primaryFieldName).atKey(onlyUnusedKey));
+                    }
+                    CodableClassInfo primaryInfo = getOrCreateClassInfo(
+                            field.getTypeOrComponentType());
+                    PluginMap primaryMap = primaryInfo.getPluginMap();
+                    value = hydrateSingleKeyObject(primaryMap, onlyObject);
+                    if (value != null) {
+                        unusedKeys.clear();
+                    }
                 }
             }
 
             if (value == null) {
-                value = hydrateField(primaryField, config, objectShell);
+                Config resolvedConfig;
+                if (fieldAliases.containsKey(fieldName)) {
+                    String aliasName = (String) fieldAliases.get(fieldName).unwrapped();
+                    ConfigValue aliasValue = config.getValue(aliasName); // alias targets are paths
+                    resolvedConfig = config.root().withValue(fieldName, aliasValue).toConfig();
+                } else {
+                    resolvedConfig = config;
+                }
+                value = hydrateField(field, resolvedConfig, objectShell);
             }
             if (value == null) {
-                value = hydrateField(primaryField, fieldDefaults, objectShell);
+                value = hydrateField(field, fieldDefaults, objectShell);
             }
             try {
-                primaryField.setStrict(objectShell, value);
+                field.setStrict(objectShell, value);
             } catch (RequiredFieldException ex) {
-                throw new ConfigException.Null(config.origin(), primaryField.getName(),
-                                               primaryField.toString(), ex);
+                throw new ConfigException.Null(config.origin(), field.getName(),
+                                               field.toString(), ex);
             }
         }
         if (!unusedKeys.isEmpty()) {

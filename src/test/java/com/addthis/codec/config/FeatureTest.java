@@ -106,11 +106,20 @@ public class FeatureTest {
         String expected = "extra extra! other Hello WorldWOW bytes: 1024 millis: 1000";
         Assert.assertEquals(expected, greeterObject.greet());
     }
+
     @Test
     public void primaryNested() throws Exception {
         Config greet = ConfigFactory.parseString("greet.parse-simple: WOW");
         Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
         String expected = "extra extra! other Hello WorldWOW bytes: 1024 millis: 1000";
+        Assert.assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void rename() throws Exception {
+        Config greet = ConfigFactory.parseString("greet.enterprise-simple: {suffix-factory: impl}");
+        Greeter greeterObject = CodecConfig.getDefault().decodeObject(greet);
+        String expected = "Hello Worldimpl";
         Assert.assertEquals(expected, greeterObject.greet());
     }
 
