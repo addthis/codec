@@ -19,8 +19,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.addthis.codec.validation.Validator;
-
 /**
  * control coding parameters for fields. allows code to dictate non-codable
  * fields as codable
@@ -41,6 +39,4 @@ public @interface FieldConfig {
     boolean intern() default false;
 
     boolean autocollection() default false;
-
-    Class<? extends Validator> validator() default Validator.class;
 }

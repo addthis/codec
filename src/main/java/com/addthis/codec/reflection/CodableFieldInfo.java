@@ -26,8 +26,6 @@ import java.util.Map;
 import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecExceptionLineNumber;
-import com.addthis.codec.validation.ValidationException;
-import com.addthis.codec.validation.Validator;
 import com.addthis.maljson.LineNumberInfo;
 
 import com.google.common.annotations.Beta;
@@ -60,7 +58,6 @@ public final class CodableFieldInfo {
     @Nonnull private final Class<?> typeOrComponentType;
     private final int bits;
 
-    @Nullable private final Validator   validator;
     @Nullable private final FieldConfig fieldConfig;
     @Nullable private final Type[]      genTypes;
     @Nullable private final boolean[]   genArray;
@@ -91,15 +88,6 @@ public final class CodableFieldInfo {
             genArray = new boolean[genTypes.length];
             mutateGenericTypes(genTypes, genArray);
         }
-        Validator tryValidator = null;
-        if ((fieldConfig != null) && (fieldConfig.validator() != Validator.class)) {
-            try {
-                tryValidator = fieldConfig.validator().newInstance();
-            } catch (InstantiationException | IllegalAccessException e) {
-                log.warn("error while trying to create validator ({}) for {}", fieldConfig.validator(), field, e);
-            }
-        }
-        validator = tryValidator;
     }
 
     private int cacheFlags(int externalBits) {
@@ -203,10 +191,6 @@ public final class CodableFieldInfo {
         return ((genArray != null) && (genArray.length == 2)) ? genArray[1] : false;
     }
 
-    public boolean validate(Object value) {
-        return (validator != null) ? validator.validate(this, value) : true;
-    }
-
     public Object get(Object src) {
         try {
             return field.get(src);
@@ -232,11 +216,6 @@ public final class CodableFieldInfo {
             }
             return;
         }
-        if (!validate(value)) {
-            Exception ex = new ValidationException("invalid field value '" + value +
-                "' for " + this.getName() + " in " + dst, getName());
-            throw new CodecExceptionLineNumber(ex, valInfo);
-        }
         try {
             if ((value.getClass() == String.class) && isInterned()) {
                 value = ((String) value).intern();
@@ -260,10 +239,6 @@ public final class CodableFieldInfo {
             }
             return;
         }
-        if (!validate(value)) {
-            throw new ValidationException("invalid field value '" + value + "' for " +
-                                          this.getName() + " in " + dst, getName());
-        }
         field.set(dst, value);
     }
 
@@ -274,10 +249,6 @@ public final class CodableFieldInfo {
                     this.getName() + "' for " + dst, getName());
             }
             return;
-        }
-        if (!validate(value)) {
-            throw new ValidationException("invalid field value '" + value + "' for " +
-                this.getName() + " in " + dst, getName());
         }
         try {
             if ((value.getClass() == String.class) && isInterned()) {

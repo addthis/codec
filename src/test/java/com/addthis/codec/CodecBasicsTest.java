@@ -26,10 +26,7 @@ import com.addthis.codec.binary.CodecBin2;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.kv.CodecKV;
-import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.RequiredFieldException;
-import com.addthis.codec.validation.ValidationException;
-import com.addthis.codec.validation.Validator;
 
 import org.junit.Test;
 
@@ -436,24 +433,11 @@ public class CodecBasicsTest {
         }
     }
 
-    public static class EC {
-
-        @FieldConfig(validator = EmailChecker.class)
-        public String email = "myemail";
-    }
-
     public static class RC {
 
         @FieldConfig(required = true)
         public String required;
         public String crap = "crap";
-    }
-
-    public static class EmailChecker implements Validator {
-
-        public boolean validate(CodableFieldInfo field, Object value) {
-            return value != null && value.toString().contains("@");
-        }
     }
 
     public static boolean test(Codec codec) throws Exception {
@@ -490,21 +474,6 @@ public class CodecBasicsTest {
         bec = codec.encode(f);
         f = (F) codec.decode(F.class, bec);
         boolean subclasses = f.check();
-        // check validation
-        boolean validates = false;
-        String s7 = null;
-        try {
-            EC ec = new EC();
-            byte[] ec1 = codec.encode(ec);
-            ec = (EC) codec.decode(ec, ec1);
-        } catch (Exception ex) {
-            s7 = ex.toString();
-            if (ex instanceof ValidationException || ex.getCause() instanceof ValidationException) {
-                validates = true;
-            } else {
-                ex.printStackTrace();
-            }
-        }
         // check required fields
         boolean requireds = false;
         try {
@@ -516,16 +485,16 @@ public class CodecBasicsTest {
                 requireds = true;
             }
         }
-        boolean ok = encodeDecode && codes && validates && upgrades && downgrades && requireds &&
+        boolean ok = encodeDecode && codes && upgrades && downgrades && requireds &&
                      subclasses;
         if (!ok) {
             System.out.println("encodeDecode=" + encodeDecode +
-                               " codes=" + codes + " validates=" + validates +
+                               " codes=" + codes +
                                " upgrades=" + upgrades + " downgrades=" + downgrades +
                                " requireds=" + requireds + " subclasses=" + subclasses
             );
             System.out.println(
-                    s1 + "\n" + s2 + "\n" + s3 + "\n" + s4 + "\n" + s5 + "\n" + s6 + "\n" + s7);
+                    s1 + "\n" + s2 + "\n" + s3 + "\n" + s4 + "\n" + s5 + "\n" + s6);
         }
         System.out.println(cn + " Codec Test : " + (ok ? "PASSED" : "FAILED") + " " + bec.length);
         return ok;
