@@ -40,9 +40,12 @@ public class CodecTypeResolverBuilder extends StdTypeResolverBuilder {
                                                             JavaType baseType,
                                                             Collection<NamedType> subtypes) {
         CodecTypeIdResolver codecTypeIdResolver = idResolver(config, baseType, subtypes, false, true);
-        return new CodecTypeDeserializer(pluginMap, _includeAs, baseType,
-                                         codecTypeIdResolver, _typeProperty,
-                                         _typeIdVisible, _defaultImpl);
+        Class<?> defaultImplForType = _defaultImpl;
+        if ((_defaultImpl == null) || !_defaultImpl.isAssignableFrom(baseType.getRawClass())) {
+            defaultImplForType = baseType.getRawClass();
+        }
+        return new CodecTypeDeserializer(pluginMap, _includeAs, baseType, codecTypeIdResolver,
+                                         _typeProperty, _typeIdVisible, defaultImplForType);
     }
 
     @Override

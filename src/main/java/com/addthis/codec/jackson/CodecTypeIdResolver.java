@@ -49,15 +49,18 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
     }
 
     public boolean isValidTypeId(String typeId) {
-        if ((pluginMap.getClassIfConfigured(typeId) != null) || extraSubTypes.containsKey(typeId)) {
-            return true;
+        Class<?> cls = pluginMap.getClassIfConfigured(typeId);
+        if (cls == null) {
+            cls = extraSubTypes.get(typeId);
         }
         try {
-            Class<?> cls = pluginMap.getClass(typeId);
-            return true;
+            if (cls == null) {
+                cls = pluginMap.getClass(typeId);
+            }
         } catch (ClassNotFoundException ignored) {
             return false;
         }
+        return _baseType.getRawClass().isAssignableFrom(cls);
     }
 
     @Override

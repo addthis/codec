@@ -13,6 +13,7 @@
  */
 package com.addthis.codec.config;
 
+import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
@@ -20,6 +21,7 @@ import com.addthis.maljson.JSONObject;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigValue;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -162,9 +164,17 @@ public class FeatureTest {
     @Test
     public void inheritance() throws Exception {
         Config greet = parseString(
-                "greet.subparse {bytes: 512KB, other: {enum.timeUnit: SECONDS}}");
-        Greeter greeterObject = decodeObject(greet);
+                "bytes: 512KB, other: {enum.timeUnit: SECONDS}");
+        Greeter greeterObject = decodeObject(ParseGreetSub.class, greet);
         String expected = "extra extra! other [SECONDS] bytes: 524288 millis: 1000";
+        assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void concreteValue() throws Exception {
+        ConfigValue greet = parseString("val = hi friend").getValue("val");
+        Greeter greeterObject = CodecJackson.getDefault().decodeObject(ParseGreetSub.class, greet);
+        String expected = "extra hi friend other Hello Worldnull bytes: 0 millis: 0";
         assertEquals(expected, greeterObject.greet());
     }
 

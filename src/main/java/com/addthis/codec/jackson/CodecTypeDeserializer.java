@@ -13,6 +13,8 @@
  */
 package com.addthis.codec.jackson;
 
+import javax.annotation.Nullable;
+
 import java.io.IOException;
 
 import java.util.Iterator;
@@ -96,21 +98,29 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             }
         }
         String classField = pluginMap.classField();
+        Object bean = null;
+        JsonToken currentToken = jp.getCurrentToken();
+        JsonNode jsonNode = jp.readValueAsTree();
 
         // _array handler
-        if (jp.isExpectedStartArrayToken()) {
-            return _deserializeTypedFromArray(classField, jp, ctxt);
+        if (jsonNode.isArray()) {
+            bean = _deserializeTypedFromArray((ArrayNode) jsonNode, classField, jp, ctxt);
         // object handler
-        } else if (jp.getCurrentToken() == JsonToken.START_OBJECT) {
-            return _deserializeTypedFromObject(classField, jp, ctxt);
+        } else if (jsonNode.isObject()) {
+            bean = _deserializeTypedFromObject((ObjectNode) jsonNode, classField, jp, ctxt);
         }
-        throw ctxt.wrongTokenException(jp, jp.getCurrentToken(),
-                                       "Need an object or an array (if _array is set) to resolve the subtype of your "
-                                       + pluginMap.category());
+        if (bean != null) {
+            return bean;
+        } else {
+            JsonDeserializer<Object> deser = _findDeserializer(ctxt, null);
+            JsonParser treeParser = jp.getCodec().treeAsTokens(jsonNode);
+            treeParser.nextToken();
+            return deser.deserialize(treeParser, ctxt);
+        }
     }
 
-    public Object _deserializeTypedFromObject(String classField, JsonParser jp, DeserializationContext ctxt) throws IOException {
-        ObjectNode objectNode = jp.readValueAsTree();
+    @Nullable public Object _deserializeTypedFromObject(ObjectNode objectNode, String classField,
+                                                        JsonParser jp, DeserializationContext ctxt) throws IOException {
         if (objectNode.hasNonNull(classField)) {
             return _deserializeObjectFromProperty(objectNode, classField, jp, ctxt);
         }
@@ -124,18 +134,21 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         if (bean != null) {
             return bean;
         }
-        ConfigObject aliasDefaults = pluginMap.aliasDefaults("_default");
-        if (!aliasDefaults.isEmpty()) {
-            Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
+        if (idRes.isValidTypeId("_default")) {
+            ConfigObject aliasDefaults = pluginMap.aliasDefaults("_default");
+            if (!aliasDefaults.isEmpty()) {
+                Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
+            }
+            JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_default");
+            JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
+            treeParser.nextToken();
+            bean = deser.deserialize(treeParser, ctxt);
         }
-        JsonDeserializer<Object> deser = _findDeserializer(ctxt, null);
-        JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
-        treeParser.nextToken();
-        return deser.deserialize(treeParser, ctxt);
+        return bean;
     }
 
-    private Object _deserializeObjectFromInlinedType(ObjectNode objectNode, String classField,
-                                                     JsonParser jp, DeserializationContext ctxt) throws IOException {
+    @Nullable private Object _deserializeObjectFromInlinedType(ObjectNode objectNode, String classField, JsonParser jp,
+                                                               DeserializationContext ctxt) throws IOException {
         String matched = null;
         for (String alias : pluginMap.inlinedAliases()) {
             if (objectNode.get(alias) != null) {
@@ -167,8 +180,8 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         }
     }
 
-    private Object _deserializeObjectFromSingleKey(ObjectNode objectNode, String classField,
-                                                   JsonParser jp, DeserializationContext ctxt) throws IOException {
+    @Nullable private Object _deserializeObjectFromSingleKey(ObjectNode objectNode, String classField, JsonParser jp,
+                                                             DeserializationContext ctxt) throws IOException {
         String singleKeyName = objectNode.fieldNames().next();
         if (idRes.isValidTypeId(singleKeyName)) {
             ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
@@ -211,24 +224,22 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         return deser.deserialize(treeParser, ctxt);
     }
 
-    private Object _deserializeTypedFromArray(String classField, JsonParser jp, DeserializationContext ctxt)
-            throws IOException {
-        if (pluginMap.arraySugar() == null) {
-            throw ctxt.wrongTokenException(jp, jp.getCurrentToken(),
-                                           "Found an array, but there is no _array subtype for "
-                                           + pluginMap.category());
+    @Nullable private Object _deserializeTypedFromArray(ArrayNode arrayNode, String classField, JsonParser jp,
+                                                        DeserializationContext ctxt) throws IOException {
+        if (idRes.isValidTypeId("_array")) {
+            Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
+            String arrayField = aliasDefaults.getString("_primary");
+            ObjectNode objectFieldValues = (ObjectNode) jp.getCodec().createObjectNode();
+            Jackson.setAt(objectFieldValues, arrayNode, arrayField);
+            ObjectNode aliasFieldDefaults = Jackson.configConverter(aliasDefaults.root());
+            Jackson.merge(objectFieldValues, aliasFieldDefaults);
+            JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_array");
+            JsonParser treeParser = jp.getCodec().treeAsTokens(objectFieldValues);
+            treeParser.nextToken();
+            return deser.deserialize(treeParser, ctxt);
+        } else {
+            return null;
         }
-        ArrayNode arrayNode = jp.readValueAsTree();
-        Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
-        String arrayField = aliasDefaults.getString("_primary");
-        ObjectNode objectFieldValues = (ObjectNode) jp.getCodec().createObjectNode();
-        Jackson.setAt(objectFieldValues, arrayNode, arrayField);
-        ObjectNode aliasFieldDefaults = Jackson.configConverter(aliasDefaults.root());
-        Jackson.merge(objectFieldValues, aliasFieldDefaults);
-        JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_array");
-        JsonParser treeParser = jp.getCodec().treeAsTokens(objectFieldValues);
-        treeParser.nextToken();
-        return deser.deserialize(treeParser, ctxt);
     }
 
     private void handleDefaultsAndImplicitPrimary(ObjectNode fieldValues, ConfigObject aliasDefaults,

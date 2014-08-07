@@ -17,6 +17,13 @@ public class ParseGreetSub extends ParseGreet {
 
     public String extra;
 
+    public ParseGreetSub() {}
+
+    public ParseGreetSub(String otherConstructor) {
+        extra = otherConstructor;
+        other = new SimpleGreet();
+    }
+
     @Override public String greet() {
         return "extra " + extra + " other " + other.greet() +
                " bytes: " + bytes + " millis: " + millis;
