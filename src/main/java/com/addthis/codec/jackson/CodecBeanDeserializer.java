@@ -35,10 +35,14 @@ import com.fasterxml.jackson.databind.deser.impl.ObjectIdReader;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.util.NameTransformer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.dropwizard.util.Duration;
 import io.dropwizard.util.Size;
 
 public class CodecBeanDeserializer extends BeanDeserializer {
+    private static final Logger log = LoggerFactory.getLogger(CodecBeanDeserializer.class);
 
     private final ObjectNode fieldDefaults;
 
@@ -87,17 +91,19 @@ public class CodecBeanDeserializer extends BeanDeserializer {
         while (propertyIterator.hasNext()) {
             SettableBeanProperty prop = propertyIterator.next();
             String propertyName = prop.getName();
-            if (!fieldValues.hasNonNull(propertyName)) {
+            JsonNode fieldValue = fieldValues.path(propertyName);
+            if (fieldValue.isMissingNode() || fieldValue.isNull()) {
                 if (fieldDefaults.hasNonNull(propertyName)) {
-                    fieldValues.set(propertyName, fieldDefaults.get(propertyName).deepCopy());
+                    fieldValue = fieldDefaults.get(propertyName).deepCopy();
+                    fieldValues.set(propertyName, fieldValue);
                 } else if (prop.isRequired()) {
                     throw ctxt.instantiationException(handledType(), "missing required field: " + propertyName);
-                } else if (prop.getType().isPrimitive() || (prop.getValueDeserializer().getNullValue() == null)) {
+                } else if (fieldValue.isNull()
+                           && (prop.getType().isPrimitive() || (prop.getValueDeserializer().getNullValue() == null))) {
                     // don't overwrite possible hard-coded defaults/ values with nulls unless they are fancy
                     fieldValues.remove(propertyName);
                 }
             }
-            JsonNode fieldValue = fieldValues.path(propertyName);
             if (fieldValue.isTextual()) {
                 Time time = prop.getAnnotation(Time.class);
                 if (time != null) {
