@@ -20,6 +20,7 @@ import java.util.Iterator;
 
 import com.google.common.base.Splitter;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,6 +70,7 @@ public final class Jackson {
         toggleObjectMapperOptions(objectMapper);
         objectMapper.registerModule(codecModule);
         registerExtraModules(objectMapper);
+        toggleParserOptions(objectMapper);
         return objectMapper;
     }
 
@@ -76,6 +78,13 @@ public final class Jackson {
         objectMapper.registerModule(new GuavaModule());
         objectMapper.registerModule(new Jdk7Module());
         objectMapper.registerModule(new JodaModule());
+        return objectMapper;
+    }
+
+    public static ObjectMapper toggleParserOptions(ObjectMapper objectMapper) {
+        objectMapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        objectMapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+        objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
         return objectMapper;
     }
 
