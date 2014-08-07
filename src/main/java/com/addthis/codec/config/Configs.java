@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
@@ -109,7 +110,7 @@ public final class Configs {
      * key should be a valid, loaded, plug-in category.
      */
     public static <T> T decodeObject(Config config) {
-        return DefaultCodecConfig.DEFAULT.decodeObject(config);
+        return CodecJackson.getDefault().decodeObject(config);
     }
 
     public static ConfigValue expandSugar(Config config, CodecConfig codec) {

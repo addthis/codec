@@ -911,7 +911,7 @@ public final class CodecConfig {
     }
 
     // like the one in Fields.java, but non-static and using a possibly non-default registry
-    CodableClassInfo getOrCreateClassInfo(Class<?> clazz) {
+    public CodableClassInfo getOrCreateClassInfo(Class<?> clazz) {
         CodableClassInfo fieldMap = fieldMaps.get(clazz);
         if (fieldMap == null) {
             fieldMap = new CodableClassInfo(clazz, globalConfig, pluginRegistry);

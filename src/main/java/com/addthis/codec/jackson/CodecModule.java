@@ -13,20 +13,26 @@
  */
 package com.addthis.codec.jackson;
 
-import com.addthis.codec.config.CodecConfig;
+import com.addthis.codec.plugins.PluginRegistry;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.Module;
+import com.typesafe.config.Config;
 
 public class CodecModule extends Module {
-    private final CodecConfig codecConfig;
 
-    public CodecModule(CodecConfig codecConfig) {
-        this.codecConfig = codecConfig;
+    private final PluginRegistry pluginRegistry;
+    private final Config globalConfig;
+
+    public CodecModule(PluginRegistry pluginRegistry, Config globalConfig) {
+        this.pluginRegistry = pluginRegistry;
+        this.globalConfig = globalConfig;
     }
 
     @Override public void setupModule(SetupContext context) {
-        context.insertAnnotationIntrospector(new CodecIntrospector(codecConfig.pluginRegistry()));
+        context.insertAnnotationIntrospector(new CodecIntrospector(pluginRegistry));
+        context.addDeserializationProblemHandler(new CodecUnknownPropertyHandler());
+        context.addBeanDeserializerModifier(new CodecBeanDeserializerModifier(globalConfig));
     }
 
     @Override public String getModuleName() {

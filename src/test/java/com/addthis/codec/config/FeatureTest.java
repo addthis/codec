@@ -153,7 +153,7 @@ public class FeatureTest {
 
     @Test
     public void bytesAndTime() throws Exception {
-        Config greet = parseString("greet.parse {bytes: 1G, millis: 5s}");
+        Config greet = parseString("greet.parse {bytes: 1GB, millis: 5s}");
         Greeter greeterObject = decodeObject(greet);
         String expected = "bytes: 1073741824 millis: 5000";
         assertEquals(expected, greeterObject.greet());
@@ -170,7 +170,7 @@ public class FeatureTest {
     @Test
     public void inheritance() throws Exception {
         Config greet = parseString(
-                "greet.subparse {bytes: 512k, other: {enum.timeUnit: SECONDS}}");
+                "greet.subparse {bytes: 512KB, other: {enum.timeUnit: SECONDS}}");
         Greeter greeterObject = decodeObject(greet);
         String expected = "extra extra! other [SECONDS] bytes: 524288 millis: 1000";
         assertEquals(expected, greeterObject.greet());

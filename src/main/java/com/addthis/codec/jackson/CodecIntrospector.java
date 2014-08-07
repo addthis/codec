@@ -32,7 +32,12 @@ import com.fasterxml.jackson.databind.introspect.NopAnnotationIntrospector;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class CodecIntrospector extends NopAnnotationIntrospector {
+    private static final Logger log = LoggerFactory.getLogger(CodecIntrospector.class);
+
     private final PluginRegistry pluginRegistry;
 
     public CodecIntrospector(PluginRegistry pluginRegistry) {
@@ -40,12 +45,15 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
     }
 
     @Override
-    public TypeResolverBuilder<?> findTypeResolver(MapperConfig<?> config,
-                                                   AnnotatedClass ac, JavaType baseType) {
+    public TypeResolverBuilder<?> findTypeResolver(MapperConfig<?> config, AnnotatedClass ac, JavaType baseType) {
         Pluggable pluggable = ac.getAnnotation(Pluggable.class);
         if (pluggable != null) {
             PluginMap pluginMap = pluginRegistry.byCategory().get(pluggable.value());
-            return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory());
+            if (pluginMap != null) {
+                return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory());
+            } else {
+                log.warn("missing plugin map for {}, reached from {}", pluggable.value(), ac.getRawType());
+            }
         }
         return null;
     }

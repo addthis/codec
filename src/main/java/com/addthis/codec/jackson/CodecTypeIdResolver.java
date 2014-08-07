@@ -57,13 +57,18 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
     }
 
     private JavaType _typeFromId(String id, TypeFactory typeFactory) {
+        if (id == null) {
+            return null;
+        }
         try {
             Class<?> cls = pluginMap.getClass(id);
             return typeFactory.constructSpecializedType(_baseType, cls);
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException("Invalid type id '"+id+"' (for id type 'Id.class'): no such class found");
+            throw new IllegalArgumentException(
+                    "Invalid type id '"+id+"' (for id type 'Id.class'): no such class found", e);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid type id '"+id+"' (for id type 'Id.class'): "+e.getMessage(), e);
+            throw new IllegalArgumentException(
+                    "Invalid type id '"+id+"' (for id type 'Id.class'): "+e.getMessage(), e);
         }
     }
 }
