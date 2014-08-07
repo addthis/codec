@@ -34,8 +34,9 @@ public class CodecEnumDeserializer extends StdScalarDeserializer<Enum<?>> {
     @Override
     public Enum<?> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         JsonToken curr = jp.getCurrentToken();
-        
-        if ((curr == JsonToken.VALUE_STRING) || (curr == JsonToken.FIELD_NAME)) {
+
+        if ((curr == JsonToken.VALUE_STRING) || (curr == JsonToken.FIELD_NAME)
+            || (curr == JsonToken.VALUE_FALSE) || (curr == JsonToken.VALUE_TRUE)) {
             String name = jp.getText();
             TextNode upperName = ctxt.getNodeFactory().textNode(name.toUpperCase());
             JsonParser treeParser = jp.getCodec().treeAsTokens(upperName);

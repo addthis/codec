@@ -57,9 +57,9 @@ public class ConfigTest {
     }
 
     static class IntHolder {
-        @JsonProperty("inty") public int inty;
+        @JsonProperty("inty1") public int inty;
 
-        public IntHolder(@JsonProperty("inty") int inty) {
+        public IntHolder(@JsonProperty("inty2") int inty) {
             log.info("IntHolder constructor called");
             this.inty = inty;
         }
@@ -88,6 +88,12 @@ public class ConfigTest {
     @Test
     public void someIntTest() throws Exception {
         IntHolder intHolder = Jackson.newDefault(IntHolder.class);
+        log.info("IntHolder.inty {}", intHolder.inty);
+        ObjectNode node = Jackson.defaultMapper()
+                                 .createObjectNode()
+                                 .put("inty2", 10)
+                                 .put("inty1", 12);
+        intHolder = CodecJackson.getDefault().decodeObject(IntHolder.class, node);
         log.info("IntHolder.inty {}", intHolder.inty);
     }
 

@@ -65,7 +65,7 @@ public final class Configs {
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
     public static <T> T decodeObject(@Nonnull Class<T> type, @Nonnull Config config) {
-        return DefaultCodecConfig.DEFAULT.decodeObject(type, config);
+        return CodecJackson.getDefault().decodeObject(type, config);
     }
 
     /**
@@ -74,7 +74,7 @@ public final class Configs {
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
     public static <T> T decodeObject(@Nonnull String category, @Nonnull Config config) {
-        return DefaultCodecConfig.DEFAULT.decodeObject(category, config);
+        return CodecJackson.getDefault().decodeObject(category, config);
     }
 
     /**
@@ -83,7 +83,7 @@ public final class Configs {
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
     public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") @Nonnull String configText) {
-        return DefaultCodecConfig.DEFAULT.decodeObject(type, configText);
+        return CodecJackson.getDefault().decodeObject(type, configText);
     }
 
     /**
@@ -92,7 +92,7 @@ public final class Configs {
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
     public static <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") @Nonnull String configText) {
-        return DefaultCodecConfig.DEFAULT.decodeObject(category, configText);
+        return CodecJackson.getDefault().decodeObject(category, configText);
     }
 
     /**
@@ -101,7 +101,7 @@ public final class Configs {
      * key should be a valid, loaded, plug-in category.
      */
     public static <T> T decodeObject(@Syntax("HOCON") String configText) {
-        return DefaultCodecConfig.DEFAULT.decodeObject(configText);
+        return CodecJackson.getDefault().decodeObject(configText);
     }
 
     /**

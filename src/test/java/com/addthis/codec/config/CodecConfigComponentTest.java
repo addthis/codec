@@ -154,8 +154,8 @@ public class CodecConfigComponentTest {
 
     @Test
     public void valueCodableNested() throws Exception {
-        ConfigGreetHolder greeterHolderObject = Configs.decodeObject(ConfigGreetHolder.class,
-                                                                     "configGreet: [\"someraw\"]");
+        ConfigGreetHolder greeterHolderObject = CodecConfig.getDefault().decodeObject(ConfigGreetHolder.class,
+                                                                                      "configGreet: [\"someraw\"]");
         ConfigGreet greeterObject = greeterHolderObject.configGreet;
         Assert.assertEquals("ValueCodable", greeterObject.source);
         Assert.assertEquals("[\"someraw\"]", greeterObject.greet());
@@ -163,7 +163,7 @@ public class CodecConfigComponentTest {
 
     @Test
     public void configCodable() throws Exception {
-        ConfigGreet greeterObject = Configs.decodeObject(
+        ConfigGreet greeterObject = CodecConfig.getDefault().decodeObject(
                 "greet.config {rawConfigValue: [\"someraw\"], source: ConfigCodable}");
         Assert.assertEquals("ConfigCodable", greeterObject.source);
         Assert.assertEquals("[\"someraw\"]", greeterObject.greet());

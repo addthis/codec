@@ -24,6 +24,7 @@ import java.util.Set;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -96,13 +97,26 @@ public class CodecJackson {
         }
     }
 
+    public <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") String configText) {
+        PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
+                                                         "could not find anything about the category %s", category);
+        Config config = ConfigFactory.parseString(configText).resolve();
+        return (T) validate(decodeObject(pluginMap.baseClass(), config));
+    }
+
     public <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText) {
         Config config = ConfigFactory.parseString(configText).resolve();
         return validate(decodeObject(type, config));
     }
 
+    public <T> T decodeObject(@Nonnull String category, @Nonnull Config config) {
+        PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
+                                                         "could not find anything about the category %s", category);
+        return (T) validate(decodeObject(pluginMap.baseClass(), config));
+    }
+
     public <T> T decodeObject(@Nonnull Class<T> type, Config config) {
-        return decodeObject(type, config.root());
+        return validate(decodeObject(type, config.root()));
     }
 
     public <T> T decodeObject(@Nonnull Class<T> type, ConfigValue configValue) {
@@ -112,6 +126,19 @@ public class CodecJackson {
         } catch (JsonProcessingException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    public <T> T decodeObject(@Nonnull Class<T> type, JsonNode jsonNode) {
+        try {
+            return validate(objectMapper.treeToValue(jsonNode, type));
+        } catch (JsonProcessingException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public <T> T decodeObject(@Syntax("HOCON") String configText) {
+        Config config = ConfigFactory.parseString(configText).resolve();
+        return decodeObject(config);
     }
 
     /**
