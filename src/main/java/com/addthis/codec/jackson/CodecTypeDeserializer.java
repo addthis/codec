@@ -89,22 +89,22 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 return _deserializeWithNativeTypeId(jp, ctxt, typeId);
             }
         }
+        String classField = pluginMap.classField();
 
         // _array handler
         if (jp.isExpectedStartArrayToken()) {
-            return _deserializeTypedFromArray(jp, ctxt);
+            return _deserializeTypedFromArray(classField, jp, ctxt);
         // object handler
         } else if (jp.getCurrentToken() == JsonToken.START_OBJECT) {
-            return _deserializeTypedFromObject(jp, ctxt);
+            return _deserializeTypedFromObject(classField, jp, ctxt);
         }
         throw ctxt.wrongTokenException(jp, jp.getCurrentToken(),
                                        "Need an object or an array (if _array is set) to resolve the subtype of your "
                                        + pluginMap.category());
     }
 
-    public Object _deserializeTypedFromObject(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public Object _deserializeTypedFromObject(String classField, JsonParser jp, DeserializationContext ctxt) throws IOException {
         ObjectNode objectNode = jp.readValueAsTree();
-        String classField = pluginMap.classField();
         if (objectNode.hasNonNull(classField)) {
             return _deserializeObjectFromProperty(objectNode, classField, jp, ctxt);
         }
@@ -211,7 +211,8 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         return deser.deserialize(treeParser, ctxt);
     }
 
-    private Object _deserializeTypedFromArray(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    private Object _deserializeTypedFromArray(String classField, JsonParser jp, DeserializationContext ctxt)
+            throws IOException {
         if (pluginMap.arraySugar() == null) {
             throw ctxt.wrongTokenException(jp, jp.getCurrentToken(),
                                            "Found an array, but there is no _array subtype for "

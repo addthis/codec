@@ -17,12 +17,13 @@ import java.util.Iterator;
 
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.BeanDeserializer;
-import com.fasterxml.jackson.databind.deser.BeanDeserializerBuilder;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
+import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
@@ -38,13 +39,6 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
 
     public CodecBeanDeserializerModifier(Config globalDefaults) {
         this.globalDefaults = globalDefaults;
-    }
-
-    /** Wraps primitive properties with alternate 'null' values that reflect global defaults. */
-    @Override public BeanDeserializerBuilder updateBuilder(DeserializationConfig config,
-                                                           BeanDescription beanDesc,
-                                                           BeanDeserializerBuilder builder) {
-        return builder;
     }
 
     @Override public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config,
@@ -76,5 +70,16 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
             }
         }
         return deserializer;
+    }
+
+    @Override public JsonDeserializer<?> modifyEnumDeserializer(DeserializationConfig config,
+                                                                JavaType type,
+                                                                BeanDescription beanDesc,
+                                                                JsonDeserializer<?> deserializer) {
+        if (deserializer instanceof EnumDeserializer) {
+            return new CodecEnumDeserializer((EnumDeserializer) deserializer);
+        } else {
+            return deserializer;
+        }
     }
 }
