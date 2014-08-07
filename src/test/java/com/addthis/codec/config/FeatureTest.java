@@ -106,7 +106,7 @@ public class FeatureTest {
     public void primaryNestedObject() throws Exception {
         Config greet = parseString("greet.parse-primary {simple.suffix = WOW}");
         Greeter greeterObject = decodeObject(greet);
-        String expected = "extra extra! other Hello WorldWOW bytes: 1024 millis: 1000";
+        String expected = "extra extra! other Hello WorldWOW bytes: 2048 millis: 1000";
         assertEquals(expected, greeterObject.greet());
     }
 
@@ -114,15 +114,7 @@ public class FeatureTest {
     public void primaryNested() throws Exception {
         Config greet = parseString("greet.parse-simple: WOW");
         Greeter greeterObject = decodeObject(greet);
-        String expected = "extra extra! other Hello WorldWOW bytes: 1024 millis: 1000";
-        assertEquals(expected, greeterObject.greet());
-    }
-
-    @Test
-    public void rename() throws Exception {
-        Config greet = parseString("greet.enterprise-simple: {suffix-factory: impl}");
-        Greeter greeterObject = decodeObject(greet);
-        String expected = "Hello Worldimpl";
+        String expected = "extra extra! other Hello WorldWOW bytes: 2048 millis: 1000";
         assertEquals(expected, greeterObject.greet());
     }
 

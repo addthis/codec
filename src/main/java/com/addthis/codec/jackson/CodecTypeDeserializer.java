@@ -15,6 +15,8 @@ package com.addthis.codec.jackson;
 
 import java.io.IOException;
 
+import java.util.Iterator;
+
 import com.addthis.codec.plugins.PluginMap;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -24,7 +26,11 @@ import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerBase;
+import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import com.fasterxml.jackson.databind.jsontype.impl.TypeDeserializerBase;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -149,7 +155,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             JsonNode configValue = objectNode.get(matched);
             String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
             objectNode.remove(matched);
-            objectNode.set(primaryField, configValue);
+            Jackson.setAt(objectNode, configValue, primaryField);
             Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
             if (_typeIdVisible) {
                 objectNode.put(classField, matched);
@@ -170,20 +176,20 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             Class<?> singleKeyType = pluginMap.getClass(singleKeyName);
             ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
             JsonNode singleKeyValue = objectNode.get(singleKeyName);
+            JsonDeserializer<Object> deser = _findDeserializer(ctxt, singleKeyName);
             if (!singleKeyValue.isObject()) {
                 // if value is not an object, try supporting _primary syntax to derive one
                 if (aliasDefaults.get("_primary") != null) {
                     String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
                     ObjectNode singleKeyObject = (ObjectNode) jp.getCodec().createObjectNode();
-                    singleKeyObject.set(primaryField, singleKeyValue);
+                    Jackson.setAt(singleKeyObject, singleKeyValue, primaryField);
                     Jackson.merge(singleKeyObject, Jackson.configConverter(aliasDefaults));
                     singleKeyValue = singleKeyObject;
                 } // else let the downstream serializer try to handle it or complain
             } else {
                 ObjectNode singleKeyObject = (ObjectNode) singleKeyValue;
-                Jackson.merge(singleKeyObject, Jackson.configConverter(aliasDefaults));
+                handleDefaultsAndImplicitPrimary(singleKeyObject, aliasDefaults, deser, ctxt);
             }
-            JsonDeserializer<Object> deser = _findDeserializer(ctxt, singleKeyName);
             if (_typeIdVisible && singleKeyValue.isObject()) {
                 ((ObjectNode) singleKeyValue).put(classField, singleKeyName);
             }
@@ -205,11 +211,8 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             objectNode.remove(classField);
         }
         ConfigObject aliasDefaults = pluginMap.aliasDefaults(type);
-        if (!aliasDefaults.isEmpty()) {
-            ObjectNode aliasDefaultsNode = Jackson.configConverter(aliasDefaults);
-            Jackson.merge(objectNode, aliasDefaultsNode);
-        }
         JsonDeserializer<Object> deser = _findDeserializer(ctxt, type);
+        handleDefaultsAndImplicitPrimary(objectNode, aliasDefaults, deser, ctxt);
         JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
         treeParser.nextToken();
         return deser.deserialize(treeParser, ctxt);
@@ -226,12 +229,65 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
         String arrayField = aliasDefaults.getString("_primary");
         ObjectNode objectFieldValues = (ObjectNode) jp.getCodec().createObjectNode();
-        objectFieldValues.set(arrayField, arrayNode);
+        Jackson.setAt(objectFieldValues, arrayNode, arrayField);
         ObjectNode aliasFieldDefaults = Jackson.configConverter(aliasDefaults.root());
         Jackson.merge(objectFieldValues, aliasFieldDefaults);
         JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_array");
         JsonParser treeParser = jp.getCodec().treeAsTokens(objectFieldValues);
         treeParser.nextToken();
         return deser.deserialize(treeParser, ctxt);
+    }
+
+    private void handleDefaultsAndImplicitPrimary(ObjectNode fieldValues, ConfigObject aliasDefaults,
+                                                  JsonDeserializer<?> deserializer, DeserializationContext ctxt)
+            throws JsonMappingException {
+        if (!aliasDefaults.isEmpty()) {
+            if ((deserializer instanceof BeanDeserializerBase) && (aliasDefaults.get("_primary") != null)) {
+                BeanDeserializerBase beanDeserializer = (BeanDeserializerBase) deserializer;
+                String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
+                if (!fieldValues.has(primaryField)) {
+                    // user has not explicitly set a value where _primary points, see if _primary is a plugin type
+                    SettableBeanProperty primaryProperty = beanDeserializer.findProperty(primaryField);
+                    if ((primaryProperty != null) && primaryProperty.hasValueTypeDeserializer()) {
+                        TypeDeserializer primaryTypeDeserializer = primaryProperty.getValueTypeDeserializer();
+                        if (primaryTypeDeserializer instanceof CodecTypeDeserializer) {
+                            PluginMap primaryPropertyPluginMap =
+                                    ((CodecTypeDeserializer) primaryTypeDeserializer).pluginMap;
+                            String possibleInlinedPrimary = null;
+                            Iterator<String> fieldNames = fieldValues.fieldNames();
+                            while (fieldNames.hasNext()) {
+                                String fieldName = fieldNames.next();
+                                if ((fieldName.charAt(0) != '_') && !beanDeserializer.hasProperty(fieldName)) {
+                                    try {
+                                        Class<?> pluginClass = primaryPropertyPluginMap.getClass(fieldName);
+                                        if (possibleInlinedPrimary == null) {
+                                            possibleInlinedPrimary = fieldName;
+                                        } else {
+                                            String message = String.format(
+                                                    "%s and %s are both otherwise unknown properties that "
+                                                    + "could be types for the _primary property %s whose category is "
+                                                    + "%s. This is too ambiguous to resolve.", possibleInlinedPrimary,
+                                                    fieldName, primaryField, primaryPropertyPluginMap.category());
+                                            throw ctxt.instantiationException(_baseType.getRawClass(), message);
+                                        }
+                                    } catch (ClassNotFoundException ignored) {
+                                        // we'll just report this as an unknown field later ; ctxt.handleUnknownProperty
+                                        // is too much work / shimming to fit the api
+                                    }
+                                }
+                            }
+                            // did we find a good candidate?
+                            if (possibleInlinedPrimary != null) {
+                                // then wrap the value with its key (its type), and stash it in our primary field
+                                JsonNode inlinedPrimaryValue = fieldValues.remove(possibleInlinedPrimary);
+                                fieldValues.with(primaryField).set(possibleInlinedPrimary, inlinedPrimaryValue);
+                            }
+                        }
+                    }
+                }
+            }
+            // merge alias defaults here since we check for empty etc anyway
+            Jackson.merge(fieldValues, Jackson.configConverter(aliasDefaults));
+        }
     }
 }

@@ -18,6 +18,8 @@ import javax.annotation.Syntax;
 
 import java.util.Iterator;
 
+import com.google.common.base.Splitter;
+
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -119,6 +121,36 @@ public final class Jackson {
                     merge((ObjectNode) primaryValue, (ObjectNode) backupValue.deepCopy());
                 }
             }
+        }
+    }
+
+    private static final Splitter dotSplitter = Splitter.on('.');
+
+    public static void setAt(ObjectNode root, JsonNode value, String path) {
+        if (path.indexOf('.') >= 0) {
+            Iterator<String> pathIterator = dotSplitter.split(path).iterator();
+            while (pathIterator.hasNext()) {
+                String nextPart = pathIterator.next();
+                if (pathIterator.hasNext()) {
+                    root = root.with(nextPart);
+                } else {
+                    root.set(nextPart, value);
+                }
+            }
+        } else {
+            root.set(path, value);
+        }
+    }
+
+    public static JsonNode pathAt(ObjectNode root, String path) {
+        if (path.indexOf('.') >= 0) {
+            JsonNode returnNode = root;
+            for (String nextPart : dotSplitter.split(path)) {
+                returnNode = returnNode.path(nextPart);
+            }
+            return returnNode;
+        } else {
+            return root.path(path);
         }
     }
 }
