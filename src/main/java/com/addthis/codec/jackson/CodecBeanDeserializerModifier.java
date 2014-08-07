@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.BeanDeserializer;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerBase;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
@@ -44,9 +44,9 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
     @Override public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config,
                                                             BeanDescription beanDesc,
                                                             JsonDeserializer<?> deserializer) {
-        if (deserializer instanceof BeanDeserializer) {
-            BeanDeserializer beanDeserializer = (BeanDeserializer)  deserializer;
-            ObjectNode fieldDefaults = null;
+        if (deserializer instanceof BeanDeserializerBase) {
+            BeanDeserializerBase beanDeserializer = (BeanDeserializerBase)  deserializer;
+            ObjectNode fieldDefaults = config.getNodeFactory().objectNode();
             Iterator<SettableBeanProperty> propertyIterator = beanDeserializer.properties();
             while (propertyIterator.hasNext()) {
                 SettableBeanProperty prop = propertyIterator.next();
@@ -56,18 +56,13 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
                     Config declarerDefaults = globalDefaults.getConfig(canonicalClassName);
                     String propertyName = prop.getName();
                     if (declarerDefaults.hasPath(propertyName)) {
-                        if (fieldDefaults == null) {
-                            fieldDefaults = config.getNodeFactory().objectNode();
-                        }
                         ConfigValue defaultValue = declarerDefaults.getValue(propertyName);
                         JsonNode fieldDefault = Jackson.configConverter(defaultValue);
                         fieldDefaults.set(propertyName, fieldDefault);
                     }
                 }
             }
-            if (fieldDefaults != null) {
-                return new CodecBeanDeserializer(beanDeserializer, fieldDefaults);
-            }
+            return new CodecBeanDeserializer(beanDeserializer, fieldDefaults);
         }
         return deserializer;
     }
