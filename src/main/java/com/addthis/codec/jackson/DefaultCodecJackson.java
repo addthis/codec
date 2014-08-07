@@ -13,6 +13,9 @@
  */
 package com.addthis.codec.jackson;
 
+import javax.validation.Validation;
+import javax.validation.Validator;
+
 import com.addthis.codec.plugins.PluginRegistry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +29,7 @@ final class DefaultCodecJackson {
 
     static final CodecModule DEFAULT_MODULE;
     static final ObjectMapper DEFAULT_MAPPER;
+    static final Validator DEFAULT_VALIDATOR;
     static final CodecJackson DEFAULT;
 
     static {
@@ -34,7 +38,10 @@ final class DefaultCodecJackson {
         log.trace("initialized default codec module {}", DEFAULT_MODULE);
         DEFAULT_MAPPER = Jackson.newObjectMapper(DEFAULT_MODULE);
         log.trace("initialized default codec mapper {}", DEFAULT_MAPPER);
-        DEFAULT = new CodecJackson(DEFAULT_MAPPER, PluginRegistry.defaultRegistry(), ConfigFactory.load());
+        DEFAULT_VALIDATOR =  Validation.buildDefaultValidatorFactory().getValidator();
+        log.trace("initialized default codec mapper {}", DEFAULT_MAPPER);
+        DEFAULT = new CodecJackson(DEFAULT_MAPPER, PluginRegistry.defaultRegistry(),
+                                   ConfigFactory.load(), DEFAULT_VALIDATOR);
         log.trace("initialized default codec jackson {}", DEFAULT);
     }
 }

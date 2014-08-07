@@ -15,6 +15,11 @@ package com.addthis.codec.jackson;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Syntax;
+import javax.validation.ConstraintViolation;
+import javax.validation.ValidationException;
+import javax.validation.Validator;
+
+import java.util.Set;
 
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
@@ -30,7 +35,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 
 import static com.addthis.codec.jackson.Jackson.configConverter;
-
+import io.dropwizard.validation.ConstraintViolations;
 
 public class CodecJackson {
 
@@ -41,11 +46,25 @@ public class CodecJackson {
     private final ObjectMapper objectMapper;
     private final PluginRegistry pluginRegistry;
     private final Config globalDefaults;
+    private final Validator validator;
 
-    public CodecJackson(ObjectMapper objectMapper, PluginRegistry pluginRegistry, Config globalDefaults) {
+    public CodecJackson(ObjectMapper objectMapper, PluginRegistry pluginRegistry,
+                        Config globalDefaults, Validator validator) {
         this.objectMapper = objectMapper;
         this.pluginRegistry = pluginRegistry;
         this.globalDefaults = globalDefaults;
+        this.validator = validator;
+    }
+
+    public CodecJackson withConfig(Config newGlobalDefaults) {
+        if (newGlobalDefaults == this.globalDefaults) {
+            return this;
+        } else {
+            PluginRegistry newPluginRegistry = new PluginRegistry(newGlobalDefaults);
+            CodecModule newCodecModule = new CodecModule(newPluginRegistry, newGlobalDefaults);
+            ObjectMapper newObjectMapper = Jackson.newObjectMapper(newCodecModule);
+            return new CodecJackson(newObjectMapper, newPluginRegistry, newGlobalDefaults, validator);
+        }
     }
 
     /**
@@ -54,7 +73,8 @@ public class CodecJackson {
      */
     public <T> T newDefault(@Nonnull Class<T> type) {
         try {
-            return objectMapper.treeToValue(DefaultCodecJackson.DEFAULT_MAPPER.createObjectNode(), type);
+            T value = objectMapper.treeToValue(DefaultCodecJackson.DEFAULT_MAPPER.createObjectNode(), type);
+            return validate(value);
         } catch (JsonProcessingException e) {
             throw Throwables.propagate(e);
         }
@@ -62,7 +82,7 @@ public class CodecJackson {
 
     public <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText) {
         Config config = ConfigFactory.parseString(configText).resolve();
-        return decodeObject(type, config);
+        return validate(decodeObject(type, config));
     }
 
     public <T> T decodeObject(@Nonnull Class<T> type, Config config) {
@@ -72,7 +92,7 @@ public class CodecJackson {
     public <T> T decodeObject(@Nonnull Class<T> type, ConfigValue configValue) {
         JsonNode objectNode = configConverter(configValue);
         try {
-            return objectMapper.treeToValue(objectNode, type);
+            return validate(objectMapper.treeToValue(objectNode, type));
         } catch (JsonProcessingException e) {
             throw Throwables.propagate(e);
         }
@@ -96,6 +116,14 @@ public class CodecJackson {
                                                "top level key must be a valid category");
         }
         ConfigValue configValue = config.root().get(category);
-        return (T) decodeObject(pluginMap.baseClass(), configValue);
+        return validate((T) decodeObject(pluginMap.baseClass(), configValue));
+    }
+
+    public <T> T validate(T value) {
+        Set<ConstraintViolation<T>> violations = validator.validate(value);
+        if (!violations.isEmpty()) {
+            throw new ValidationException(ConstraintViolations.format(violations).toString());
+        }
+        return value;
     }
 }
