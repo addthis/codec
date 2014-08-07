@@ -67,6 +67,22 @@ public class CodecJackson {
         }
     }
 
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
+    }
+
+    public PluginRegistry getPluginRegistry() {
+        return pluginRegistry;
+    }
+
+    public Config getGlobalDefaults() {
+        return globalDefaults;
+    }
+
+    public Validator getValidator() {
+        return validator;
+    }
+
     /**
      * Construct an object of the requested type based on the default values and types (if the requested
      * is not a concrete class).
