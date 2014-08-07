@@ -118,6 +118,10 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         if (bean != null) {
             return bean;
         }
+        ConfigObject aliasDefaults = pluginMap.aliasDefaults("_default");
+        if (!aliasDefaults.isEmpty()) {
+            Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
+        }
         JsonDeserializer<Object> deser = _findDeserializer(ctxt, null);
         JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
         treeParser.nextToken();
