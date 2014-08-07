@@ -14,6 +14,9 @@
 package com.addthis.codec.jackson;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.addthis.codec.plugins.PluginMap;
 
@@ -26,13 +29,35 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class CodecTypeIdResolver extends TypeIdResolverBase {
     private final PluginMap pluginMap;
-    private final Collection<NamedType> subtypes;
+    private final Map<String, Class<?>> extraSubTypes;
 
     public CodecTypeIdResolver(PluginMap pluginMap, JavaType baseType,
                                TypeFactory typeFactory, Collection<NamedType> subtypes) {
         super(baseType, typeFactory);
+        if (!subtypes.isEmpty()) {
+            Map<String, Class<?>> mutableExtraSubTypes = new HashMap<>(subtypes.size());
+            for (NamedType namedType : subtypes) {
+                if (namedType.hasName()) {
+                    mutableExtraSubTypes.put(namedType.getName(), namedType.getType());
+                }
+            }
+            this.extraSubTypes = Collections.unmodifiableMap(mutableExtraSubTypes);
+        } else {
+            this.extraSubTypes = Collections.emptyMap();
+        }
         this.pluginMap = pluginMap;
-        this.subtypes = subtypes;
+    }
+
+    public boolean isValidTypeId(String typeId) {
+        if ((pluginMap.getClassIfConfigured(typeId) != null) || extraSubTypes.containsKey(typeId)) {
+            return true;
+        }
+        try {
+            Class<?> cls = pluginMap.getClass(typeId);
+            return true;
+        } catch (ClassNotFoundException ignored) {
+            return false;
+        }
     }
 
     @Override
@@ -60,8 +85,14 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
         if (id == null) {
             return null;
         }
+        Class<?> cls = pluginMap.getClassIfConfigured(id);
+        if (cls == null) {
+            cls = extraSubTypes.get(id);
+        }
         try {
-            Class<?> cls = pluginMap.getClass(id);
+            if (cls == null) {
+                cls = pluginMap.getClass(id);
+            }
             return typeFactory.constructSpecializedType(_baseType, cls);
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException(

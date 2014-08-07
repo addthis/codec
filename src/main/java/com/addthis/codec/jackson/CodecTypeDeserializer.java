@@ -149,8 +149,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             }
         }
         if (matched != null) {
-            Class<?> inlinedType = pluginMap.getClassIfConfigured(matched);
-            assert inlinedType != null : "matched is always a key from the pluginMap's inlinedAliases set";
             ConfigObject aliasDefaults = pluginMap.aliasDefaults(matched);
             JsonNode configValue = objectNode.get(matched);
             String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
@@ -172,8 +170,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     private Object _deserializeObjectFromSingleKey(ObjectNode objectNode, String classField,
                                                    JsonParser jp, DeserializationContext ctxt) throws IOException {
         String singleKeyName = objectNode.fieldNames().next();
-        try {
-            Class<?> singleKeyType = pluginMap.getClass(singleKeyName);
+        if (idRes.isValidTypeId(singleKeyName)) {
             ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
             JsonNode singleKeyValue = objectNode.get(singleKeyName);
             JsonDeserializer<Object> deser = _findDeserializer(ctxt, singleKeyName);
@@ -196,10 +193,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             JsonParser treeParser = jp.getCodec().treeAsTokens(singleKeyValue);
             treeParser.nextToken();
             return deser.deserialize(treeParser, ctxt);
-        } catch (ClassNotFoundException ignored) {
-            // expected when the single key is not a valid alias or class. could avoid exception if we dropped
-            // support for single-keys that are just classes (ie. anonymous aliases), but we'll leave it in
-            // until we have some, more concrete, reason to remove it.
         }
         return null;
     }
@@ -251,28 +244,26 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                     if ((primaryProperty != null) && primaryProperty.hasValueTypeDeserializer()) {
                         TypeDeserializer primaryTypeDeserializer = primaryProperty.getValueTypeDeserializer();
                         if (primaryTypeDeserializer instanceof CodecTypeDeserializer) {
-                            PluginMap primaryPropertyPluginMap =
-                                    ((CodecTypeDeserializer) primaryTypeDeserializer).pluginMap;
+                            CodecTypeIdResolver primaryPropertyTypeIdResolver =
+                                    ((CodecTypeDeserializer) primaryTypeDeserializer).idRes;
                             String possibleInlinedPrimary = null;
                             Iterator<String> fieldNames = fieldValues.fieldNames();
                             while (fieldNames.hasNext()) {
                                 String fieldName = fieldNames.next();
                                 if ((fieldName.charAt(0) != '_') && !beanDeserializer.hasProperty(fieldName)) {
-                                    try {
-                                        Class<?> pluginClass = primaryPropertyPluginMap.getClass(fieldName);
+                                    if (primaryPropertyTypeIdResolver.isValidTypeId(fieldName)) {
                                         if (possibleInlinedPrimary == null) {
                                             possibleInlinedPrimary = fieldName;
                                         } else {
                                             String message = String.format(
                                                     "%s and %s are both otherwise unknown properties that "
                                                     + "could be types for the _primary property %s whose category is "
-                                                    + "%s. This is too ambiguous to resolve.", possibleInlinedPrimary,
-                                                    fieldName, primaryField, primaryPropertyPluginMap.category());
+                                                    + "%s. This is too ambiguous to resolve.",
+                                                    possibleInlinedPrimary, fieldName, primaryField,
+                                                    ((CodecTypeDeserializer) primaryTypeDeserializer)
+                                                            .pluginMap.category());
                                             throw ctxt.instantiationException(_baseType.getRawClass(), message);
                                         }
-                                    } catch (ClassNotFoundException ignored) {
-                                        // we'll just report this as an unknown field later ; ctxt.handleUnknownProperty
-                                        // is too much work / shimming to fit the api
                                     }
                                 }
                             }
