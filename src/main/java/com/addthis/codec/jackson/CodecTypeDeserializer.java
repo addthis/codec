@@ -22,8 +22,11 @@ import java.util.Iterator;
 import com.addthis.codec.plugins.PluginMap;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
@@ -98,39 +101,52 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             }
         }
         String classField = pluginMap.classField();
-        Object bean = null;
         JsonToken currentToken = jp.getCurrentToken();
+        // can use this to approximate error location if a sub-method throws an exception
+        JsonLocation currentLocation = jp.getTokenLocation();
         JsonNode jsonNode = jp.readValueAsTree();
+        ObjectCodec objectCodec = jp.getCodec();
 
-        // _array handler
-        if (jsonNode.isArray()) {
-            bean = _deserializeTypedFromArray((ArrayNode) jsonNode, classField, jp, ctxt);
-        // object handler
-        } else if (jsonNode.isObject()) {
-            bean = _deserializeTypedFromObject((ObjectNode) jsonNode, classField, jp, ctxt);
-        }
-        if (bean != null) {
-            return bean;
-        } else {
-            JsonDeserializer<Object> deser = _findDeserializer(ctxt, null);
-            JsonParser treeParser = jp.getCodec().treeAsTokens(jsonNode);
-            treeParser.nextToken();
-            return deser.deserialize(treeParser, ctxt);
+        try {
+            Object bean = null;
+            // _array handler
+            if (jsonNode.isArray()) {
+                bean = _deserializeTypedFromArray((ArrayNode) jsonNode, classField, objectCodec, ctxt);
+                // object handler
+            } else if (jsonNode.isObject()) {
+                bean = _deserializeTypedFromObject((ObjectNode) jsonNode, classField, objectCodec, ctxt);
+            }
+            if (bean != null) {
+                return bean;
+            } else {
+                JsonDeserializer<Object> deser = _findDeserializer(ctxt, null);
+                JsonParser treeParser = jp.getCodec().treeAsTokens(jsonNode);
+                treeParser.nextToken();
+                return deser.deserialize(treeParser, ctxt);
+            }
+        } catch (JsonProcessingException ex) {
+            if (ex.getLocation() == JsonLocation.NA) {
+                throw new JsonMappingException(ex.getOriginalMessage(), currentLocation, ex);
+            } else {
+                throw ex;
+            }
         }
     }
 
-    @Nullable public Object _deserializeTypedFromObject(ObjectNode objectNode, String classField,
-                                                        JsonParser jp, DeserializationContext ctxt) throws IOException {
+    @Nullable public Object _deserializeTypedFromObject(ObjectNode objectNode,
+                                                        String classField,
+                                                        ObjectCodec objectCodec,
+                                                        DeserializationContext ctxt) throws IOException {
         if (objectNode.hasNonNull(classField)) {
-            return _deserializeObjectFromProperty(objectNode, classField, jp, ctxt);
+            return _deserializeObjectFromProperty(objectNode, classField, objectCodec, ctxt);
         }
         if (objectNode.size() == 1) {
-            Object bean = _deserializeObjectFromSingleKey(objectNode, classField, jp, ctxt);
+            Object bean = _deserializeObjectFromSingleKey(objectNode, classField, objectCodec, ctxt);
             if (bean != null) {
                 return bean;
             }
         }
-        Object bean = _deserializeObjectFromInlinedType(objectNode, classField, jp, ctxt);
+        Object bean = _deserializeObjectFromInlinedType(objectNode, classField, objectCodec, ctxt);
         if (bean != null) {
             return bean;
         }
@@ -140,14 +156,16 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
             }
             JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_default");
-            JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
+            JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
             treeParser.nextToken();
             bean = deser.deserialize(treeParser, ctxt);
         }
         return bean;
     }
 
-    @Nullable private Object _deserializeObjectFromInlinedType(ObjectNode objectNode, String classField, JsonParser jp,
+    @Nullable private Object _deserializeObjectFromInlinedType(ObjectNode objectNode,
+                                                               String classField,
+                                                               ObjectCodec objectCodec,
                                                                DeserializationContext ctxt) throws IOException {
         String matched = null;
         for (String alias : pluginMap.inlinedAliases()) {
@@ -172,7 +190,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 objectNode.put(classField, matched);
             }
             JsonDeserializer<Object> deser = _findDeserializer(ctxt, matched);
-            JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
+            JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
             treeParser.nextToken();
             return deser.deserialize(treeParser, ctxt);
         } else {
@@ -180,7 +198,9 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         }
     }
 
-    @Nullable private Object _deserializeObjectFromSingleKey(ObjectNode objectNode, String classField, JsonParser jp,
+    @Nullable private Object _deserializeObjectFromSingleKey(ObjectNode objectNode,
+                                                             String classField,
+                                                             ObjectCodec objectCodec,
                                                              DeserializationContext ctxt) throws IOException {
         String singleKeyName = objectNode.fieldNames().next();
         if (idRes.isValidTypeId(singleKeyName)) {
@@ -191,7 +211,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 // if value is not an object, try supporting _primary syntax to derive one
                 if (aliasDefaults.get("_primary") != null) {
                     String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
-                    ObjectNode singleKeyObject = (ObjectNode) jp.getCodec().createObjectNode();
+                    ObjectNode singleKeyObject = (ObjectNode) objectCodec.createObjectNode();
                     Jackson.setAt(singleKeyObject, singleKeyValue, primaryField);
                     Jackson.merge(singleKeyObject, Jackson.configConverter(aliasDefaults));
                     singleKeyValue = singleKeyObject;
@@ -203,15 +223,17 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             if (_typeIdVisible && singleKeyValue.isObject()) {
                 ((ObjectNode) singleKeyValue).put(classField, singleKeyName);
             }
-            JsonParser treeParser = jp.getCodec().treeAsTokens(singleKeyValue);
+            JsonParser treeParser = objectCodec.treeAsTokens(singleKeyValue);
             treeParser.nextToken();
             return deser.deserialize(treeParser, ctxt);
         }
         return null;
     }
 
-    private Object _deserializeObjectFromProperty(ObjectNode objectNode, String classField,
-                                                  JsonParser jp, DeserializationContext ctxt) throws IOException {
+    private Object _deserializeObjectFromProperty(ObjectNode objectNode,
+                                                  String classField,
+                                                  ObjectCodec objectCodec,
+                                                  DeserializationContext ctxt) throws IOException {
         String type = objectNode.get(classField).asText();
         if (!_typeIdVisible) {
             objectNode.remove(classField);
@@ -219,22 +241,24 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         ConfigObject aliasDefaults = pluginMap.aliasDefaults(type);
         JsonDeserializer<Object> deser = _findDeserializer(ctxt, type);
         handleDefaultsAndImplicitPrimary(objectNode, aliasDefaults, deser, ctxt);
-        JsonParser treeParser = jp.getCodec().treeAsTokens(objectNode);
+        JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
         treeParser.nextToken();
         return deser.deserialize(treeParser, ctxt);
     }
 
-    @Nullable private Object _deserializeTypedFromArray(ArrayNode arrayNode, String classField, JsonParser jp,
+    @Nullable private Object _deserializeTypedFromArray(ArrayNode arrayNode,
+                                                        String classField,
+                                                        ObjectCodec objectCodec,
                                                         DeserializationContext ctxt) throws IOException {
         if (idRes.isValidTypeId("_array")) {
             Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
             String arrayField = aliasDefaults.getString("_primary");
-            ObjectNode objectFieldValues = (ObjectNode) jp.getCodec().createObjectNode();
+            ObjectNode objectFieldValues = (ObjectNode) objectCodec.createObjectNode();
             Jackson.setAt(objectFieldValues, arrayNode, arrayField);
             ObjectNode aliasFieldDefaults = Jackson.configConverter(aliasDefaults.root());
             Jackson.merge(objectFieldValues, aliasFieldDefaults);
             JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_array");
-            JsonParser treeParser = jp.getCodec().treeAsTokens(objectFieldValues);
+            JsonParser treeParser = objectCodec.treeAsTokens(objectFieldValues);
             treeParser.nextToken();
             return deser.deserialize(treeParser, ctxt);
         } else {
@@ -242,9 +266,10 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         }
     }
 
-    private void handleDefaultsAndImplicitPrimary(ObjectNode fieldValues, ConfigObject aliasDefaults,
-                                                  JsonDeserializer<?> deserializer, DeserializationContext ctxt)
-            throws JsonMappingException {
+    private void handleDefaultsAndImplicitPrimary(ObjectNode fieldValues,
+                                                  ConfigObject aliasDefaults,
+                                                  JsonDeserializer<?> deserializer,
+                                                  DeserializationContext ctxt) throws JsonMappingException {
         if (!aliasDefaults.isEmpty()) {
             if ((deserializer instanceof BeanDeserializerBase) && (aliasDefaults.get("_primary") != null)) {
                 BeanDeserializerBase beanDeserializer = (BeanDeserializerBase) deserializer;

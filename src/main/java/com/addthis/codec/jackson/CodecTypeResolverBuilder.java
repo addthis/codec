@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.cfg.MapperConfig;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
-import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import com.fasterxml.jackson.databind.jsontype.impl.StdTypeResolverBuilder;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
@@ -36,12 +35,12 @@ public class CodecTypeResolverBuilder extends StdTypeResolverBuilder {
         typeProperty(pluginMap.classField());
     }
 
-    @Override public TypeDeserializer buildTypeDeserializer(DeserializationConfig config,
-                                                            JavaType baseType,
-                                                            Collection<NamedType> subtypes) {
+    @Override public CodecTypeDeserializer buildTypeDeserializer(DeserializationConfig config,
+                                                                 JavaType baseType,
+                                                                 Collection<NamedType> subtypes) {
         CodecTypeIdResolver codecTypeIdResolver = idResolver(config, baseType, subtypes, false, true);
         Class<?> defaultImplForType = _defaultImpl;
-        if ((_defaultImpl == null) || !_defaultImpl.isAssignableFrom(baseType.getRawClass())) {
+        if ((_defaultImpl == null) || !baseType.getRawClass().isAssignableFrom(_defaultImpl)) {
             defaultImplForType = baseType.getRawClass();
         }
         return new CodecTypeDeserializer(pluginMap, _includeAs, baseType, codecTypeIdResolver,

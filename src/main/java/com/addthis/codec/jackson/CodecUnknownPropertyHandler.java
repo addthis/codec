@@ -24,9 +24,11 @@ import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;
 public class CodecUnknownPropertyHandler extends DeserializationProblemHandler {
 
     @Override
-    public boolean handleUnknownProperty(DeserializationContext ctxt, JsonParser jp,
-                                         JsonDeserializer<?> deserializer, Object beanOrClass, String propertyName)
-            throws IOException, JsonProcessingException {
+    public boolean handleUnknownProperty(DeserializationContext ctxt,
+                                         JsonParser jp,
+                                         JsonDeserializer<?> deserializer,
+                                         Object beanOrClass,
+                                         String propertyName) throws IOException, JsonProcessingException {
         if (propertyName.charAt(0) == '_') {
             jp.skipChildren();
             return true;

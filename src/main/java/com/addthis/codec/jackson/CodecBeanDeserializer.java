@@ -21,6 +21,7 @@ import java.util.Iterator;
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.annotations.Time;
 
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
@@ -68,21 +69,30 @@ public class CodecBeanDeserializer extends BeanDeserializer {
 
     @Override
     public Object deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        JsonLocation currentLocation = jp.getTokenLocation();
         JsonToken t = jp.getCurrentToken();
-        if (t == JsonToken.START_OBJECT) {
-            ObjectNode objectNode = jp.readValueAsTree();
-            handleDefaultsAndRequiredAndNull(ctxt, objectNode);
-            jp = jp.getCodec().treeAsTokens(objectNode);
-            jp.nextToken();
-        } else if (t == JsonToken.END_OBJECT) {
-            // for some reason this is how they chose to handle single field objects
-            jp.nextToken();
-            ObjectNode objectNode = ctxt.getNodeFactory().objectNode();
-            handleDefaultsAndRequiredAndNull(ctxt, objectNode);
-            jp = jp.getCodec().treeAsTokens(objectNode);
-            jp.nextToken();
+        try {
+            if (t == JsonToken.START_OBJECT) {
+                ObjectNode objectNode = jp.readValueAsTree();
+                handleDefaultsAndRequiredAndNull(ctxt, objectNode);
+                jp = jp.getCodec().treeAsTokens(objectNode);
+                jp.nextToken();
+            } else if (t == JsonToken.END_OBJECT) {
+                // for some reason this is how they chose to handle single field objects
+                jp.nextToken();
+                ObjectNode objectNode = ctxt.getNodeFactory().objectNode();
+                handleDefaultsAndRequiredAndNull(ctxt, objectNode);
+                jp = jp.getCodec().treeAsTokens(objectNode);
+                jp.nextToken();
+            }
+            return super.deserialize(jp, ctxt);
+        } catch (JsonProcessingException ex) {
+            if ((currentLocation != JsonLocation.NA) && (ex.getLocation() == JsonLocation.NA)) {
+                throw new JsonMappingException(ex.getOriginalMessage(), currentLocation, ex);
+            } else {
+                throw ex;
+            }
         }
-        return super.deserialize(jp, ctxt);
     }
 
     private void handleDefaultsAndRequiredAndNull(DeserializationContext ctxt, ObjectNode fieldValues)
