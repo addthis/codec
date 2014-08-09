@@ -16,6 +16,7 @@ package com.addthis.codec.jackson;
 import java.util.Collection;
 
 import com.addthis.codec.plugins.PluginMap;
+import com.addthis.codec.plugins.PluginRegistry;
 
 import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.JavaType;
@@ -27,10 +28,12 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 public class CodecTypeResolverBuilder extends StdTypeResolverBuilder {
     private final PluginMap pluginMap;
     private final TypeFactory typeFactory;
+    private final PluginRegistry pluginRegistry;
 
-    public CodecTypeResolverBuilder(PluginMap pluginMap, TypeFactory typeFactory) {
+    public CodecTypeResolverBuilder(PluginMap pluginMap, TypeFactory typeFactory, PluginRegistry pluginRegistry) {
         this.pluginMap = pluginMap;
         this.typeFactory = typeFactory;
+        this.pluginRegistry = pluginRegistry;
         defaultImpl(pluginMap.defaultSugar());
         typeProperty(pluginMap.classField());
     }
@@ -53,6 +56,6 @@ public class CodecTypeResolverBuilder extends StdTypeResolverBuilder {
                                              Collection<NamedType> subtypes,
                                              boolean forSer,
                                              boolean forDeser) {
-        return new CodecTypeIdResolver(pluginMap, baseType, typeFactory, subtypes);
+        return new CodecTypeIdResolver(pluginMap, baseType, typeFactory, subtypes, pluginRegistry);
     }
 }

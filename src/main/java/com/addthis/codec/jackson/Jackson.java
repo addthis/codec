@@ -16,20 +16,29 @@ package com.addthis.codec.jackson;
 import javax.annotation.Nonnull;
 import javax.annotation.Syntax;
 
+import java.io.IOException;
+
 import java.util.Iterator;
+import java.util.List;
 
 import com.google.common.base.Splitter;
 
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.PropertyBindingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
+import com.typesafe.config.ConfigOrigin;
 import com.typesafe.config.ConfigValue;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY;
@@ -53,15 +62,15 @@ public final class Jackson {
      * Construct an object of the requested type based on the default values and types (if the requested
      * is not a concrete class).
      */
-    public static <T> T newDefault(@Nonnull Class<T> type) {
+    public static <T> T newDefault(@Nonnull Class<T> type) throws JsonProcessingException {
         return DefaultCodecJackson.DEFAULT.newDefault(type);
     }
 
-    public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText) {
+    public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText) throws IOException {
         return DefaultCodecJackson.DEFAULT.decodeObject(type, configText);
     }
 
-    public static <T> T decodeObject(@Nonnull Class<T> type, Config config) {
+    public static <T> T decodeObject(@Nonnull Class<T> type, Config config) throws IOException {
         return DefaultCodecJackson.DEFAULT.decodeObject(type, config);
     }
 
@@ -149,6 +158,69 @@ public final class Jackson {
         } else {
             root.set(path, value);
         }
+    }
+
+    public static boolean isRealLocation(JsonLocation jsonLocation) {
+        return (jsonLocation != null) && (jsonLocation != JsonLocation.NA);
+    }
+
+    public static JsonMappingException maybeImproveLocation(JsonLocation wrapLoc, JsonMappingException cause) {
+        JsonLocation exLoc = cause.getLocation();
+        if (isRealLocation(wrapLoc) && !isRealLocation(exLoc)) {
+            if (wrapLoc.getSourceRef() instanceof ConfigValue) {
+                ConfigValue locRef = (ConfigValue) wrapLoc.getSourceRef();
+                List<JsonMappingException.Reference> paths = cause.getPath();
+                for (JsonMappingException.Reference path : paths) {
+                    if (locRef instanceof ConfigObject) {
+                        String fieldName = path.getFieldName();
+                        ConfigObject locRefObject = (ConfigObject) locRef;
+                        if (locRefObject.containsKey(fieldName)) {
+                            locRef = locRefObject.get(fieldName);
+                        }
+                    } else if (locRef instanceof ConfigList) {
+                        int fieldIndex = path.getIndex();
+                        ConfigList locRefList = (ConfigList) locRef;
+                        if ((fieldIndex >= 0) && (locRefList.size() > fieldIndex)) {
+                            locRef = locRefList.get(fieldIndex);
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                if (locRef != wrapLoc.getSourceRef()) {
+                    wrapLoc = fromConfigValue(locRef);
+                }
+            }
+            List<JsonMappingException.Reference> paths = cause.getPath();
+            if (!paths.isEmpty()) {
+                JsonMappingException withLoc = new JsonMappingException(rootMessage(cause), wrapLoc, cause);
+                for (JsonMappingException.Reference path : paths) {
+                    withLoc.prependPath(path);
+                }
+                return withLoc;
+            } else {
+                return new JsonMappingException(rootMessage(cause), wrapLoc, cause);
+            }
+        }
+        return cause;
+    }
+
+    public static String rootMessage(JsonMappingException ex) {
+        String rootMessage = ex.getOriginalMessage();
+        if (ex instanceof PropertyBindingException) {
+            String suffix = ((PropertyBindingException) ex).getMessageSuffix();
+            if (rootMessage == null) {
+                return suffix;
+            } else if (suffix != null) {
+                return rootMessage + suffix;
+            }
+        }
+        return rootMessage;
+    }
+
+    public static JsonLocation fromConfigValue(ConfigValue configValue) {
+        ConfigOrigin configOrigin = configValue.origin();
+        return new JsonLocation(configValue, -1, configOrigin.lineNumber(), -1);
     }
 
     public static JsonNode pathAt(ObjectNode root, String path) {

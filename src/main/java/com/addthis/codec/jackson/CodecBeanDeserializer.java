@@ -86,12 +86,8 @@ public class CodecBeanDeserializer extends BeanDeserializer {
                 jp.nextToken();
             }
             return super.deserialize(jp, ctxt);
-        } catch (JsonProcessingException ex) {
-            if ((currentLocation != JsonLocation.NA) && (ex.getLocation() == JsonLocation.NA)) {
-                throw new JsonMappingException(ex.getOriginalMessage(), currentLocation, ex);
-            } else {
-                throw ex;
-            }
+        } catch (JsonMappingException ex) {
+            throw Jackson.maybeImproveLocation(currentLocation, ex);
         }
     }
 
@@ -107,7 +103,8 @@ public class CodecBeanDeserializer extends BeanDeserializer {
                     fieldValue = fieldDefaults.get(propertyName).deepCopy();
                     fieldValues.set(propertyName, fieldValue);
                 } else if (prop.isRequired()) {
-                    throw ctxt.instantiationException(handledType(), "missing required field: " + propertyName);
+                    throw MissingPropertyException.from(ctxt.getParser(), prop.getType().getRawClass(),
+                                                        propertyName, getKnownPropertyNames());
                 } else if (fieldValue.isNull()
                            && (prop.getType().isPrimitive() || (prop.getValueDeserializer().getNullValue() == null))) {
                     // don't overwrite possible hard-coded defaults/ values with nulls unless they are fancy
@@ -115,15 +112,19 @@ public class CodecBeanDeserializer extends BeanDeserializer {
                 }
             }
             if (fieldValue.isTextual()) {
-                Time time = prop.getAnnotation(Time.class);
-                if (time != null) {
-                    Duration dropWizardDuration = Duration.parse(fieldValue.asText());
-                    long asLong = time.value().convert(dropWizardDuration.getQuantity(), dropWizardDuration.getUnit());
-                    fieldValues.put(propertyName, asLong);
-                } else if (prop.getAnnotation(Bytes.class) != null) {
-                    Size dropWizardSize = Size.parse(fieldValue.asText());
-                    long asLong = dropWizardSize.toBytes();
-                    fieldValues.put(propertyName, asLong);
+                try {
+                    Time time = prop.getAnnotation(Time.class);
+                    if (time != null) {
+                        Duration dropWizardDuration = Duration.parse(fieldValue.asText());
+                        long asLong = time.value().convert(dropWizardDuration.getQuantity(), dropWizardDuration.getUnit());
+                        fieldValues.put(propertyName, asLong);
+                    } else if (prop.getAnnotation(Bytes.class) != null) {
+                        Size dropWizardSize = Size.parse(fieldValue.asText());
+                        long asLong = dropWizardSize.toBytes();
+                        fieldValues.put(propertyName, asLong);
+                    }
+                } catch (Throwable cause) {
+                    throw JsonMappingException.wrapWithPath(cause, prop.getType().getRawClass(), propertyName);
                 }
             }
         }

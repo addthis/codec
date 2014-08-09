@@ -16,6 +16,8 @@ package com.addthis.codec.config;
 import javax.annotation.Nonnull;
 import javax.annotation.Syntax;
 
+import java.io.IOException;
+
 import java.lang.reflect.Modifier;
 
 import java.util.ArrayList;
@@ -64,7 +66,7 @@ public final class Configs {
      * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
-    public static <T> T decodeObject(@Nonnull Class<T> type, @Nonnull Config config) {
+    public static <T> T decodeObject(@Nonnull Class<T> type, @Nonnull Config config) throws IOException {
         return CodecJackson.getDefault().decodeObject(type, config);
     }
 
@@ -73,7 +75,7 @@ public final class Configs {
      * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
-    public static <T> T decodeObject(@Nonnull String category, @Nonnull Config config) {
+    public static <T> T decodeObject(@Nonnull String category, @Nonnull Config config) throws IOException {
         return CodecJackson.getDefault().decodeObject(category, config);
     }
 
@@ -82,7 +84,8 @@ public final class Configs {
      * {@link #decodeObject(Class, Config)} with the resultant config and the passed in type. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
-    public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") @Nonnull String configText) {
+    public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") @Nonnull String configText)
+            throws IOException {
         return CodecJackson.getDefault().decodeObject(type, configText);
     }
 
@@ -91,7 +94,8 @@ public final class Configs {
      * {@link #decodeObject(String, Config)} with the resultant config and the passed in category. Pretty much just
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
-    public static <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") @Nonnull String configText) {
+    public static <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") @Nonnull String configText)
+            throws IOException {
         return CodecJackson.getDefault().decodeObject(category, configText);
     }
 
@@ -100,7 +104,7 @@ public final class Configs {
      * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
      * key should be a valid, loaded, plug-in category.
      */
-    public static <T> T decodeObject(@Syntax("HOCON") String configText) {
+    public static <T> T decodeObject(@Syntax("HOCON") String configText) throws IOException {
         return CodecJackson.getDefault().decodeObject(configText);
     }
 
@@ -109,7 +113,7 @@ public final class Configs {
      * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
      * key should be a valid, loaded, plug-in category.
      */
-    public static <T> T decodeObject(Config config) {
+    public static <T> T decodeObject(Config config) throws IOException {
         return CodecJackson.getDefault().decodeObject(config);
     }
 

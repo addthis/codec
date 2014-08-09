@@ -15,12 +15,9 @@ package com.addthis.codec.jackson;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -43,18 +40,9 @@ public class CodecEnumDeserializer extends StdScalarDeserializer<Enum<?>> {
             String name = jp.getText();
             TextNode upperName = ctxt.getNodeFactory().textNode(name.toUpperCase());
 
-            JsonLocation currentLocation = jp.getTokenLocation();
             JsonParser treeParser = jp.getCodec().treeAsTokens(upperName);
             treeParser.nextToken();
-            try {
-                return base.deserialize(treeParser, ctxt);
-            } catch (JsonProcessingException ex) {
-                if (ex.getLocation() == JsonLocation.NA) {
-                    throw new JsonMappingException(ex.getOriginalMessage(), currentLocation, ex);
-                } else {
-                    throw ex;
-                }
-            }
+            return base.deserialize(treeParser, ctxt);
         } else {
             return base.deserialize(jp, ctxt);
         }

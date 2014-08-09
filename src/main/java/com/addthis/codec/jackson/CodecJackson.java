@@ -19,13 +19,15 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ValidationException;
 import javax.validation.Validator;
 
+import java.io.IOException;
+
 import java.util.Set;
 
+import com.addthis.codec.jackson.tree.ConfigTraversingParser;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,7 +37,6 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 
-import static com.addthis.codec.jackson.Jackson.configConverter;
 import io.dropwizard.validation.ConstraintViolations;
 
 public class CodecJackson {
@@ -88,55 +89,50 @@ public class CodecJackson {
      * Construct an object of the requested type based on the default values and types (if the requested
      * is not a concrete class).
      */
-    public <T> T newDefault(@Nonnull Class<T> type) {
-        try {
-            T value = objectMapper.treeToValue(DefaultCodecJackson.DEFAULT_MAPPER.createObjectNode(), type);
-            return validate(value);
-        } catch (JsonProcessingException e) {
-            throw Throwables.propagate(e);
-        }
+    public <T> T newDefault(@Nonnull Class<T> type) throws JsonProcessingException {
+        T value = objectMapper.treeToValue(DefaultCodecJackson.DEFAULT_MAPPER.createObjectNode(), type);
+        return validate(value);
     }
 
-    public <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") String configText) {
+    public <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") String configText)
+            throws JsonProcessingException, IOException {
         PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
                                                          "could not find anything about the category %s", category);
         Config config = ConfigFactory.parseString(configText).resolve();
-        return (T) validate(decodeObject(pluginMap.baseClass(), config));
+        return (T) decodeObject(pluginMap.baseClass(), config);
     }
 
-    public <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText) {
+    public <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText)
+            throws JsonProcessingException, IOException {
         Config config = ConfigFactory.parseString(configText).resolve();
-        return validate(decodeObject(type, config));
+        return decodeObject(type, config);
     }
 
-    public <T> T decodeObject(@Nonnull String category, @Nonnull Config config) {
+    public <T> T decodeObject(@Nonnull String category, @Nonnull Config config)
+            throws JsonProcessingException, IOException {
         PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
                                                          "could not find anything about the category %s", category);
-        return (T) validate(decodeObject(pluginMap.baseClass(), config));
+        return (T) decodeObject(pluginMap.baseClass(), config);
     }
 
-    public <T> T decodeObject(@Nonnull Class<T> type, Config config) {
-        return validate(decodeObject(type, config.root()));
+    public <T> T decodeObject(@Nonnull Class<T> type, Config config)
+            throws JsonProcessingException, IOException {
+        return decodeObject(type, config.root());
     }
 
-    public <T> T decodeObject(@Nonnull Class<T> type, ConfigValue configValue) {
-        JsonNode objectNode = configConverter(configValue);
-        try {
-            return validate(objectMapper.treeToValue(objectNode, type));
-        } catch (JsonProcessingException e) {
-            throw Throwables.propagate(e);
-        }
+    // doesn't delegate
+    public <T> T decodeObject(@Nonnull Class<T> type, ConfigValue configValue)
+            throws JsonProcessingException, IOException {
+        ConfigTraversingParser configParser = new ConfigTraversingParser(configValue, objectMapper);
+        return validate(configParser.readValueAs(type));
     }
 
-    public <T> T decodeObject(@Nonnull Class<T> type, JsonNode jsonNode) {
-        try {
-            return validate(objectMapper.treeToValue(jsonNode, type));
-        } catch (JsonProcessingException e) {
-            throw Throwables.propagate(e);
-        }
+    // doesn't delegate
+    public <T> T decodeObject(@Nonnull Class<T> type, JsonNode jsonNode) throws JsonProcessingException {
+        return validate(objectMapper.treeToValue(jsonNode, type));
     }
 
-    public <T> T decodeObject(@Syntax("HOCON") String configText) {
+    public <T> T decodeObject(@Syntax("HOCON") String configText) throws JsonProcessingException, IOException {
         Config config = ConfigFactory.parseString(configText).resolve();
         return decodeObject(config);
     }
@@ -146,7 +142,7 @@ public class CodecJackson {
      * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
      * key should be a valid, loaded, plug-in category.
      */
-    public <T> T decodeObject(Config config) {
+    public <T> T decodeObject(Config config) throws JsonProcessingException, IOException {
         if (config.root().size() != 1) {
             throw new ConfigException.Parse(config.root().origin(),
                                             "config root must have exactly one key");
@@ -159,7 +155,7 @@ public class CodecJackson {
                                                "top level key must be a valid category");
         }
         ConfigValue configValue = config.root().get(category);
-        return validate((T) decodeObject(pluginMap.baseClass(), configValue));
+        return (T) decodeObject(pluginMap.baseClass(), configValue);
     }
 
     public <T> T validate(T value) {

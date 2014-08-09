@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.addthis.codec.plugins.PluginMap;
+import com.addthis.codec.plugins.PluginRegistry;
+import com.addthis.codec.plugins.Plugins;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DatabindContext;
@@ -30,10 +32,13 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 public class CodecTypeIdResolver extends TypeIdResolverBase {
     private final PluginMap pluginMap;
     private final Map<String, Class<?>> extraSubTypes;
+    private final PluginRegistry pluginRegistry;
 
     public CodecTypeIdResolver(PluginMap pluginMap, JavaType baseType,
-                               TypeFactory typeFactory, Collection<NamedType> subtypes) {
+                               TypeFactory typeFactory, Collection<NamedType> subtypes,
+                               PluginRegistry pluginRegistry) {
         super(baseType, typeFactory);
+        this.pluginRegistry = pluginRegistry;
         if (!subtypes.isEmpty()) {
             Map<String, Class<?>> mutableExtraSubTypes = new HashMap<>(subtypes.size());
             for (NamedType namedType : subtypes) {
@@ -97,12 +102,9 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
                 cls = pluginMap.getClass(id);
             }
             return typeFactory.constructSpecializedType(_baseType, cls);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException(
-                    "Invalid type id '"+id+"' (for id type 'Id.class'): no such class found", e);
         } catch (Exception e) {
-            throw new IllegalArgumentException(
-                    "Invalid type id '"+id+"' (for id type 'Id.class'): "+e.getMessage(), e);
+            String helpMessage = Plugins.classNameSuggestions(pluginRegistry, pluginMap, id);
+            throw new IllegalArgumentException(helpMessage, e);
         }
     }
 }

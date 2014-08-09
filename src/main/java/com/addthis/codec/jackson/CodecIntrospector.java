@@ -50,7 +50,7 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
         if (pluggable != null) {
             PluginMap pluginMap = pluginRegistry.byCategory().get(pluggable.value());
             if (pluginMap != null) {
-                return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory());
+                return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory(), pluginRegistry);
             } else {
                 log.warn("missing plugin map for {}, reached from {}", pluggable.value(), ac.getRawType());
             }
