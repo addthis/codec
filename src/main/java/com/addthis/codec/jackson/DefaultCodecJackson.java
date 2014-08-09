@@ -39,7 +39,7 @@ final class DefaultCodecJackson {
         DEFAULT_MAPPER = Jackson.newObjectMapper(DEFAULT_MODULE);
         log.trace("initialized default codec mapper {}", DEFAULT_MAPPER);
         DEFAULT_VALIDATOR =  Validation.buildDefaultValidatorFactory().getValidator();
-        log.trace("initialized default codec mapper {}", DEFAULT_MAPPER);
+        log.trace("initialized default codec validator {}", DEFAULT_VALIDATOR);
         DEFAULT = new CodecJackson(DEFAULT_MAPPER, PluginRegistry.defaultRegistry(),
                                    ConfigFactory.load(), DEFAULT_VALIDATOR);
         log.trace("initialized default codec jackson {}", DEFAULT);
