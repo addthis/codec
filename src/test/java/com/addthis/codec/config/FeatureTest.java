@@ -13,12 +13,14 @@
  */
 package com.addthis.codec.config;
 
+import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
 import com.addthis.maljson.JSONObject;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
@@ -143,6 +145,32 @@ public class FeatureTest {
         Greeter greeterObject = decodeObject(greet);
         String expected = "heya";
         assertEquals(expected, greeterObject.greet());
+    }
+
+    static class BytesHolder {
+        int bytes;
+
+        public BytesHolder(@Bytes @JsonProperty("bytesParam") int bytes) {
+            this.bytes = bytes;
+        }
+
+        @Bytes public void setBytes(int bytes) {
+            this.bytes = bytes;
+        }
+    }
+
+    @Test
+    public void bytesSetter() throws Exception {
+        Config byteHolderConfig = parseString("bytes: 1GB");
+        BytesHolder bytesHolder = decodeObject(BytesHolder.class, byteHolderConfig);
+        assertEquals(1073741824, bytesHolder.bytes);
+    }
+
+    @Test
+    public void bytesConstructor() throws Exception {
+        Config byteHolderConfig = parseString("bytesParam: 1GB");
+        BytesHolder bytesHolder = decodeObject(BytesHolder.class, byteHolderConfig);
+        assertEquals(1073741824, bytesHolder.bytes);
     }
 
     @Test

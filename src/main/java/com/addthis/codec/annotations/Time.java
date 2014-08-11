@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 public @interface Time {
 
     TimeUnit value();
