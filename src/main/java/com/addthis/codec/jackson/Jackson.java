@@ -26,7 +26,6 @@ import com.google.common.collect.Lists;
 
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -63,7 +62,7 @@ public final class Jackson {
      * Construct an object of the requested type based on the default values and types (if the requested
      * is not a concrete class).
      */
-    public static <T> T newDefault(@Nonnull Class<T> type) throws JsonProcessingException {
+    public static <T> T newDefault(@Nonnull Class<T> type) throws IOException {
         return DefaultCodecJackson.DEFAULT.newDefault(type);
     }
 
