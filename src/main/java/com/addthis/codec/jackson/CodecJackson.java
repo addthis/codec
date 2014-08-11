@@ -85,13 +85,32 @@ public class CodecJackson {
         return validator;
     }
 
+    // doesn't delegate
+
     /**
      * Construct an object of the requested type based on the default values and types (if the requested
      * is not a concrete class).
      */
-    public <T> T newDefault(@Nonnull Class<T> type) throws JsonProcessingException {
+    public <T> T newDefault(@Nonnull Class<T> type) throws JsonProcessingException, IOException {
         T value = objectMapper.treeToValue(DefaultCodecJackson.DEFAULT_MAPPER.createObjectNode(), type);
         return validate(value);
+    }
+
+    public <T> T decodeObject(@Nonnull Class<T> type, ConfigValue configValue)
+            throws JsonProcessingException, IOException {
+        ConfigTraversingParser configParser = new ConfigTraversingParser(configValue, objectMapper);
+        return validate(configParser.readValueAs(type));
+    }
+
+    public <T> T decodeObject(@Nonnull Class<T> type, JsonNode jsonNode) throws JsonProcessingException {
+        return validate(objectMapper.treeToValue(jsonNode, type));
+    }
+
+    // delegates
+
+    public <T> T newDefault(@Nonnull String category) throws JsonProcessingException, IOException {
+        Class<T> type = (Class<T>) pluginRegistry.byCategory().get(category).baseClass();
+        return newDefault(type);
     }
 
     public <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") String configText)
@@ -118,18 +137,6 @@ public class CodecJackson {
     public <T> T decodeObject(@Nonnull Class<T> type, Config config)
             throws JsonProcessingException, IOException {
         return decodeObject(type, config.root());
-    }
-
-    // doesn't delegate
-    public <T> T decodeObject(@Nonnull Class<T> type, ConfigValue configValue)
-            throws JsonProcessingException, IOException {
-        ConfigTraversingParser configParser = new ConfigTraversingParser(configValue, objectMapper);
-        return validate(configParser.readValueAs(type));
-    }
-
-    // doesn't delegate
-    public <T> T decodeObject(@Nonnull Class<T> type, JsonNode jsonNode) throws JsonProcessingException {
-        return validate(objectMapper.treeToValue(jsonNode, type));
     }
 
     public <T> T decodeObject(@Syntax("HOCON") String configText) throws JsonProcessingException, IOException {

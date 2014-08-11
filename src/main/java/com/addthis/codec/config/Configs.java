@@ -52,13 +52,13 @@ public final class Configs {
      * Construct an object of the requested type based on the default values and types (if the requested
      * is not a concrete class).
      */
-    public static <T> T newDefault(@Nonnull Class<T> type) {
-        return DefaultCodecConfig.DEFAULT.newDefault(type);
+    public static <T> T newDefault(@Nonnull Class<T> type) throws IOException {
+        return CodecJackson.getDefault().newDefault(type);
     }
 
     /** Construct an object of the requested plugin category based on the default type and values */
-    public static <T> T newDefault(@Nonnull String category) {
-        return DefaultCodecConfig.DEFAULT.newDefault(category);
+    public static <T> T newDefault(@Nonnull String category) throws IOException {
+        return CodecJackson.getDefault().newDefault(category);
     }
 
     /**

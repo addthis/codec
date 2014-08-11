@@ -20,6 +20,7 @@ import java.util.Iterator;
 
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.annotations.Time;
+import com.addthis.codec.codables.SuperCodable;
 
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
@@ -85,7 +86,11 @@ public class CodecBeanDeserializer extends BeanDeserializer {
                 jp = jp.getCodec().treeAsTokens(objectNode);
                 jp.nextToken();
             }
-            return super.deserialize(jp, ctxt);
+            Object value = super.deserialize(jp, ctxt);
+            if (value instanceof SuperCodable) {
+                ((SuperCodable) value).postDecode();
+            }
+            return value;
         } catch (JsonMappingException ex) {
             throw Jackson.maybeImproveLocation(currentLocation, ex);
         }
