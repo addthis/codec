@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerBase;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
+import com.fasterxml.jackson.databind.deser.std.DelegatingDeserializer;
 import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import com.fasterxml.jackson.databind.jsontype.impl.TypeDeserializerBase;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -318,6 +319,9 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                                                      JsonDeserializer<?> deserializer,
                                                      DeserializationContext ctxt) throws JsonMappingException {
         if (!aliasDefaults.isEmpty()) {
+            if (deserializer instanceof DelegatingDeserializer) {
+                deserializer = ((DelegatingDeserializer) deserializer).getDelegatee();
+            }
             if ((deserializer instanceof BeanDeserializerBase) && (aliasDefaults.get("_primary") != null)) {
                 BeanDeserializerBase beanDeserializer = (BeanDeserializerBase) deserializer;
                 String primaryField = (String) aliasDefaults.get("_primary").unwrapped();

@@ -15,7 +15,6 @@ package com.addthis.codec.jackson;
 
 import java.io.IOException;
 
-import java.util.HashSet;
 import java.util.Iterator;
 
 import com.addthis.codec.annotations.Bytes;
@@ -30,10 +29,9 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.deser.BeanDeserializer;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerBase;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
-import com.fasterxml.jackson.databind.deser.impl.ObjectIdReader;
+import com.fasterxml.jackson.databind.deser.std.DelegatingDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.util.NameTransformer;
 
@@ -43,7 +41,7 @@ import org.slf4j.LoggerFactory;
 import io.dropwizard.util.Duration;
 import io.dropwizard.util.Size;
 
-public class CodecBeanDeserializer extends BeanDeserializer {
+public class CodecBeanDeserializer extends DelegatingDeserializer {
     private static final Logger log = LoggerFactory.getLogger(CodecBeanDeserializer.class);
 
     private final ObjectNode fieldDefaults;
@@ -53,19 +51,12 @@ public class CodecBeanDeserializer extends BeanDeserializer {
         this.fieldDefaults = fieldDefaults;
     }
 
-    protected CodecBeanDeserializer(CodecBeanDeserializer src, NameTransformer unwrapper) {
-        super(src, unwrapper);
-        this.fieldDefaults = src.fieldDefaults;
+    @Override public BeanDeserializerBase getDelegatee() {
+        return (BeanDeserializerBase) _delegatee;
     }
 
-    public CodecBeanDeserializer(CodecBeanDeserializer src, ObjectIdReader oir) {
-        super(src, oir);
-        this.fieldDefaults = src.fieldDefaults;
-    }
-
-    public CodecBeanDeserializer(CodecBeanDeserializer src, HashSet<String> ignorableProps) {
-        super(src, ignorableProps);
-        this.fieldDefaults = src.fieldDefaults;
+    @Override protected JsonDeserializer<?> newDelegatingInstance(JsonDeserializer<?> newDelegatee) {
+        return new CodecBeanDeserializer((BeanDeserializerBase) newDelegatee, fieldDefaults);
     }
 
     @Override
@@ -86,7 +77,7 @@ public class CodecBeanDeserializer extends BeanDeserializer {
                 jp = jp.getCodec().treeAsTokens(objectNode);
                 jp.nextToken();
             }
-            Object value = super.deserialize(jp, ctxt);
+            Object value = getDelegatee().deserialize(jp, ctxt);
             if (value instanceof SuperCodable) {
                 ((SuperCodable) value).postDecode();
             }
@@ -98,7 +89,7 @@ public class CodecBeanDeserializer extends BeanDeserializer {
 
     private void handleDefaultsAndRequiredAndNull(DeserializationContext ctxt, ObjectNode fieldValues)
             throws JsonMappingException {
-        Iterator<SettableBeanProperty> propertyIterator = properties();
+        Iterator<SettableBeanProperty> propertyIterator = getDelegatee().properties();
         while (propertyIterator.hasNext()) {
             SettableBeanProperty prop = propertyIterator.next();
             String propertyName = prop.getName();
@@ -138,28 +129,7 @@ public class CodecBeanDeserializer extends BeanDeserializer {
     // required overrides that don't actually change much
 
     @Override
-    public JsonDeserializer<Object> unwrappingDeserializer(NameTransformer unwrapper)
-    {
-        /* bit kludgy but we don't want to accidentally change type; sub-classes
-         * MUST override this method to support unwrapped properties...
-         */
-        if (getClass() != CodecBeanDeserializer.class) {
-            return this;
-        }
-        /* main thing really is to just enforce ignoring of unknown
-         * properties; since there may be multiple unwrapped values
-         * and properties for all may be interleaved...
-         */
-        return new CodecBeanDeserializer(this, unwrapper);
-    }
-
-    @Override
-    public BeanDeserializer withObjectIdReader(ObjectIdReader oir) {
-        return new CodecBeanDeserializer(this, oir);
-    }
-
-    @Override
-    public BeanDeserializer withIgnorableProperties(HashSet<String> ignorableProps) {
-        return new CodecBeanDeserializer(this, ignorableProps);
+    public JsonDeserializer<Object> unwrappingDeserializer(NameTransformer unwrapper) {
+        return (JsonDeserializer<Object>) replaceDelegatee(getDelegatee().unwrappingDeserializer(unwrapper));
     }
 }
