@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
@@ -160,6 +161,38 @@ public final class Jackson {
         }
     }
 
+    public static IOException maybeUnwrapPath(String pathToSkip, IOException cause) {
+        if ((pathToSkip != null) && (cause instanceof JsonMappingException)) {
+            JsonMappingException mappingException = (JsonMappingException) cause;
+            List<JsonMappingException.Reference> paths = mappingException.getPath();
+            if (!paths.isEmpty()) {
+                Iterator<String> pathIterator = dotSplitter.split(pathToSkip).iterator();
+                Iterator<JsonMappingException.Reference> refIterator = paths.iterator();
+                while (pathIterator.hasNext()) {
+                    String pathToSkipPart = pathIterator.next();
+                    if (!refIterator.hasNext()) {
+                        return cause;
+                    }
+                    String nextRefField = refIterator.next().getFieldName();
+                    if (!pathToSkipPart.equals(nextRefField)) {
+                        return cause;
+                    }
+                }
+                JsonMappingException unwrapped = new JsonMappingException(rootMessage(mappingException),
+                                                                          mappingException.getLocation(),
+                                                                          mappingException.getCause());
+                if (refIterator.hasNext()) {
+                    List<JsonMappingException.Reference> remainingRefs = Lists.newArrayList(refIterator);
+                    for (JsonMappingException.Reference reference : Lists.reverse(remainingRefs)) {
+                        unwrapped.prependPath(reference);
+                    }
+                }
+                return unwrapped;
+            }
+        }
+        return cause;
+    }
+
     public static boolean isRealLocation(JsonLocation jsonLocation) {
         return (jsonLocation != null) && (jsonLocation != JsonLocation.NA);
     }
@@ -176,12 +209,16 @@ public final class Jackson {
                         ConfigObject locRefObject = (ConfigObject) locRef;
                         if (locRefObject.containsKey(fieldName)) {
                             locRef = locRefObject.get(fieldName);
+                        } else {
+                            break;
                         }
                     } else if (locRef instanceof ConfigList) {
                         int fieldIndex = path.getIndex();
                         ConfigList locRefList = (ConfigList) locRef;
                         if ((fieldIndex >= 0) && (locRefList.size() > fieldIndex)) {
                             locRef = locRefList.get(fieldIndex);
+                        } else {
+                            break;
                         }
                     } else {
                         break;
@@ -191,7 +228,7 @@ public final class Jackson {
                     wrapLoc = fromConfigValue(locRef);
                 }
             }
-            List<JsonMappingException.Reference> paths = cause.getPath();
+            List<JsonMappingException.Reference> paths = Lists.reverse(cause.getPath());
             if (!paths.isEmpty()) {
                 JsonMappingException withLoc = new JsonMappingException(rootMessage(cause), wrapLoc, cause);
                 for (JsonMappingException.Reference path : paths) {

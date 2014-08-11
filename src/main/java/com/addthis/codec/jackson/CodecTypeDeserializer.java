@@ -188,10 +188,19 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             if (_typeIdVisible) {
                 objectNode.put(classField, matched);
             }
-            JsonDeserializer<Object> deser = _findDeserializer(ctxt, matched);
-            JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
-            treeParser.nextToken();
-            return deser.deserialize(treeParser, ctxt);
+            try {
+                JsonDeserializer<Object> deser = _findDeserializer(ctxt, matched);
+                JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
+                treeParser.nextToken();
+                return deser.deserialize(treeParser, ctxt);
+            } catch (IOException cause) {
+                IOException unwrapped = Jackson.maybeUnwrapPath(primaryField, cause);
+                if (unwrapped != cause) {
+                    throw wrapWithPath(unwrapped, idRes.typeFromId(matched), matched);
+                } else {
+                    throw unwrapped;
+                }
+            }
         } else {
             return null;
         }
@@ -203,22 +212,29 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                                                              DeserializationContext ctxt) throws IOException {
         String singleKeyName = objectNode.fieldNames().next();
         if (idRes.isValidTypeId(singleKeyName)) {
+            ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
+            String primaryField;
+            if (aliasDefaults.containsKey("_primary")) {
+                primaryField = (String) aliasDefaults.get("_primary").unwrapped();
+            } else {
+                primaryField = null;
+            }
+            boolean unwrapPrimary = false;
             try {
-                ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
                 JsonNode singleKeyValue = objectNode.get(singleKeyName);
                 JsonDeserializer<Object> deser = _findDeserializer(ctxt, singleKeyName);
                 if (!singleKeyValue.isObject()) {
                     // if value is not an object, try supporting _primary syntax to derive one
-                    if (aliasDefaults.get("_primary") != null) {
-                        String primaryField = (String) aliasDefaults.get("_primary").unwrapped();
+                    if (primaryField != null) {
                         ObjectNode singleKeyObject = (ObjectNode) objectCodec.createObjectNode();
                         Jackson.setAt(singleKeyObject, singleKeyValue, primaryField);
                         Jackson.merge(singleKeyObject, Jackson.configConverter(aliasDefaults));
                         singleKeyValue = singleKeyObject;
+                        unwrapPrimary = true;
                     } // else let the downstream serializer try to handle it or complain
                 } else {
                     ObjectNode singleKeyObject = (ObjectNode) singleKeyValue;
-                    handleDefaultsAndImplicitPrimary(singleKeyObject, aliasDefaults, deser, ctxt);
+                    unwrapPrimary = handleDefaultsAndImplicitPrimary(singleKeyObject, aliasDefaults, deser, ctxt);
                 }
                 if (_typeIdVisible && singleKeyValue.isObject()) {
                     ((ObjectNode) singleKeyValue).put(classField, singleKeyName);
@@ -226,6 +242,11 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 JsonParser treeParser = objectCodec.treeAsTokens(singleKeyValue);
                 treeParser.nextToken();
                 return deser.deserialize(treeParser, ctxt);
+            } catch (IOException cause) {
+                if (unwrapPrimary) {
+                    cause = Jackson.maybeUnwrapPath(primaryField, cause);
+                }
+                throw wrapWithPath(cause, idRes.typeFromId(singleKeyName), singleKeyName);
             } catch (Throwable cause) {
                 throw wrapWithPath(cause, idRes.typeFromId(singleKeyName), singleKeyName);
             }
@@ -248,10 +269,24 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             throw wrapWithPath(cause, Class.class, classField);
         }
         ConfigObject aliasDefaults = pluginMap.aliasDefaults(type);
-        handleDefaultsAndImplicitPrimary(objectNode, aliasDefaults, deser, ctxt);
-        JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
-        treeParser.nextToken();
-        return deser.deserialize(treeParser, ctxt);
+        String primaryField;
+        if (aliasDefaults.containsKey("_primary")) {
+            primaryField = (String) aliasDefaults.get("_primary").unwrapped();
+        } else {
+            primaryField = null;
+        }
+        boolean unwrapPrimary = handleDefaultsAndImplicitPrimary(objectNode, aliasDefaults, deser, ctxt);
+        try {
+            JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
+            treeParser.nextToken();
+            return deser.deserialize(treeParser, ctxt);
+        } catch (IOException cause) {
+            if (unwrapPrimary) {
+                throw Jackson.maybeUnwrapPath(primaryField, cause);
+            } else {
+                throw cause;
+            }
+        }
     }
 
     @Nullable private Object _deserializeTypedFromArray(ArrayNode arrayNode,
@@ -261,23 +296,27 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         if (idRes.isValidTypeId("_array")) {
             Config aliasDefaults = pluginMap.aliasDefaults("_array").toConfig();
             String arrayField = aliasDefaults.getString("_primary");
-            ObjectNode objectFieldValues = (ObjectNode) objectCodec.createObjectNode();
-            Jackson.setAt(objectFieldValues, arrayNode, arrayField);
-            ObjectNode aliasFieldDefaults = Jackson.configConverter(aliasDefaults.root());
-            Jackson.merge(objectFieldValues, aliasFieldDefaults);
-            JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_array");
-            JsonParser treeParser = objectCodec.treeAsTokens(objectFieldValues);
-            treeParser.nextToken();
-            return deser.deserialize(treeParser, ctxt);
+            try {
+                ObjectNode objectFieldValues = (ObjectNode) objectCodec.createObjectNode();
+                Jackson.setAt(objectFieldValues, arrayNode, arrayField);
+                ObjectNode aliasFieldDefaults = Jackson.configConverter(aliasDefaults.root());
+                Jackson.merge(objectFieldValues, aliasFieldDefaults);
+                JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_array");
+                JsonParser treeParser = objectCodec.treeAsTokens(objectFieldValues);
+                treeParser.nextToken();
+                return deser.deserialize(treeParser, ctxt);
+            } catch (IOException ex) {
+                throw Jackson.maybeUnwrapPath(arrayField, ex);
+            }
         } else {
             return null;
         }
     }
 
-    private void handleDefaultsAndImplicitPrimary(ObjectNode fieldValues,
-                                                  ConfigObject aliasDefaults,
-                                                  JsonDeserializer<?> deserializer,
-                                                  DeserializationContext ctxt) throws JsonMappingException {
+    private boolean handleDefaultsAndImplicitPrimary(ObjectNode fieldValues,
+                                                     ConfigObject aliasDefaults,
+                                                     JsonDeserializer<?> deserializer,
+                                                     DeserializationContext ctxt) throws JsonMappingException {
         if (!aliasDefaults.isEmpty()) {
             if ((deserializer instanceof BeanDeserializerBase) && (aliasDefaults.get("_primary") != null)) {
                 BeanDeserializerBase beanDeserializer = (BeanDeserializerBase) deserializer;
@@ -319,6 +358,8 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                                 // then wrap the value with its key (its type), and stash it in our primary field
                                 JsonNode inlinedPrimaryValue = fieldValues.remove(possibleInlinedPrimary);
                                 fieldValues.with(primaryField).set(possibleInlinedPrimary, inlinedPrimaryValue);
+                                Jackson.merge(fieldValues, Jackson.configConverter(aliasDefaults));
+                                return true;
                             }
                         }
                     }
@@ -327,5 +368,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             // merge alias defaults here since we check for empty etc anyway
             Jackson.merge(fieldValues, Jackson.configConverter(aliasDefaults));
         }
+        return false;
     }
 }

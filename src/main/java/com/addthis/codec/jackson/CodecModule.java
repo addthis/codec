@@ -33,6 +33,7 @@ public class CodecModule extends Module {
         context.insertAnnotationIntrospector(new CodecIntrospector(pluginRegistry));
         context.addDeserializationProblemHandler(new CodecUnknownPropertyHandler());
         context.addBeanDeserializerModifier(new CodecBeanDeserializerModifier(globalConfig));
+        context.addDeserializers(new CodecDeserializers());
     }
 
     @Override public String getModuleName() {
