@@ -16,6 +16,7 @@ package com.addthis.codec.jackson;
 import java.io.IOException;
 
 import java.util.Iterator;
+import java.util.regex.Pattern;
 
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.annotations.Time;
@@ -43,6 +44,7 @@ import io.dropwizard.util.Size;
 
 public class CodecBeanDeserializer extends DelegatingDeserializer {
     private static final Logger log = LoggerFactory.getLogger(CodecBeanDeserializer.class);
+    private static final Pattern NUMBER_UNIT = Pattern.compile("(\\d+)\\s*([^\\s\\d]+)");
 
     private final ObjectNode fieldDefaults;
 
@@ -109,12 +111,16 @@ public class CodecBeanDeserializer extends DelegatingDeserializer {
             }
             if (fieldValue.isTextual()) {
                 try {
+                    // sometimes we erroneously get strings that would parse into valid numbers and maybe other edge
+                    // cases (eg. when using system property overrides in typesafe-config). So we'll go ahead and guard
+                    // with this regex to make sure we only get reasonable candidates.
                     Time time = prop.getAnnotation(Time.class);
-                    if (time != null) {
+                    if ((time != null) && NUMBER_UNIT.matcher(fieldValue.textValue()).matches()) {
                         Duration dropWizardDuration = Duration.parse(fieldValue.asText());
                         long asLong = time.value().convert(dropWizardDuration.getQuantity(), dropWizardDuration.getUnit());
                         fieldValues.put(propertyName, asLong);
-                    } else if (prop.getAnnotation(Bytes.class) != null) {
+                    } else if ((prop.getAnnotation(Bytes.class) != null) &&
+                               NUMBER_UNIT.matcher(fieldValue.textValue()).matches()) {
                         Size dropWizardSize = Size.parse(fieldValue.asText());
                         long asLong = dropWizardSize.toBytes();
                         fieldValues.put(propertyName, asLong);
