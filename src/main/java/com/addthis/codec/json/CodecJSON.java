@@ -18,6 +18,7 @@ import java.io.IOException;
 import com.addthis.codec.Codec;
 import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.util.CodableStatistics;
+import com.addthis.maljson.JSONObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -57,8 +58,14 @@ public final class CodecJSON extends Codec {
         throw new UnsupportedOperationException();
     }
 
-    public static JsonNode encodeJSON(Object object) throws Exception {
+    public static JsonNode encodeJsonNode(Object object) throws Exception {
         return CodecJackson.getDefault().getObjectMapper().valueToTree(object);
+    }
+
+    /** @deprecated Use {@link #encodeJsonNode(Object)} or {@link CodecJackson} */
+    @Deprecated
+    public static JSONObject encodeJSON(Object object) throws Exception {
+        return new JSONObject(CodecJackson.getDefault().getObjectMapper().writeValueAsString(object));
     }
 
     public static String encodeString(Object object) throws JsonProcessingException {
