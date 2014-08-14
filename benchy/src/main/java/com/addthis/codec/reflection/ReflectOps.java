@@ -77,10 +77,10 @@ public class ReflectOps {
         for (CodableFieldInfo fieldInfo : classInfo.values()) {
             if (fieldInfo.getName().equals("intArrayField")) {
                 intArrayInfo = fieldInfo;
-                intArrayType = fieldInfo.getType();
+                intArrayType = fieldInfo.getTypeOrComponentType();
             } else {
                 booleanInfo = fieldInfo;
-                booleanType = fieldInfo.getType();
+                booleanType = fieldInfo.getTypeOrComponentType();
             }
         }
     }

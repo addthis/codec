@@ -20,7 +20,7 @@
   <description>template-like mini-module for benchmarking</description>
   <!--it should suffice to only change these three settings when re-using this pom-->
   <groupId>com.addthis</groupId>
-  <version>3.0.0-SNAPSHOT</version>
+  <version>3.0.12-SNAPSHOT</version>
   <properties>
     <benchy.artifactId>codec</benchy.artifactId>
   </properties>
@@ -30,7 +30,7 @@
   <parent>
     <artifactId>jar-pom</artifactId>
     <groupId>com.addthis.common.build.maven.pom</groupId>
-    <version>3.1.0</version>
+    <version>3.2.1</version>
     <!--setting the relativePath to nothing quiets a spurious warning when put in a subdirectory-->
     <relativePath/>
   </parent>
@@ -69,7 +69,6 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>${dep.slf4j.version}</version>
     </dependency>
   </dependencies>
 
@@ -79,7 +78,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>2.0</version>
+        <version>2.3</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -89,6 +88,12 @@
             <configuration>
               <finalName>microbenchmarks</finalName>
               <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>reference.conf</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>application.conf</resource>
+                </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.openjdk.jmh.Main</mainClass>
                 </transformer>
