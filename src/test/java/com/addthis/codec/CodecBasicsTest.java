@@ -24,9 +24,12 @@ import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.binary.CodecBin2;
 import com.addthis.codec.codables.Codable;
+import com.addthis.codec.jackson.CodecJackson;
+import com.addthis.codec.jackson.MissingPropertyException;
 import com.addthis.codec.json.CodecJSON;
-import com.addthis.codec.kv.CodecKV;
 import com.addthis.codec.reflection.RequiredFieldException;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
 
 import org.junit.Test;
 
@@ -36,17 +39,13 @@ public class CodecBasicsTest {
 
     @Test
     public void utestJSON() throws Exception {
+        CodecJackson.getDefault().getObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         assertTrue(testJSON());
     }
 
     @Test
     public void utestBin2() throws Exception {
         assertTrue(testBin2());
-    }
-
-    @Test
-    public void utestKV() throws Exception {
-        assertTrue(testKV());
     }
 
     public abstract static class X implements Codable {
@@ -478,10 +477,14 @@ public class CodecBasicsTest {
         boolean requireds = false;
         try {
             RC rc = new RC();
-            codec.decode(rc, codec.encode(rc));
+            codec.decode(RC.class, codec.encode(rc));
         } catch (Exception ex) {
-            if (ex instanceof RequiredFieldException ||
-                ex.getCause() instanceof RequiredFieldException) {
+            if ((ex instanceof RequiredFieldException)
+                || (ex.getCause() instanceof RequiredFieldException)) {
+                requireds = true;
+            }
+            if ((ex instanceof MissingPropertyException)
+                || (ex.getCause() instanceof MissingPropertyException)) {
                 requireds = true;
             }
         }
@@ -502,10 +505,6 @@ public class CodecBasicsTest {
 
     private static boolean testJSON() throws Exception {
         return test(CodecJSON.INSTANCE);
-    }
-
-    private static boolean testKV() throws Exception {
-        return test(CodecKV.INSTANCE);
     }
 
     private static boolean testBin2() throws Exception {

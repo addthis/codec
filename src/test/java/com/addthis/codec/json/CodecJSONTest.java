@@ -13,12 +13,10 @@
  */
 package com.addthis.codec.json;
 
+import java.io.IOException;
+
 import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.codables.Codable;
-import com.addthis.codec.json.CodecExceptionLineNumber;
-import com.addthis.codec.json.CodecJSON;
-import com.addthis.maljson.JSONException;
-import com.addthis.maljson.JSONObject;
 
 import org.junit.Test;
 
@@ -55,25 +53,22 @@ public class CodecJSONTest {
     }
 
     @Test
-    public void testPrimitiveArrayTypeMismatch() {
+    public void testPrimitiveArrayTypeMismatch() throws IOException {
         boolean caught = false;
         try {
-            CodecJSON.decodeObject(A.class, new JSONObject("{field1: [\"1\",{},3]}"));
-        } catch (JSONException ex) {
-        } catch (CodecExceptionLineNumber ex) {
+            CodecJSON.decodeString(A.class, "{field1: [\"1\",{},3]}");
+        } catch (IOException ex) {
             caught = true;
         }
         assertTrue(caught);
     }
 
     @Test
-    public void testObjectArrayTypeMismatch() {
-
+    public void testObjectArrayTypeMismatch() throws IOException {
         boolean caught = false;
         try {
-            CodecJSON.decodeObject(B.class, new JSONObject("{field4: [[]]}"));
-        } catch (JSONException ex) {
-        } catch (CodecExceptionLineNumber ex) {
+            CodecJSON.decodeString(B.class, "{field4: [[]]}");
+        } catch (IOException ex) {
             caught = true;
         }
         assertTrue(caught);
@@ -81,20 +76,20 @@ public class CodecJSONTest {
 
     @Test
     public void typeSugar() throws Exception {
-        Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(
-                "{thing: {com.addthis.codec.json.CodecJSONTest$C: {intField: 5}}}"));
+        Holder object = CodecJSON.decodeString(Holder.class,
+                "{thing: {\"com.addthis.codec.json.CodecJSONTest$C\": {intField: 5}}}");
         C asC = (C) object.thing;
         assertEquals(5, asC.intField);
     }
 
     @Test
     public void arraySugar() throws Exception {
-        Holder object = CodecJSON.decodeObject(Holder.class, new JSONObject(
-                "{thing: [" +
-                "{C: {intField: 5}}, " +
-                "{C: {intField: 6}}, " +
-                "{C: {intField: 7}}, " +
-                "]}"));
+        Holder object = CodecJSON.decodeString(new Holder(),
+                                               "{thing: [" +
+                                               "{C: {intField: 5}}, " +
+                                               "{C: {intField: 6}}, " +
+                                               "{C: {intField: 7}} " +
+                                               "]}");
         D asD = (D) object.thing;
         assertEquals(6, ((C) asD.letters[1]).intField);
     }

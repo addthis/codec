@@ -18,7 +18,7 @@ import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
-import com.addthis.maljson.JSONObject;
+import com.addthis.codec.plugins.PluginRegistry;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.typesafe.config.Config;
@@ -49,7 +49,7 @@ public class FeatureTest {
     @Test
     public void expandDefault() throws Exception {
         Config greet = parseResources("config/defaultgreeter.conf");
-        ConfigObject resolved = (ConfigObject) Configs.expandSugar(greet, CodecConfig.getDefault());
+        ConfigObject resolved = (ConfigObject) Configs.expandSugar(greet, PluginRegistry.defaultRegistry());
         log.info("unresolved {}", greet.root().render());
         log.info("resolved {}", resolved.render());
         Greeter greeterObject = decodeObject(Greeter.class, resolved.toConfig());
@@ -208,9 +208,9 @@ public class FeatureTest {
 
     @Test
     public void inheritanceJson() throws Exception {
-        Greeter greeterObject = CodecJSON.decodeObject(
+        Greeter greeterObject = CodecJSON.decodeString(
                 ParseGreetSub.class,
-                new JSONObject("{bytes: 512, other: {enum: {timeUnit: [SECONDS]}}}"));
+                "{bytes: 512, other: {enum: {timeUnit: [\"SECONDS\"]}}}");
         String expected = "extra extra! other [SECONDS] bytes: 512 millis: 1000";
         assertEquals(expected, greeterObject.greet());
     }

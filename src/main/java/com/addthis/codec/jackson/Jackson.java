@@ -13,9 +13,6 @@
  */
 package com.addthis.codec.jackson;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Syntax;
-
 import java.io.IOException;
 
 import java.util.Iterator;
@@ -35,7 +32,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigOrigin;
@@ -56,22 +52,6 @@ public final class Jackson {
 
     public static ObjectMapper defaultMapper() {
         return DefaultCodecJackson.DEFAULT_MAPPER;
-    }
-
-    /**
-     * Construct an object of the requested type based on the default values and types (if the requested
-     * is not a concrete class).
-     */
-    public static <T> T newDefault(@Nonnull Class<T> type) throws IOException {
-        return DefaultCodecJackson.DEFAULT.newDefault(type);
-    }
-
-    public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText) throws IOException {
-        return DefaultCodecJackson.DEFAULT.decodeObject(type, configText);
-    }
-
-    public static <T> T decodeObject(@Nonnull Class<T> type, Config config) throws IOException {
-        return DefaultCodecJackson.DEFAULT.decodeObject(type, config);
     }
 
     public static ObjectMapper newObjectMapper(CodecModule codecModule) {

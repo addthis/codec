@@ -15,6 +15,8 @@ package com.addthis.codec.jackson;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
+import com.addthis.codec.config.Configs;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,9 +26,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConfigTest {
+public class JacksonTest {
 
-    private static final Logger log = LoggerFactory.getLogger(ConfigTest.class);
+    private static final Logger log = LoggerFactory.getLogger(JacksonTest.class);
 
     static class QueueHolder {
         public ArrayBlockingQueue<?> q;
@@ -87,7 +89,7 @@ public class ConfigTest {
 
     @Test
     public void someIntTest() throws Exception {
-        IntHolder intHolder = Jackson.newDefault(IntHolder.class);
+        IntHolder intHolder = Configs.newDefault(IntHolder.class);
         log.info("IntHolder.inty {}", intHolder.inty);
         ObjectNode node = Jackson.defaultMapper()
                                  .createObjectNode()

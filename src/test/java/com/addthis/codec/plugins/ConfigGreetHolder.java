@@ -18,5 +18,4 @@ import com.addthis.codec.annotations.FieldConfig;
 public class ConfigGreetHolder {
 
     @FieldConfig public ConfigGreet configGreet;
-    @FieldConfig public ConfigNonGreet configNonGreet;
 }

@@ -18,6 +18,7 @@ import java.util.Collection;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.cfg.MapperConfig;
@@ -36,6 +37,7 @@ public class CodecTypeResolverBuilder extends StdTypeResolverBuilder {
         this.pluginRegistry = pluginRegistry;
         defaultImpl(pluginMap.defaultSugar());
         typeProperty(pluginMap.classField());
+        inclusion(JsonTypeInfo.As.PROPERTY);
     }
 
     @Override public CodecTypeDeserializer buildTypeDeserializer(DeserializationConfig config,

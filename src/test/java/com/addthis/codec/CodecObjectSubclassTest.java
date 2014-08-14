@@ -23,7 +23,6 @@ import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.binary.CodecBin2;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.json.CodecJSON;
-import com.addthis.codec.kv.CodecKV;
 
 import com.google.common.collect.Lists;
 
@@ -39,8 +38,7 @@ public class CodecObjectSubclassTest {
 
     @Test
     public void testAll() throws Exception {
-        List<Codec> codecs = Lists.newArrayList(
-                CodecBin2.INSTANCE, CodecJSON.INSTANCE, CodecKV.INSTANCE);
+        List<Codec> codecs = Lists.newArrayList(CodecBin2.INSTANCE, CodecJSON.INSTANCE);
         for (Codec c : codecs) {
             Bundle testBundle = new Bundle();
             testBundle.a.set();

@@ -45,8 +45,10 @@ public class PluginRegistry {
 
     @Nonnull private final Map<String,   PluginMap> pluginMapsByCategory;
     @Nonnull private final BiMap<Class<?>, PluginMap> pluginMapsByClass;
+    @Nonnull private final Config config;
 
     public PluginRegistry(Config config) {
+        this.config = config;
         Config defaultPluginMapSettings = config.getConfig(PLUGIN_DEFAULTS_PATH);
         String pluginPath = config.getString(PLUGINS_PATH_PATH);
         Config pluginConfigs = config.getConfig(pluginPath);
@@ -65,6 +67,10 @@ public class PluginRegistry {
         }
         pluginMapsByCategory = Collections.unmodifiableMap(mapsFromConfig);
         pluginMapsByClass = Maps.unmodifiableBiMap(mapsFromConfigByClass);
+    }
+
+    public Config config() {
+        return config;
     }
 
     public Map<String, PluginMap> asMap() {

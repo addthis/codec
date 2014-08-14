@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import java.util.Set;
 
-import com.addthis.codec.jackson.tree.ConfigTraversingParser;
+import com.addthis.codec.config.ConfigTraversingParser;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 

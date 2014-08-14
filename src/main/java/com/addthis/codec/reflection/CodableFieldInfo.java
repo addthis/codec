@@ -25,8 +25,6 @@ import java.util.Map;
 
 import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.codables.Codable;
-import com.addthis.codec.json.CodecExceptionLineNumber;
-import com.addthis.maljson.LineNumberInfo;
 
 import com.google.common.annotations.Beta;
 
@@ -196,33 +194,6 @@ public final class CodableFieldInfo {
             return field.get(src);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Variation of {@link #setStrict(Object, Object)} with line numbers and extra string intern handling.
-     *
-     * @deprecated Handle string interning yourself and use {@link #setStrict(Object, Object)} instead.
-     */
-    @Deprecated
-    public void setStrictJson(Object dst, LineNumberInfo dstInfo, Object value, LineNumberInfo valInfo)
-            throws CodecExceptionLineNumber {
-
-        if (value == null) {
-            if (isRequired()) {
-                Exception ex = new RequiredFieldException("missing required field '" +
-                                                          this.getName() + "' for " + dst, getName());
-                throw new CodecExceptionLineNumber(ex, dstInfo);
-            }
-            return;
-        }
-        try {
-            if ((value.getClass() == String.class) && isInterned()) {
-                value = ((String) value).intern();
-            }
-            field.set(dst, value);
-        } catch (Exception ex) {
-            throw new CodecExceptionLineNumber(ex.getMessage(), valInfo);
         }
     }
 

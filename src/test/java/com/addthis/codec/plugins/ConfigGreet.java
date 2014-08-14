@@ -13,18 +13,12 @@
  */
 package com.addthis.codec.plugins;
 
-import javax.annotation.Nullable;
-
 import com.addthis.codec.annotations.FieldConfig;
-import com.addthis.codec.config.ConfigCodable;
-import com.addthis.codec.config.ValueCodable;
 
-import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueType;
 
-public class ConfigGreet implements Greeter, ConfigCodable, ValueCodable {
+public class ConfigGreet implements Greeter {
 
     @FieldConfig(required = true) public ConfigValue rawConfigValue;
 
@@ -32,21 +26,5 @@ public class ConfigGreet implements Greeter, ConfigCodable, ValueCodable {
 
     @Override public String greet() {
         return rawConfigValue.render(ConfigRenderOptions.concise());
-    }
-
-    @Nullable @Override public ConfigObject fromConfigObject(ConfigObject config, ConfigObject defaults) {
-        ConfigValue configValue = config.get("rawConfigValue");
-        if ((configValue != null) && (configValue.valueType() != ConfigValueType.NULL)) {
-            rawConfigValue = configValue;
-            source = (String) config.get("source").unwrapped();
-            return null;
-        } else {
-            return config;
-        }
-    }
-
-    @Override public void fromConfigValue(ConfigValue configValue, ConfigObject defaults) {
-        rawConfigValue = configValue;
-        source = "ValueCodable";
     }
 }

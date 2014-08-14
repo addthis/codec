@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.plugins.PluginMap;
+import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 
@@ -117,29 +118,30 @@ public final class Configs {
         return CodecJackson.getDefault().decodeObject(config);
     }
 
-    public static ConfigValue expandSugar(Config config, CodecConfig codec) {
+    public static ConfigValue expandSugar(Config config, PluginRegistry pluginRegistry) {
         if (config.root().size() != 1) {
             throw new ConfigException.Parse(config.root().origin(),
                                             "config root must have exactly one key");
         }
         String category = config.root().keySet().iterator().next();
-        PluginMap pluginMap = codec.pluginRegistry().asMap().get(category);
+        PluginMap pluginMap = pluginRegistry.asMap().get(category);
         if (pluginMap == null) {
             throw new ConfigException.BadValue(config.root().get(category).origin(),
                                                category,
                                                "top level key must be a valid category");
         }
         Class<?> baseClass = Objects.firstNonNull(pluginMap.baseClass(), Object.class);
-        return expandSugar(baseClass, config.root().get(category), codec);
+        return expandSugar(baseClass, config.root().get(category), pluginRegistry);
     }
 
-    public static ConfigValue expandSugar(Class<?> type, ConfigValue config, CodecConfig codec) {
+    public static ConfigValue expandSugar(Class<?> type, ConfigValue config,
+                                          PluginRegistry pluginRegistry) {
         if ((type != null) && type.isAssignableFrom(ConfigValue.class)) {
             return ConfigValueFactory.fromAnyRef(config.unwrapped(),
                                                  "unchanged for raw ConfigValue field "
                                                  + config.origin().description());
         }
-        CodableClassInfo typeInfo = codec.getOrCreateClassInfo(type);
+        CodableClassInfo typeInfo = new CodableClassInfo(type, pluginRegistry.config(), pluginRegistry);
         PluginMap pluginMap = typeInfo.getPluginMap();
         ConfigValue valueOrResolvedRoot = resolveType(type, config, pluginMap);
         if (valueOrResolvedRoot.valueType() != ConfigValueType.OBJECT) {
@@ -154,11 +156,12 @@ public final class Configs {
                 // try not to throw exceptions or at least checked exceptions from this helper method
             }
         }
-        return expandSugarSkipResolve(type, root, codec);
+        return expandSugarSkipResolve(type, root, pluginRegistry);
     }
 
-    private static ConfigObject expandSugarSkipResolve(Class<?> type, ConfigObject root, CodecConfig codec) {
-        CodableClassInfo resolvedTypeInfo = codec.getOrCreateClassInfo(type);
+    private static ConfigObject expandSugarSkipResolve(Class<?> type, ConfigObject root,
+                                                       PluginRegistry pluginRegistry) {
+        CodableClassInfo resolvedTypeInfo = new CodableClassInfo(type, pluginRegistry.config(), pluginRegistry);
         ConfigObject fieldDefaults = resolvedTypeInfo.getFieldDefaults().root();
         for (CodableFieldInfo fieldInfo : resolvedTypeInfo.values()) {
             String fieldName = fieldInfo.getName();
@@ -189,7 +192,7 @@ public final class Configs {
                 }
                 Class<?> elementType = elementType(fieldInfo);
                 boolean nested = fieldInfo.isCollectionArray();
-                fieldValue = expandSugarArray(fieldValue, elementType, codec, nested);
+                fieldValue = expandSugarArray(fieldValue, elementType, pluginRegistry, nested);
             } else if (fieldInfo.isMap()) {
                 if (fieldValue.valueType() != ConfigValueType.OBJECT) {
                     throw new ConfigException.WrongType(fieldValue.origin(), fieldName,
@@ -204,15 +207,15 @@ public final class Configs {
                     String mapKey = mapEntry.getKey();
                     ConfigValue resolvedMapObject;
                     if (nested) {
-                        resolvedMapObject = expandSugarArray(mapValue, elementType, codec, false);
+                        resolvedMapObject = expandSugarArray(mapValue, elementType, pluginRegistry, false);
                     } else {
-                        resolvedMapObject = expandSugar(elementType, mapValue, codec);
+                        resolvedMapObject = expandSugar(elementType, mapValue, pluginRegistry);
                     }
                     newMap.put(mapKey, resolvedMapObject.unwrapped());
                 }
                 fieldValue = ConfigValueFactory.fromMap(newMap, fieldMap.origin().description());
             } else {
-                fieldValue = expandSugar(fieldInfo.getTypeOrComponentType(), fieldValue, codec);
+                fieldValue = expandSugar(fieldInfo.getTypeOrComponentType(), fieldValue, pluginRegistry);
             }
             root = root.withValue(fieldName, fieldValue);
         }
@@ -221,16 +224,16 @@ public final class Configs {
 
     private static ConfigList expandSugarArray(ConfigValue fieldValue,
                                                  Class<?> elementType,
-                                                 CodecConfig codec,
+                                                 PluginRegistry pluginRegistry,
                                                  boolean nested) {
         ConfigList fieldList = (ConfigList) fieldValue;
         List<Object> newList = new ArrayList<>(fieldList.size());
         for (ConfigValue listEntry : fieldList) {
             ConfigValue listObject;
             if (nested) {
-                listObject = expandSugarArray(listEntry, elementType, codec, false);
+                listObject = expandSugarArray(listEntry, elementType, pluginRegistry, false);
             } else {
-                listObject = expandSugar(elementType, listEntry, codec);
+                listObject = expandSugar(elementType, listEntry, pluginRegistry);
             }
             newList.add(listObject.unwrapped());
         }
@@ -288,12 +291,6 @@ public final class Configs {
                                                             "found an array instead of an object, but no array type set");
 
                     }
-                }
-            } else {
-                if (ValueCodable.class.isAssignableFrom(type)) {
-                    return ConfigValueFactory.fromAnyRef(configValue.unwrapped(),
-                                                         "unchanged for ValueCodable"
-                                                         + configValue.origin().description());
                 }
             }
             throw new ConfigException.WrongType(configValue.origin(),
