@@ -37,6 +37,4 @@ public @interface FieldConfig {
     boolean required() default false;
 
     boolean intern() default false;
-
-    boolean autocollection() default false;
 }
