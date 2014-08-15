@@ -38,7 +38,6 @@ import com.typesafe.config.ConfigOrigin;
 import com.typesafe.config.ConfigValue;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY;
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY;
 import static com.fasterxml.jackson.databind.MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS;
 import static com.fasterxml.jackson.databind.MapperFeature.INFER_PROPERTY_MUTATORS;
@@ -88,9 +87,7 @@ public final class Jackson {
         objectMapper.disable(INFER_PROPERTY_MUTATORS);
 
         // more aggressive failure detection
-
         objectMapper.enable(FAIL_ON_READING_DUP_TREE_KEY);
-        objectMapper.enable(FAIL_ON_IGNORED_PROPERTIES);
 
         // essentially auto-collection everywhere, but that seems fine and this is easy
         objectMapper.enable(ACCEPT_SINGLE_VALUE_AS_ARRAY);
