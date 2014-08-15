@@ -21,6 +21,7 @@ import java.util.List;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JavaType;
@@ -91,6 +92,9 @@ public final class Jackson {
 
         // essentially auto-collection everywhere, but that seems fine and this is easy
         objectMapper.enable(ACCEPT_SINGLE_VALUE_AS_ARRAY);
+
+        // don't write out null fields
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         return objectMapper;
     }
 
