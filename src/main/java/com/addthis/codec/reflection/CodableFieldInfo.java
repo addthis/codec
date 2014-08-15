@@ -234,10 +234,6 @@ public final class CodableFieldInfo {
         }
     }
 
-    public boolean autoArrayEnabled() {
-        return (fieldConfig != null) && fieldConfig.autocollection();
-    }
-
     public boolean isArray() {
         return (bits & ARRAY) == ARRAY;
     }

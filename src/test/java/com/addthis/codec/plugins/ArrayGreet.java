@@ -17,7 +17,7 @@ import com.addthis.codec.annotations.FieldConfig;
 
 public class ArrayGreet implements Greeter {
 
-    @FieldConfig(autocollection = true)
+    @FieldConfig
     public String[] phrases;
 
     @Override

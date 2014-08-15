@@ -176,7 +176,7 @@ public final class Configs {
                 continue;
             }
             if ((fieldInfo.isArray() || fieldInfo.isCollection()) &&
-                (fieldValue.valueType() != ConfigValueType.LIST) && fieldInfo.autoArrayEnabled()) {
+                (fieldValue.valueType() != ConfigValueType.LIST)) {
                 fieldValue = ConfigValueFactory.fromIterable(
                         Collections.singletonList(fieldValue.unwrapped()), "auto collection of " +
                                                                            fieldValue.origin().description());

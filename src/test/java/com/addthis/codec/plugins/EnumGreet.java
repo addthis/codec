@@ -20,7 +20,7 @@ import com.addthis.codec.annotations.FieldConfig;
 
 public class EnumGreet implements Greeter {
 
-    @FieldConfig(autocollection = true)
+    @FieldConfig
     public ArrayList<TimeUnit> timeUnit;
 
     @Override

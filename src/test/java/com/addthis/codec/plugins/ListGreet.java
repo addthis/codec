@@ -19,7 +19,7 @@ import com.addthis.codec.annotations.FieldConfig;
 
 public class ListGreet implements Greeter {
 
-    @FieldConfig(autocollection = true)
+    @FieldConfig
     public ArrayList<Greeter> crowd;
 
     @Override

@@ -17,7 +17,7 @@ import com.addthis.codec.annotations.FieldConfig;
 
 public class CrowdGreet implements Greeter {
 
-    @FieldConfig(autocollection = true)
+    @FieldConfig
     public Greeter[] crowd;
 
     @Override
