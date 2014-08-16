@@ -80,6 +80,8 @@ public final class CodecJSON extends Codec {
         }
     }
 
+    /** @deprecated Use {@link #decodeString(Class, String)} instead. */
+    @Deprecated
     public static <T> T decodeString(T object, String json) throws IOException {
         return CodecJackson.getDefault().getObjectMapper().readerForUpdating(object).readValue(json);
     }
