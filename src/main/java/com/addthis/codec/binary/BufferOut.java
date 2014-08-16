@@ -27,7 +27,7 @@ final class BufferOut {
     Stack<ByteArrayOutputStream> stack;
 
     BufferOut() {
-        stack = new Stack<ByteArrayOutputStream>();
+        stack = new Stack<>();
         push();
     }
 

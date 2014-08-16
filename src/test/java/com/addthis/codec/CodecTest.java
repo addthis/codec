@@ -21,15 +21,16 @@ import com.addthis.basis.kv.KVPairs;
 import com.addthis.basis.util.Bytes;
 import com.addthis.basis.util.Strings;
 
-import com.addthis.codec.util.CodableStatistics;
-
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class CodecTest extends Codec {
+public class CodecTest {
+    private static final Logger log = LoggerFactory.getLogger(CodecTest.class);
 
     @Test
     public void testStartsWith() {
@@ -53,7 +54,7 @@ public class CodecTest extends Codec {
         byte[] rep1 = Bytes.toBytes("xyzfoo");
         assertTrue(Bytes.overwrite(buf1, pat1, rep1));
 
-        assertEquals(Bytes.toString(buf1), "abc xyzfooc");
+        assertEquals("abc xyzfooc", Bytes.toString(buf1));
         // test replace buffer that would exceed base buffer (should be limited)
         byte[] buf2 = Bytes.toBytes("abc 123 abc");
         byte[] pat2 = Bytes.toBytes("123");
@@ -76,14 +77,14 @@ public class CodecTest extends Codec {
         byte[] b1 = Bytes.toBytes("123");
         byte[] b2 = Bytes.toBytes("abc");
         // cat
-        assertEquals(Bytes.toString(Bytes.cat(b1, b2)), "123abc");
-        assertEquals(Bytes.toString(Bytes.cat(b1, b2, b1)), "123abc123");
-        assertEquals(Bytes.toString(Bytes.cat(b1, b2, b1, b2)), "123abc123abc");
-        assertEquals(Bytes.toString(Bytes.cat(b1, b2, b1, b2, b1)), "123abc123abc123");
+        assertEquals("123abc", Bytes.toString(Bytes.cat(b1, b2)));
+        assertEquals("123abc123", Bytes.toString(Bytes.cat(b1, b2, b1)));
+        assertEquals("123abc123abc", Bytes.toString(Bytes.cat(b1, b2, b1, b2)));
+        assertEquals("123abc123abc123", Bytes.toString(Bytes.cat(b1, b2, b1, b2, b1)));
         // cut
-        assertEquals(Bytes.toString(Bytes.cut(Bytes.cat(b1, b2), 0, 4)), "123a");
-        assertEquals(Bytes.toString(Bytes.cut(Bytes.cat(b1, b2), 2, 2)), "3a");
-        assertEquals(Bytes.toString(Bytes.cut(Bytes.cat(b1, b2), 2, 4)), "3abc");
+        assertEquals("123a", Bytes.toString(Bytes.cut(Bytes.cat(b1, b2), 0, 4)));
+        assertEquals("3a", Bytes.toString(Bytes.cut(Bytes.cat(b1, b2), 2, 2)));
+        assertEquals("3abc", Bytes.toString(Bytes.cut(Bytes.cat(b1, b2), 2, 4)));
     }
 
     @Test
@@ -106,13 +107,13 @@ public class CodecTest extends Codec {
     }
 
     public void main(String[] args) throws Exception {
-        System.out.println("decode 'abc+123' = " + Bytes.urldecode("abc+123"));
+        log.info("decode 'abc+123' = {}", Bytes.urldecode("abc+123"));
 
         for (String tok : Strings.split("abc def ghi jkl", " ")) {
-            System.out.println("t1: " + tok);
+            log.info("t1: {}", tok);
         }
         for (String tok : Strings.split("abc:def/ghi:jkl", ":/", true)) {
-            System.out.println("t2: " + tok);
+            log.info("t2: {}", tok);
         }
 
         byte[] s1 = Bytes.toBytes("1");
@@ -120,14 +121,14 @@ public class CodecTest extends Codec {
         byte[] s3 = Bytes.toBytes("3");
         byte[] s4 = Bytes.toBytes("4");
 
-        System.out.println(Strings.cat("1", "2", "3"));
-        System.out.println(Strings.cat("1", "2", "3", "4"));
-        System.out.println(Strings.cat("1", "2", "3", "4", "5"));
-        System.out.println(Strings.cat("1", "2", "3", "4", "5", "6"));
+        log.info(Strings.cat("1", "2", "3"));
+        log.info(Strings.cat("1", "2", "3", "4"));
+        log.info(Strings.cat("1", "2", "3", "4", "5"));
+        log.info(Strings.cat("1", "2", "3", "4", "5", "6"));
 
-        System.out.println(Bytes.toString(Bytes.cat(s1, s2)));
-        System.out.println(Bytes.toString(Bytes.cat(s1, s2, s3)));
-        System.out.println(Bytes.toString(Bytes.cat(s1, s2, s3, s4)));
+        log.info(Bytes.toString(Bytes.cat(s1, s2)));
+        log.info(Bytes.toString(Bytes.cat(s1, s2, s3)));
+        log.info(Bytes.toString(Bytes.cat(s1, s2, s3, s4)));
 
         test1(100);
         test1(200);
@@ -155,29 +156,9 @@ public class CodecTest extends Codec {
         byte[] b = new byte[len];
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Bytes.writeBytes(b, bos);
-        System.out.println(b.length + " encoded to " + bos.size());
+        log.info("{} encoded to {}", b.length, bos.size());
         ByteArrayInputStream bin = new ByteArrayInputStream(bos.toByteArray());
         byte[] o = Bytes.readBytes(bin);
-        System.out.println("decoded to " + o.length);
-    }
-
-    @Override
-    public Object decode(Object shell, byte[] data) throws Exception {
-        return null;
-    }
-
-    @Override
-    public byte[] encode(Object obj) throws Exception {
-        return null;
-    }
-
-    @Override
-    public CodableStatistics statistics(Object obj) {
-        return null;
-    }
-
-    @Override
-    public boolean storesNull(byte[] data) {
-        return false;
+        log.info("decoded to {}", o.length);
     }
 }

@@ -26,7 +26,7 @@ final class BufferIn {
     Stack<ByteArrayInputStream> stack;
 
     BufferIn(final byte[] data) throws IOException {
-        stack = new Stack<ByteArrayInputStream>();
+        stack = new Stack<>();
         in = new ByteArrayInputStream(data);
     }
 

@@ -13,13 +13,11 @@
  */
 package com.addthis.codec;
 
-public interface Codec {
+import com.addthis.codec.binary.CodecBin2;
 
-    public byte[] encode(Object obj) throws Exception;
+public class CodecBin2BasicTest extends CodecBasicTests {
 
-    public <T> T decode(T shell, byte[] data) throws Exception;
-
-    public <T> T decode(Class<T> type, byte[] data) throws Exception;
-
-    public boolean storesNull(byte[] data);
+    @Override public Codec getCodec() {
+        return CodecBin2.INSTANCE;
+    }
 }

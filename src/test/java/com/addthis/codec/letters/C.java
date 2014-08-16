@@ -11,15 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.letters;
 
-public interface Codec {
+import com.addthis.codec.annotations.Pluggable;
 
-    public byte[] encode(Object obj) throws Exception;
+@Pluggable("ccm")
+public class C extends X {
 
-    public <T> T decode(T shell, byte[] data) throws Exception;
+    public int x_int_a = 3;
 
-    public <T> T decode(Class<T> type, byte[] data) throws Exception;
-
-    public boolean storesNull(byte[] data);
+    @Override
+    public boolean check() {
+        return check(x_int_a, 1, "CP.x_int_a");
+    }
 }

@@ -11,15 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.letters;
 
-public interface Codec {
+public class CCC extends CC {
 
-    public byte[] encode(Object obj) throws Exception;
-
-    public <T> T decode(T shell, byte[] data) throws Exception;
-
-    public <T> T decode(Class<T> type, byte[] data) throws Exception;
-
-    public boolean storesNull(byte[] data);
+    public int random = 12345;
 }

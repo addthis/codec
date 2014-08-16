@@ -27,14 +27,14 @@ import com.addthis.codec.json.CodecJSON;
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertTrue;
 
 public class CodecObjectSubclassTest {
 
-    public static void main(String[] args) throws Exception {
-        new CodecObjectSubclassTest().testAll();
-    }
+    private static final Logger log = LoggerFactory.getLogger(CodecObjectSubclassTest.class);
 
     @Test
     public void testAll() throws Exception {
@@ -49,9 +49,9 @@ public class CodecObjectSubclassTest {
             Bundle b = c.decode(Bundle.class, en1);
             byte[] en2 = c.encode(b);
             boolean passfail = Arrays.equals(en1, en2);
-            System.out.println("en1[" + en1.length + "] -> " + Bytes.toString(en1));
-            System.out.println("en2[" + en2.length + "] -> " + Bytes.toString(en2));
-            System.out.println(c.getClass().getSimpleName() + " --> " + (passfail ? "PASSED" : "FAILED"));
+            log.info("en1[{}] -> {}", en1.length, Bytes.toString(en1));
+            log.info("en2[{}] -> {}", en2.length, Bytes.toString(en2));
+            log.info("{} --> {}", c.getClass().getSimpleName(), passfail ? "PASSED" : "FAILED");
             assertTrue(passfail);
         }
     }

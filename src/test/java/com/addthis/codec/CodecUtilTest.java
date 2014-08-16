@@ -16,19 +16,18 @@ package com.addthis.codec;
 import com.addthis.basis.util.Bytes;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertTrue;
 
 public class CodecUtilTest {
-
-    public static void main(String args[]) {
-        new CodecUtilTest().testAll();
-    }
+    private static final Logger log = LoggerFactory.getLogger(CodecUtilTest.class);
 
     private boolean compareTest(String a, String b) {
         int scomp = a.compareTo(b);
         int bcomp = Bytes.compare(Bytes.toBytes(a), Bytes.toBytes(b));
-        System.out.println("compareTest(" + a + "," + b + ") sc(" + scomp + ") bc(" + bcomp + ")");
+        log.info("compareTest({},{}) sc({}) bc({})", a, b, scomp, bcomp);
         return scomp == bcomp;
     }
 

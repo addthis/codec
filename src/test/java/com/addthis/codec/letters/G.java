@@ -11,15 +11,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.letters;
 
-public interface Codec {
+public class G extends C {
 
-    public byte[] encode(Object obj) throws Exception;
+    public String str_p;
 
-    public <T> T decode(T shell, byte[] data) throws Exception;
-
-    public <T> T decode(Class<T> type, byte[] data) throws Exception;
-
-    public boolean storesNull(byte[] data);
+    public G set() {
+        str_p = "this is g";
+        return this;
+    }
 }

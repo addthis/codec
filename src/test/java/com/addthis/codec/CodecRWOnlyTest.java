@@ -18,14 +18,7 @@ import com.addthis.codec.json.CodecJSON;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-
 public class CodecRWOnlyTest {
-
-    @Test
-    public void testAll() throws Exception {
-        assertTrue(true);
-    }
 
     public static class A {
 
@@ -43,7 +36,8 @@ public class CodecRWOnlyTest {
         }
     }
 
-    public static void main(String args[]) throws Exception {
+    @Test
+    public void readWrite() throws Exception {
         A a = new A();
         a.read1 = 123;
         a.read2 = 234;

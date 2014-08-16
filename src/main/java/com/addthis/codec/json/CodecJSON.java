@@ -17,7 +17,6 @@ import java.io.IOException;
 
 import com.addthis.codec.Codec;
 import com.addthis.codec.jackson.CodecJackson;
-import com.addthis.codec.util.CodableStatistics;
 import com.addthis.maljson.JSONObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,7 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class CodecJSON extends Codec {
+public final class CodecJSON implements Codec {
     private CodecJSON() {}
 
     private static final Logger log = LoggerFactory.getLogger(CodecJSON.class);
@@ -36,11 +35,6 @@ public final class CodecJSON extends Codec {
     @Override
     public byte[] encode(Object obj) throws Exception {
         return CodecJackson.getDefault().getObjectMapper().writeValueAsBytes(obj);
-    }
-
-    @Override
-    public CodableStatistics statistics(Object obj) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

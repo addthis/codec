@@ -11,15 +11,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.addthis.codec;
+package com.addthis.codec.letters;
 
-public interface Codec {
+import com.addthis.codec.annotations.FieldConfig;
 
-    public byte[] encode(Object obj) throws Exception;
+public class RC {
 
-    public <T> T decode(T shell, byte[] data) throws Exception;
-
-    public <T> T decode(Class<T> type, byte[] data) throws Exception;
-
-    public boolean storesNull(byte[] data);
+    @FieldConfig(required = true)
+    public String required;
+    public String crap = "crap";
 }

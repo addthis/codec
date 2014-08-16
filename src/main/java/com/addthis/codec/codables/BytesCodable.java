@@ -20,5 +20,5 @@ public interface BytesCodable extends Codable {
 
     public byte[] bytesEncode(long version);
 
-    public void bytesDecode(byte b[], long version);
+    public void bytesDecode(byte[] b, long version);
 }

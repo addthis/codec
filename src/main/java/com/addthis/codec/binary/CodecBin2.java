@@ -13,6 +13,8 @@
  */
 package com.addthis.codec.binary;
 
+import javax.annotation.Nullable;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -24,7 +26,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,13 +36,12 @@ import com.addthis.basis.util.Bytes;
 import com.addthis.basis.util.Strings;
 
 import com.addthis.codec.Codec;
-import com.addthis.codec.reflection.Fields;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.codables.ConcurrentCodable;
 import com.addthis.codec.codables.SuperCodable;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
-import com.addthis.codec.util.CodableStatistics;
+import com.addthis.codec.reflection.Fields;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,12 +50,11 @@ import org.slf4j.LoggerFactory;
  * Like CodecBin1 but does not support upgrade/downgrade of objects to prev/later versions.
  * Stores all fields, does not use a map.  This is generally faster while using less space.
  */
-public final class CodecBin2 extends Codec {
+public final class CodecBin2 implements Codec {
 
     private static final Logger log = LoggerFactory.getLogger(CodecBin2.class);
 
     public static final CodecBin2 INSTANCE            = new CodecBin2(false);
-    public static final CodecBin2 INSTANCE_CHARSTRING = new CodecBin2(true);
     public static final int       CODEC_VERSION       = 2;
 
     private final boolean charstring;
@@ -68,8 +67,8 @@ public final class CodecBin2 extends Codec {
     }
 
     @Override
-    public CodableStatistics statistics(Object obj) throws Exception {
-        return encodeStatistics(obj);
+    public Object decode(Class type, byte[] data) throws Exception {
+        return decode(type.newInstance(), data);
     }
 
     @Override
@@ -82,24 +81,14 @@ public final class CodecBin2 extends Codec {
         return (data.length == 5) && (data[4] == 0);
     }
 
-    public static CodableStatistics encodeStatistics(Object object) throws Exception {
-        BufferOut buf = new BufferOut();
-        Bytes.writeInt(CODEC_VERSION, buf.out());
-        CodableStatistics statistics = new CodableStatistics();
-        INSTANCE.encodeObject(object, buf, statistics);
-        statistics.setTotalSize(buf.out.size());
-        statistics.export();
-        return statistics;
-    }
-
     public static byte[] encodeBytes(Object object) throws Exception {
         BufferOut buf = new BufferOut();
         Bytes.writeInt(CODEC_VERSION, buf.out());
-        INSTANCE.encodeObject(object, buf, null);
+        INSTANCE.encodeObject(object, buf);
         return buf.out.toByteArray();
     }
 
-    @SuppressWarnings("unchecked")
+    @Nullable @SuppressWarnings("unchecked")
     public static Object decodeBytes(Object object, byte[] data) throws Exception {
         BufferIn buf = new BufferIn(data);
         int ver = Bytes.readInt(buf.in);
@@ -107,11 +96,9 @@ public final class CodecBin2 extends Codec {
         return INSTANCE.decodeObject(Fields.getClassFieldMap(object.getClass()), object, buf);
     }
 
-    private void encodeObject(Object object, BufferOut buf, CodableStatistics statistics)
+    private void encodeObject(Object object, BufferOut buf)
             throws Exception {
-        if (log.isTraceEnabled()) {
-            log.trace("encodeObject: " + object + " " + buf);
-        }
+        log.trace("encodeObject: {} {}", object, buf);
         if (object == null) {
             buf.out.write(0);
             return;
@@ -128,19 +115,13 @@ public final class CodecBin2 extends Codec {
             CodableClassInfo classInfo = Fields.getClassFieldMap(objectClass);
             if (objectClass.isArray()) {
                 encodeArray(object, objectClass, buf);
-            } else if (classInfo.size() == 0 && !(object instanceof Codable)) {
+            } else if ((classInfo.size() == 0) && !(object instanceof Codable)) {
                 encodeNative(object, buf);
             } else {
                 buf.out.write(1);
                 writeStringHelper(classInfo.getClassName(object), buf.out());
-                for (Iterator<CodableFieldInfo> fields = classInfo.values().iterator(); fields.hasNext();) {
-                    CodableFieldInfo field = fields.next();
-                    long beginSize = buf.out.size();
-                    encodeField(field.get(object), field, buf, statistics);
-                    if (statistics != null) {
-                        long endSize = buf.out.size();
-                        statistics.getData().put(field.getName(), endSize - beginSize);
-                    }
+                for (CodableFieldInfo field : classInfo.values()) {
+                    encodeField(field.get(object), field, buf);
                 }
             }
         } finally {
@@ -150,34 +131,27 @@ public final class CodecBin2 extends Codec {
         }
     }
 
-    private Object decodeObject(Class<?> type, BufferIn buf) throws Exception {
-        if (log.isTraceEnabled()) {
-            log.trace("decodeObject: " + type + " " + buf);
-        }
+    @Nullable private Object decodeObject(Class<?> type, BufferIn buf) throws Exception {
+        log.trace("decodeObject: {} {}", type, buf);
         if (Fields.isNative(type)) {
             return decodeNative(type, buf);
         } else {
             CodableClassInfo classInfo = Fields.getClassFieldMap(type);
-            if (classInfo.size() == 0 && classInfo.getPluginMap() == null) {
-                return decodeNative(type, buf);
-            }
             return decodeObject(classInfo, null, buf);
         }
     }
 
-    private Object decodeObject(CodableClassInfo classInfo, Object object, BufferIn buf) throws Exception {
+    @Nullable private Object decodeObject(CodableClassInfo classInfo, @Nullable Object object, BufferIn buf) throws Exception {
         int ck = buf.in.read();
         if (ck == 0) {
             return null;
         }
         Class<?> type = classInfo.getBaseClass();
-        if (log.isTraceEnabled()) {
-            log.trace("decodeObject: " + classInfo + " " + object + " " + buf);
-        }
+        log.trace("decodeObject: {} {} {}", classInfo, object, buf);
         String stype = readStringHelper(buf.in);
         if (!Strings.isEmpty(stype)) {
             Class<?> atype = classInfo.getClass(stype);
-            if (atype != null && type != atype) {
+            if (type != atype) {
                 classInfo = Fields.getClassFieldMap(atype);
                 type = atype;
             }
@@ -185,8 +159,7 @@ public final class CodecBin2 extends Codec {
         if (object == null) {
             object = type.newInstance();
         }
-        for (Iterator<CodableFieldInfo> fields = classInfo.values().iterator(); fields.hasNext();) {
-            CodableFieldInfo field = fields.next();
+        for (CodableFieldInfo field : classInfo.values()) {
             field.set(object, decodeField(field, buf));
         }
         if (object instanceof SuperCodable) {
@@ -197,18 +170,16 @@ public final class CodecBin2 extends Codec {
 
     private void encodeArray(Object value, Class<?> type, BufferOut buf) throws Exception {
         int len = Array.getLength(value);
-        if (log.isTraceEnabled()) {
-            log.trace("encodeArray: " + value + " " + type + " " + buf + " len=" + len);
-        }
+        log.trace("encodeArray: {} {} {} len={}", value, type, buf, len);
         Bytes.writeLength(len, buf.out());
-        if (type == byte.class || type == Byte.class) {
+        if ((type == byte.class) || (type == Byte.class)) {
             buf.out.write((byte[]) value);
-        } else if (type == int.class || type == Integer.class) {
+        } else if ((type == int.class) || (type == Integer.class)) {
             int[] val = (int[]) value;
             for (int i = 0; i < len; i++) {
                 Bytes.writeInt(val[i], buf.out());
             }
-        } else if (type == long.class || type == Long.class) {
+        } else if ((type == long.class) || (type == Long.class)) {
             long[] val = (long[]) value;
             for (int i = 0; i < len; i++) {
                 Bytes.writeLong(val[i], buf.out());
@@ -219,28 +190,26 @@ public final class CodecBin2 extends Codec {
             }
         } else {
             for (int i = 0; i < len; i++) {
-                encodeObject(Array.get(value, i), buf, null);
+                encodeObject(Array.get(value, i), buf);
             }
         }
     }
 
-    private Object decodeArray(Class<?> type, BufferIn buf) throws Exception {
-        if (log.isTraceEnabled()) {
-            log.trace("decodeArray: " + type + " " + buf);
-        }
+    @Nullable private Object decodeArray(Class<?> type, BufferIn buf) throws Exception {
+        log.trace("decodeArray: {} {}", type, buf);
         int len = (int) Bytes.readLength(buf.in);
         Object value = null;
         if (len > 0) {
             value = Array.newInstance(type, len);
-            if (type == byte.class || type == Byte.class) {
+            if ((type == byte.class) || (type == Byte.class)) {
                 buf.in.read((byte[]) value);
-            } else if (type == int.class || type == Integer.class) {
+            } else if ((type == int.class) || (type == Integer.class)) {
                 int[] val = (int[]) value;
                 for (int i = 0; i < len; i++) {
                     val[i] = Bytes.readInt(buf.in);
                 }
                 value = val;
-            } else if (type == long.class || type == Long.class) {
+            } else if ((type == long.class) || (type == Long.class)) {
                 long[] val = (long[]) value;
                 for (int i = 0; i < len; i++) {
                     val[i] = Bytes.readLong(buf.in);
@@ -259,23 +228,8 @@ public final class CodecBin2 extends Codec {
         return value;
     }
 
-    private static void addMapStatistics(CodableStatistics statistics, CodableFieldInfo field,
-                                         Object key, long size) {
-        if (statistics == null) {
-            return;
-        }
-        Map<Object, Long> innerData = statistics.getMapData().get(field.getName());
-        if (innerData == null) {
-            innerData = new HashMap<Object, Long>();
-            statistics.getMapData().put(field.getName(), innerData);
-        }
-        innerData.put(key, size);
-    }
-
-    private void encodeField(Object value, CodableFieldInfo field, BufferOut buf, CodableStatistics statistics) throws Exception {
-        if (log.isTraceEnabled()) {
-            log.trace("encodeField: " + value + " " + field + " " + buf);
-        }
+    private void encodeField(Object value, CodableFieldInfo field, BufferOut buf) throws Exception {
+        log.trace("encodeField: {} {} {}", value, field, buf);
         if (value != null) {
             try {
                 buf.out.write(1);
@@ -288,27 +242,24 @@ public final class CodecBin2 extends Codec {
                     Bytes.writeLength(map.size(), buf.out());
                     for (Entry<?, ?> entry : map.entrySet()) {
                         Object key = entry.getKey();
-                        encodeObject(key, buf, null);
-                        long startValueSize = buf.out.size();
-                        encodeObject(entry.getValue(), buf, null);
-                        long endValueSize = buf.out.size();
-                        addMapStatistics(statistics, field, key, endValueSize - startValueSize);
+                        encodeObject(key, buf);
+                        encodeObject(entry.getValue(), buf);
                     }
                 } else if (field.isCollection()) {
                     Collection<?> coll = (Collection<?>) value;
                     Bytes.writeLength(coll.size(), buf.out());
-                    for (Iterator<?> iter = coll.iterator(); iter.hasNext();) {
-                        encodeObject(iter.next(), buf, null);
+                    for (Object aColl : coll) {
+                        encodeObject(aColl, buf);
                     }
                 } else if (field.isCodable()) {
-                    encodeObject(value, buf, null);
+                    encodeObject(value, buf);
                 } else if (field.isEnum()) {
                     encodeNative(value.toString(), buf);
                 } else {
-                    log.warn("[encodeField] unhandled field : " + value + " " + field);
+                    log.warn("[encodeField] unhandled field : {} {}", value, field);
                 }
             } catch (Exception ex) {
-                log.warn("failed encoding " + value + " class " + value.getClass() + " type " + field + " with " + ex, ex);
+                log.warn("failed encoding {} class {} type {}", value, value.getClass(), field, ex);
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
                 ex.printStackTrace(pw);
@@ -320,25 +271,23 @@ public final class CodecBin2 extends Codec {
         }
     }
 
-    private static final boolean isNotConcrete(Class<?> type) {
+    private static boolean isNotConcrete(Class<?> type) {
         int mod = type.getModifiers();
         return Modifier.isAbstract(mod) || Modifier.isInterface(mod);
     }
 
     @SuppressWarnings("unchecked")
-    private static final Map<Object, Object> newMap(Class<?> type) throws InstantiationException, IllegalAccessException {
-        return isNotConcrete(type) ? new HashMap<Object, Object>() : (Map<Object, Object>) type.newInstance();
+    private static Map<Object, Object> newMap(Class<?> type) throws InstantiationException, IllegalAccessException {
+        return isNotConcrete(type) ? new HashMap<>() : (Map<Object, Object>) type.newInstance();
     }
 
     @SuppressWarnings("unchecked")
-    private static final Collection<Object> newCollection(Class<?> type, int size) throws InstantiationException, IllegalAccessException {
-        return isNotConcrete(type) ? new ArrayList<Object>(size) : (Collection<Object>) type.newInstance();
+    private static Collection<Object> newCollection(Class<?> type, int size) throws InstantiationException, IllegalAccessException {
+        return isNotConcrete(type) ? new ArrayList<>(size) : (Collection<Object>) type.newInstance();
     }
 
-    private Object decodeField(CodableFieldInfo field, BufferIn buf) throws Exception {
-        if (log.isTraceEnabled()) {
-            log.trace("decodeField: " + field + " " + buf);
-        }
+    @Nullable private Object decodeField(CodableFieldInfo field, BufferIn buf) throws Exception {
+        log.trace("decodeField: {} {}", field, buf);
         int ck = buf.in.read();
         if (ck == 0) {
             return null;
@@ -358,7 +307,19 @@ public final class CodecBin2 extends Codec {
             boolean ka = field.isMapKeyArray();
             boolean va = field.isMapValueArray();
             for (int i = 0; i < elements; i++) {
-                map.put(ka ? decodeArray(kc, buf) : decodeObject(kc, buf), va ? decodeArray(vc, buf) : decodeObject(vc, buf));
+                if (ka) {
+                    if (va) {
+                        map.put(decodeArray(kc, buf), decodeArray(vc, buf));
+                    } else {
+                        map.put(decodeArray(kc, buf), decodeObject(vc, buf));
+                    }
+                } else {
+                    if (va) {
+                        map.put(decodeObject(kc, buf), decodeArray(vc, buf));
+                    } else {
+                        map.put(decodeObject(kc, buf), decodeObject(vc, buf));
+                    }
+                }
             }
             return map;
         } else if (field.isCollection()) {
@@ -380,29 +341,27 @@ public final class CodecBin2 extends Codec {
         } else if (field.isNative()) {
             return decodeNative(type, buf);
         } else {
-            log.warn("unhandled decode " + field);
+            log.warn("unhandled decode {}", field);
             return null;
         }
     }
 
     private void encodeNative(Object value, BufferOut buf) throws Exception {
-        if (log.isTraceEnabled()) {
-            log.trace("encodeNative: " + value + " " + buf);
-        }
+        log.trace("encodeNative: {} {}", value, buf);
         Class<?> type = value.getClass();
         if (type == String.class) {
             writeStringHelper(value.toString(), buf.out());
-        } else if (type == Integer.class || type == int.class) {
+        } else if ((type == Integer.class) || (type == int.class)) {
             Bytes.writeInt((Integer) value, buf.out());
-        } else if (type == Long.class || type == long.class) {
+        } else if ((type == Long.class) || (type == long.class)) {
             Bytes.writeLong((Long) value, buf.out());
-        } else if (type == Short.class || type == short.class) {
+        } else if ((type == Short.class) || (type == short.class)) {
             Bytes.writeShort((Short) value, buf.out());
-        } else if (type == Boolean.class || type == boolean.class) {
+        } else if ((type == Boolean.class) || (type == boolean.class)) {
             buf.out.write((Boolean) value ? 1 : 0);
-        } else if (type == Float.class || type == float.class) {
+        } else if ((type == Float.class) || (type == float.class)) {
             Bytes.writeInt(Float.floatToIntBits(((Float) value)), buf.out());
-        } else if (type == Double.class || type == double.class) {
+        } else if ((type == Double.class) || (type == double.class)) {
             Bytes.writeLong(Double.doubleToLongBits(((Double) value)), buf.out());
         } else if (type == AtomicLong.class) {
             Bytes.writeLong(((AtomicLong) value).get(), buf.out());
@@ -411,7 +370,7 @@ public final class CodecBin2 extends Codec {
         } else if (type == AtomicBoolean.class) {
             buf.out.write(((AtomicBoolean) value).get() ? 1 : 0);
         } else {
-            log.warn("skip native encode for " + value + " / " + value.getClass());
+            log.warn("skip native encode for {} / {}", value, value.getClass());
         }
     }
 
@@ -420,23 +379,21 @@ public final class CodecBin2 extends Codec {
         return Enum.valueOf(type, val);
     }
 
-    private Object decodeNative(Class<?> type, BufferIn buf) throws Exception {
+    @Nullable private Object decodeNative(Class<?> type, BufferIn buf) throws Exception {
         Object result = null;
         if (type == String.class) {
             result = readStringHelper(buf.in);
-        } else if (type == Integer.class || type == int.class) {
+        } else if ((type == Integer.class) || (type == int.class)) {
             result = Bytes.readInt(buf.in);
-        } else if (type == Long.class || type == long.class) {
+        } else if ((type == Long.class) || (type == long.class)) {
             result = Bytes.readLong(buf.in);
-        } else if (type == Short.class || type == short.class) {
+        } else if ((type == Short.class) || (type == short.class)) {
             result = Bytes.readShort(buf.in);
-        } else if (type == Boolean.class || type == boolean.class) {
+        } else if ((type == Boolean.class) || (type == boolean.class)) {
             result = buf.in.read() != 0 ? true : false;
-        } else if (type == String.class) {
-            result = readStringHelper(buf.in);
-        } else if (type == Double.class || type == double.class) {
+        } else if ((type == Double.class) || (type == double.class)) {
             result = Double.longBitsToDouble(Bytes.readLong(buf.in));
-        } else if (type == Float.class || type == float.class) {
+        } else if ((type == Float.class) || (type == float.class)) {
             result = Float.intBitsToFloat(Bytes.readInt(buf.in));
         } else if (type == AtomicLong.class) {
             result = new AtomicLong(Bytes.readLong(buf.in));
@@ -445,7 +402,7 @@ public final class CodecBin2 extends Codec {
         } else if (type == AtomicBoolean.class) {
             result = buf.in.read() != 0 ? new AtomicBoolean(true) : new AtomicBoolean(false);
         } else {
-            log.warn("unhandled native decode " + type);
+            log.warn("unhandled native decode {}", type);
         }
         return result;
     }
@@ -456,7 +413,7 @@ public final class CodecBin2 extends Codec {
         }
     }
 
-    private String readStringHelper(InputStream in) throws Exception {
+    @Nullable private String readStringHelper(InputStream in) throws Exception {
         if (charstring) {
             return Bytes.readCharString(in);
         } else {

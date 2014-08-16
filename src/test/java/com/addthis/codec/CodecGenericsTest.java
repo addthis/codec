@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 public class CodecGenericsTest {
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         new CodecGenericsTest().testAll();
     }
 
