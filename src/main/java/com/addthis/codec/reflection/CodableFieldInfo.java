@@ -50,7 +50,6 @@ public final class CodableFieldInfo {
     public static final int READONLY   = 1 << 8;
     public static final int WRITEONLY  = 1 << 9;
     public static final int ENUM       = 1 << 10;
-    public static final int INTERN     = 1 << 11;
 
     @Nonnull private final Field    field;
     @Nonnull private final Class<?> typeOrComponentType;
@@ -120,9 +119,6 @@ public final class CodableFieldInfo {
             }
             if (fieldConfig.required()) {
                 partialBits |= CodableFieldInfo.REQUIRED;
-            }
-            if (fieldConfig.intern()) {
-                partialBits |= CodableFieldInfo.INTERN;
             }
         }
         return partialBits;
@@ -222,9 +218,6 @@ public final class CodableFieldInfo {
             return;
         }
         try {
-            if ((value.getClass() == String.class) && isInterned()) {
-                value = ((String) value).intern();
-            }
             field.set(dst, value);
         } catch (RuntimeException ex) {
             throw ex;
@@ -272,10 +265,6 @@ public final class CodableFieldInfo {
 
     public boolean isWriteOnly() {
         return (bits & WRITEONLY) == WRITEONLY;
-    }
-
-    public boolean isInterned() {
-        return (bits & INTERN) == INTERN;
     }
 
     public String toString() {

@@ -35,6 +35,4 @@ public @interface FieldConfig {
     boolean writeonly() default false;
 
     boolean required() default false;
-
-    boolean intern() default false;
 }
