@@ -1,0 +1,27 @@
+Header is a four byte integer representing a 'version' that is pretty much always two.
+
+Null values are represented by a single 0 byte.
+
+primitives are written with fixed width
+
+strings and arrays are element-count prefixed by a variable length integer
+
+objects are represented by
+    a 1 byte
+    an optional string specifying a subclass (a 0 single byte for null)
+    an iteration over all possible fields in lexicographic order doing the following:
+        a single byte that is either a 1 or a 0 depending on whether the field is null (0 is null)
+        recursive serialization as above but with the following changes
+            no header bytes
+            maps and collections are supported
+                element-count prefixed like strings/ arrays
+                maps are written alternating between keys and values
+                collections are handled very similarly to arrays
+            enums are supported and are written/ read as strings
+            
+nesting of generic or component types is very limited
+
+atomic longs, integers, and booleans are supported and read/written as primitives
+
+byte, integer, long, and enum arrays do not prefix each element with 0/1 byte, but also do not
+support null values (a runtime exception will be thrown)
