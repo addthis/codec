@@ -19,9 +19,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
- * control coding parameters for fields. allows code to dictate non-codable
- * fields as codable
+ * Use {@link JsonProperty} or other jackson annotations if at all possible. There are a few things
+ * that don't directly translate, but high level intentions pretty much all do. NOTE: Users of CodecBin2
+ * must continue to use FieldConfig for now.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
