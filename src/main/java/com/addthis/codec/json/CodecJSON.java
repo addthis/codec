@@ -17,6 +17,7 @@ import java.io.IOException;
 
 import com.addthis.codec.Codec;
 import com.addthis.codec.jackson.CodecJackson;
+import com.addthis.codec.jackson.Jackson;
 import com.addthis.maljson.JSONObject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,17 +35,17 @@ public final class CodecJSON implements Codec {
 
     @Override
     public byte[] encode(Object obj) throws Exception {
-        return CodecJackson.getDefault().getObjectMapper().writeValueAsBytes(obj);
+        return Jackson.defaultCodec().getObjectMapper().writeValueAsBytes(obj);
     }
 
     @Override
     public <T> T decode(T shell, byte[] data) throws IOException {
-        return CodecJackson.getDefault().getObjectMapper().readerForUpdating(shell).readValue(data);
+        return Jackson.defaultCodec().getObjectMapper().readerForUpdating(shell).readValue(data);
     }
 
     @Override
     public <T> T decode(Class<T> type, byte[] data) throws Exception {
-        return CodecJackson.getDefault().getObjectMapper().reader(type).readValue(data);
+        return Jackson.defaultCodec().getObjectMapper().reader(type).readValue(data);
     }
 
     @Override
@@ -53,22 +54,22 @@ public final class CodecJSON implements Codec {
     }
 
     public static JsonNode encodeJsonNode(Object object) throws Exception {
-        return CodecJackson.getDefault().getObjectMapper().valueToTree(object);
+        return Jackson.defaultCodec().getObjectMapper().valueToTree(object);
     }
 
     /** @deprecated Use {@link #encodeJsonNode(Object)} or {@link CodecJackson} */
     @Deprecated
     public static JSONObject encodeJSON(Object object) throws Exception {
-        return new JSONObject(CodecJackson.getDefault().getObjectMapper().writeValueAsString(object));
+        return new JSONObject(Jackson.defaultCodec().getObjectMapper().writeValueAsString(object));
     }
 
     public static String encodeString(Object object) throws JsonProcessingException {
-        return CodecJackson.getDefault().getObjectMapper().writeValueAsString(object);
+        return Jackson.defaultCodec().getObjectMapper().writeValueAsString(object);
     }
 
     public static String tryEncodeString(Object object, String defaultValue) {
         try {
-            return CodecJackson.getDefault().getObjectMapper().writeValueAsString(object);
+            return Jackson.defaultCodec().getObjectMapper().writeValueAsString(object);
         } catch (JsonProcessingException ex) {
             return defaultValue;
         }
@@ -77,14 +78,14 @@ public final class CodecJSON implements Codec {
     /** @deprecated Use {@link #decodeString(Class, String)} instead. */
     @Deprecated
     public static <T> T decodeString(T object, String json) throws IOException {
-        return CodecJackson.getDefault().getObjectMapper().readerForUpdating(object).readValue(json);
+        return Jackson.defaultCodec().getObjectMapper().readerForUpdating(object).readValue(json);
     }
 
     public static <T> T decodeString(Class<T> type, String json) throws IOException {
-        return CodecJackson.getDefault().getObjectMapper().reader(type).readValue(json);
+        return Jackson.defaultCodec().getObjectMapper().reader(type).readValue(json);
     }
 
     public static <T> T decodeJSON(T object, JsonNode json) throws IOException {
-        return CodecJackson.getDefault().getObjectMapper().readerForUpdating(object).readValue(json);
+        return Jackson.defaultCodec().getObjectMapper().readerForUpdating(object).readValue(json);
     }
 }

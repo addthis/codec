@@ -27,21 +27,18 @@ import org.slf4j.LoggerFactory;
 final class DefaultCodecJackson {
     private static final Logger log;
 
-    static final CodecModule DEFAULT_MODULE;
     static final ObjectMapper DEFAULT_MAPPER;
     static final Validator DEFAULT_VALIDATOR;
-    static final CodecJackson DEFAULT;
+    static final CodecJackson DEFAULT_CODEC;
 
     static {
         log = LoggerFactory.getLogger(DefaultCodecJackson.class);
-        DEFAULT_MODULE = new CodecModule(PluginRegistry.defaultRegistry(), ConfigFactory.load());
-        log.trace("initialized default codec module {}", DEFAULT_MODULE);
-        DEFAULT_MAPPER = Jackson.newObjectMapper(DEFAULT_MODULE);
+        DEFAULT_MAPPER = Jackson.newObjectMapper(PluginRegistry.defaultRegistry());
         log.trace("initialized default codec mapper {}", DEFAULT_MAPPER);
         DEFAULT_VALIDATOR =  Validation.buildDefaultValidatorFactory().getValidator();
         log.trace("initialized default codec validator {}", DEFAULT_VALIDATOR);
-        DEFAULT = new CodecJackson(DEFAULT_MAPPER, PluginRegistry.defaultRegistry(),
-                                   ConfigFactory.load(), DEFAULT_VALIDATOR);
-        log.trace("initialized default codec jackson {}", DEFAULT);
+        DEFAULT_CODEC = new CodecJackson(DEFAULT_MAPPER, PluginRegistry.defaultRegistry(),
+                                         ConfigFactory.load(), DEFAULT_VALIDATOR);
+        log.trace("initialized default codec jackson {}", DEFAULT_CODEC);
     }
 }

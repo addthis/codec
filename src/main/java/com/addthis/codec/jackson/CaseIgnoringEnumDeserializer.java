@@ -23,10 +23,10 @@ import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 // ignores case when deserializing enums
-public class CodecEnumDeserializer extends StdScalarDeserializer<Enum<?>> {
+public class CaseIgnoringEnumDeserializer extends StdScalarDeserializer<Enum<?>> {
     private final EnumDeserializer base;
 
-    public CodecEnumDeserializer(EnumDeserializer base) {
+    public CaseIgnoringEnumDeserializer(EnumDeserializer base) {
         super(Enum.class);
         this.base = base;
     }

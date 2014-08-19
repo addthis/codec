@@ -43,11 +43,11 @@ public class PluginRegistry {
         return DefaultRegistry.DEFAULT;
     }
 
-    @Nonnull private final Map<String,   PluginMap> pluginMapsByCategory;
+    @Nonnull private final Map<String, PluginMap> pluginMapsByCategory;
     @Nonnull private final BiMap<Class<?>, PluginMap> pluginMapsByClass;
     @Nonnull private final Config config;
 
-    public PluginRegistry(Config config) {
+    public PluginRegistry(@Nonnull Config config) {
         this.config = config;
         Config defaultPluginMapSettings = config.getConfig(PLUGIN_DEFAULTS_PATH);
         String pluginPath = config.getString(PLUGINS_PATH_PATH);
@@ -69,6 +69,32 @@ public class PluginRegistry {
         pluginMapsByClass = Maps.unmodifiableBiMap(mapsFromConfigByClass);
     }
 
+    /** For immutable 'with' methods. */
+    private PluginRegistry(@Nonnull Config config,
+                           @Nonnull Map<String, PluginMap> pluginMapsByCategory,
+                           @Nonnull BiMap<Class<?>, PluginMap> pluginMapsByClass) {
+        this.config = config;
+        this.pluginMapsByCategory = pluginMapsByCategory;
+        this.pluginMapsByClass = pluginMapsByClass;
+    }
+
+    /**
+     * Similar to calling {@code new PluginRegistry(overrides.withFallback(previousRegistry.config()))},
+     * but may be more efficient. Currently only really benefits when only global defaults have been
+     * changed, but may be expanded upon in the future.
+     */
+    public PluginRegistry withOverrides(Config overrides) {
+        Config newConfig = overrides.withFallback(config);
+        String pluginPath = config.getString(PLUGINS_PATH_PATH);
+        if (overrides.hasPath(PLUGIN_DEFAULTS_PATH)
+            || overrides.hasPath(PLUGINS_PATH_PATH)
+            || overrides.hasPath(pluginPath)) {
+            return new PluginRegistry(newConfig);
+        } else {
+            return new PluginRegistry(newConfig, pluginMapsByCategory, pluginMapsByClass);
+        }
+    }
+
     public Config config() {
         return config;
     }
@@ -87,6 +113,7 @@ public class PluginRegistry {
 
     @Override public String toString() {
         return Objects.toStringHelper(this)
+                      .add("config.origin", config.origin())
                       .add("pluginMapsByCategory", pluginMapsByCategory)
                       .add("pluginMapsByClass", pluginMapsByClass)
                       .toString();

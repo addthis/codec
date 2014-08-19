@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.addthis.codec.jackson.CodecJackson;
+import com.addthis.codec.jackson.Jackson;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.reflection.CodableClassInfo;
@@ -54,12 +54,12 @@ public final class Configs {
      * is not a concrete class).
      */
     public static <T> T newDefault(@Nonnull Class<T> type) throws IOException {
-        return CodecJackson.getDefault().newDefault(type);
+        return Jackson.defaultCodec().newDefault(type);
     }
 
     /** Construct an object of the requested plugin category based on the default type and values */
     public static <T> T newDefault(@Nonnull String category) throws IOException {
-        return CodecJackson.getDefault().newDefault(category);
+        return Jackson.defaultCodec().newDefault(category);
     }
 
     /**
@@ -68,7 +68,7 @@ public final class Configs {
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
     public static <T> T decodeObject(@Nonnull Class<T> type, @Nonnull Config config) throws IOException {
-        return CodecJackson.getDefault().decodeObject(type, config);
+        return Jackson.defaultCodec().decodeObject(type, config);
     }
 
     /**
@@ -77,7 +77,7 @@ public final class Configs {
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
     public static <T> T decodeObject(@Nonnull String category, @Nonnull Config config) throws IOException {
-        return CodecJackson.getDefault().decodeObject(category, config);
+        return Jackson.defaultCodec().decodeObject(category, config);
     }
 
     /**
@@ -87,7 +87,7 @@ public final class Configs {
      */
     public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") @Nonnull String configText)
             throws IOException {
-        return CodecJackson.getDefault().decodeObject(type, configText);
+        return Jackson.defaultCodec().decodeObject(type, configText);
     }
 
     /**
@@ -97,7 +97,7 @@ public final class Configs {
      */
     public static <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") @Nonnull String configText)
             throws IOException {
-        return CodecJackson.getDefault().decodeObject(category, configText);
+        return Jackson.defaultCodec().decodeObject(category, configText);
     }
 
     /**
@@ -106,7 +106,7 @@ public final class Configs {
      * key should be a valid, loaded, plug-in category.
      */
     public static <T> T decodeObject(@Syntax("HOCON") String configText) throws IOException {
-        return CodecJackson.getDefault().decodeObject(configText);
+        return Jackson.defaultCodec().decodeObject(configText);
     }
 
     /**
@@ -115,7 +115,7 @@ public final class Configs {
      * key should be a valid, loaded, plug-in category.
      */
     public static <T> T decodeObject(Config config) throws IOException {
-        return CodecJackson.getDefault().decodeObject(config);
+        return Jackson.defaultCodec().decodeObject(config);
     }
 
     public static ConfigValue expandSugar(Config config, PluginRegistry pluginRegistry) {
@@ -268,7 +268,7 @@ public final class Configs {
         }
     }
 
-    /** should be roughly analagous to {@link CodecConfig#hydrateObject(Class, ConfigValue)} */
+    /** should be roughly analagous to a removed method */
     private static ConfigValue resolveType(Class<?> type, ConfigValue configValue, PluginMap pluginMap) {
         String classField = pluginMap.classField();
         if (configValue.valueType() != ConfigValueType.OBJECT) {

@@ -14,13 +14,15 @@
 package com.addthis.codec.jackson;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.plugins.Plugins;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.Maps;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DatabindContext;
@@ -31,7 +33,7 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class CodecTypeIdResolver extends TypeIdResolverBase {
     private final PluginMap pluginMap;
-    private final Map<String, Class<?>> extraSubTypes;
+    private final BiMap<String, Class<?>> extraSubTypes;
     private final PluginRegistry pluginRegistry;
 
     public CodecTypeIdResolver(PluginMap pluginMap, JavaType baseType,
@@ -40,15 +42,15 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
         super(baseType, typeFactory);
         this.pluginRegistry = pluginRegistry;
         if (!subtypes.isEmpty()) {
-            Map<String, Class<?>> mutableExtraSubTypes = new HashMap<>(subtypes.size());
+            BiMap<String, Class<?>> mutableExtraSubTypes = HashBiMap.create(subtypes.size());
             for (NamedType namedType : subtypes) {
                 if (namedType.hasName()) {
                     mutableExtraSubTypes.put(namedType.getName(), namedType.getType());
                 }
             }
-            this.extraSubTypes = Collections.unmodifiableMap(mutableExtraSubTypes);
+            this.extraSubTypes = Maps.unmodifiableBiMap(mutableExtraSubTypes);
         } else {
-            this.extraSubTypes = Collections.emptyMap();
+            this.extraSubTypes = ImmutableBiMap.of();
         }
         this.pluginMap = pluginMap;
     }
@@ -78,6 +80,13 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
     }
 
     @Override public String idFromValueAndType(Object value, Class<?> suggestedType) {
+        String alt = pluginMap.asBiMap().inverse().get(suggestedType);
+        if (alt != null) {
+            return alt;
+        }
+        if (extraSubTypes.containsValue(suggestedType)) {
+            return extraSubTypes.inverse().get(suggestedType);
+        }
         return pluginMap.getClassName(suggestedType);
     }
 

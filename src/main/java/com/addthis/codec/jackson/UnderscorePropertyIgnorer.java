@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;
 
-public class CodecUnknownPropertyHandler extends DeserializationProblemHandler {
+public class UnderscorePropertyIgnorer extends DeserializationProblemHandler {
 
     @Override
     public boolean handleUnknownProperty(DeserializationContext ctxt,

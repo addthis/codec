@@ -14,7 +14,7 @@
 package com.addthis.codec.config;
 
 import com.addthis.codec.annotations.Bytes;
-import com.addthis.codec.jackson.CodecJackson;
+import com.addthis.codec.jackson.Jackson;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
@@ -201,7 +201,7 @@ public class FeatureTest {
     @Test
     public void concreteValue() throws Exception {
         ConfigValue greet = parseString("val = hi friend").getValue("val");
-        Greeter greeterObject = CodecJackson.getDefault().decodeObject(ParseGreetSub.class, greet);
+        Greeter greeterObject = Jackson.defaultCodec().decodeObject(ParseGreetSub.class, greet);
         String expected = "extra hi friend other Hello Worldnull bytes: 0 millis: 0";
         assertEquals(expected, greeterObject.greet());
     }
@@ -214,4 +214,5 @@ public class FeatureTest {
         String expected = "extra extra! other [SECONDS] bytes: 512 millis: 1000";
         assertEquals(expected, greeterObject.greet());
     }
+
 }

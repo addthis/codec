@@ -24,7 +24,6 @@ import com.addthis.codec.plugins.PluginMap;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -102,8 +101,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 return _deserializeWithNativeTypeId(jp, ctxt, typeId);
             }
         }
-        String classField = pluginMap.classField();
-        JsonToken currentToken = jp.getCurrentToken();
         // can use this to approximate error location if a sub-method throws an exception
         JsonLocation currentLocation = jp.getTokenLocation();
         JsonNode jsonNode = jp.readValueAsTree();
@@ -113,10 +110,10 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             Object bean = null;
             // _array handler
             if (jsonNode.isArray()) {
-                bean = _deserializeTypedFromArray((ArrayNode) jsonNode, classField, objectCodec, ctxt);
+                bean = _deserializeTypedFromArray((ArrayNode) jsonNode, objectCodec, ctxt);
                 // object handler
             } else if (jsonNode.isObject()) {
-                bean = _deserializeTypedFromObject((ObjectNode) jsonNode, classField, objectCodec, ctxt);
+                bean = _deserializeTypedFromObject((ObjectNode) jsonNode, objectCodec, ctxt);
             }
             if (bean != null) {
                 return bean;
@@ -132,19 +129,18 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     }
 
     @Nullable public Object _deserializeTypedFromObject(ObjectNode objectNode,
-                                                        String classField,
                                                         ObjectCodec objectCodec,
                                                         DeserializationContext ctxt) throws IOException {
-        if (objectNode.hasNonNull(classField)) {
-            return _deserializeObjectFromProperty(objectNode, classField, objectCodec, ctxt);
+        if (objectNode.hasNonNull(_typePropertyName)) {
+            return _deserializeObjectFromProperty(objectNode, objectCodec, ctxt);
         }
         if (objectNode.size() == 1) {
-            Object bean = _deserializeObjectFromSingleKey(objectNode, classField, objectCodec, ctxt);
+            Object bean = _deserializeObjectFromSingleKey(objectNode, objectCodec, ctxt);
             if (bean != null) {
                 return bean;
             }
         }
-        Object bean = _deserializeObjectFromInlinedType(objectNode, classField, objectCodec, ctxt);
+        Object bean = _deserializeObjectFromInlinedType(objectNode, objectCodec, ctxt);
         if (bean != null) {
             return bean;
         }
@@ -162,7 +158,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     }
 
     @Nullable private Object _deserializeObjectFromInlinedType(ObjectNode objectNode,
-                                                               String classField,
                                                                ObjectCodec objectCodec,
                                                                DeserializationContext ctxt) throws IOException {
         String matched = null;
@@ -187,7 +182,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             Jackson.setAt(objectNode, configValue, primaryField);
             Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
             if (_typeIdVisible) {
-                objectNode.put(classField, matched);
+                objectNode.put(_typePropertyName, matched);
             }
             try {
                 JsonDeserializer<Object> deser = _findDeserializer(ctxt, matched);
@@ -208,7 +203,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     }
 
     @Nullable private Object _deserializeObjectFromSingleKey(ObjectNode objectNode,
-                                                             String classField,
                                                              ObjectCodec objectCodec,
                                                              DeserializationContext ctxt) throws IOException {
         String singleKeyName = objectNode.fieldNames().next();
@@ -238,7 +232,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                     unwrapPrimary = handleDefaultsAndImplicitPrimary(singleKeyObject, aliasDefaults, deser, ctxt);
                 }
                 if (_typeIdVisible && singleKeyValue.isObject()) {
-                    ((ObjectNode) singleKeyValue).put(classField, singleKeyName);
+                    ((ObjectNode) singleKeyValue).put(_typePropertyName, singleKeyName);
                 }
                 JsonParser treeParser = objectCodec.treeAsTokens(singleKeyValue);
                 treeParser.nextToken();
@@ -256,18 +250,17 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     }
 
     private Object _deserializeObjectFromProperty(ObjectNode objectNode,
-                                                  String classField,
                                                   ObjectCodec objectCodec,
                                                   DeserializationContext ctxt) throws IOException {
-        String type = objectNode.get(classField).asText();
+        String type = objectNode.get(_typePropertyName).asText();
         if (!_typeIdVisible) {
-            objectNode.remove(classField);
+            objectNode.remove(_typePropertyName);
         }
         JsonDeserializer<Object> deser;
         try {
             deser = _findDeserializer(ctxt, type);
         } catch (Throwable cause) {
-            throw wrapWithPath(cause, Class.class, classField);
+            throw wrapWithPath(cause, Class.class, _typePropertyName);
         }
         ConfigObject aliasDefaults = pluginMap.aliasDefaults(type);
         String primaryField;
@@ -291,7 +284,6 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     }
 
     @Nullable private Object _deserializeTypedFromArray(ArrayNode arrayNode,
-                                                        String classField,
                                                         ObjectCodec objectCodec,
                                                         DeserializationContext ctxt) throws IOException {
         if (idRes.isValidTypeId("_array")) {

@@ -27,6 +27,7 @@ import com.addthis.codec.config.ConfigTraversingParser;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,11 +40,8 @@ import com.typesafe.config.ConfigValue;
 
 import io.dropwizard.validation.ConstraintViolations;
 
+@Beta
 public class CodecJackson {
-
-    public static CodecJackson getDefault() {
-        return DefaultCodecJackson.DEFAULT;
-    }
 
     private final ObjectMapper objectMapper;
     private final PluginRegistry pluginRegistry;
@@ -63,9 +61,18 @@ public class CodecJackson {
             return this;
         } else {
             PluginRegistry newPluginRegistry = new PluginRegistry(newGlobalDefaults);
-            CodecModule newCodecModule = new CodecModule(newPluginRegistry, newGlobalDefaults);
-            ObjectMapper newObjectMapper = Jackson.newObjectMapper(newCodecModule);
+            ObjectMapper newObjectMapper = Jackson.newObjectMapper(newPluginRegistry);
             return new CodecJackson(newObjectMapper, newPluginRegistry, newGlobalDefaults, validator);
+        }
+    }
+
+    public CodecJackson withOverrides(Config overrides) {
+        if (overrides == this.globalDefaults) {
+            return this;
+        } else {
+            PluginRegistry newPluginRegistry = pluginRegistry.withOverrides(overrides);
+            ObjectMapper newObjectMapper = Jackson.newObjectMapper(newPluginRegistry);
+            return new CodecJackson(newObjectMapper, newPluginRegistry, overrides, validator);
         }
     }
 
@@ -108,11 +115,17 @@ public class CodecJackson {
 
     // delegates
 
+    /** Construct an object of the requested plugin category based on the default type and values */
     public <T> T newDefault(@Nonnull String category) throws JsonProcessingException, IOException {
         Class<T> type = (Class<T>) pluginRegistry.byCategory().get(category).baseClass();
         return newDefault(type);
     }
 
+    /**
+     * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
+     * {@link #decodeObject(String, Config)} with the resultant config and the passed in category. Pretty much just
+     * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
+     */
     public <T> T decodeObject(@Nonnull String category, @Syntax("HOCON") String configText)
             throws JsonProcessingException, IOException {
         PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
@@ -121,12 +134,22 @@ public class CodecJackson {
         return (T) decodeObject(pluginMap.baseClass(), config);
     }
 
+    /**
+     * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
+     * {@link #decodeObject(Class, Config)} with the resultant config and the passed in type. Pretty much just
+     * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
+     */
     public <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") String configText)
             throws JsonProcessingException, IOException {
         Config config = ConfigFactory.parseString(configText).resolve();
         return decodeObject(type, config);
     }
 
+    /**
+     * Instantiate an object of the requested category based on the provided config. The config should only contain
+     * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
+     * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
+     */
     public <T> T decodeObject(@Nonnull String category, @Nonnull Config config)
             throws JsonProcessingException, IOException {
         PluginMap pluginMap = Preconditions.checkNotNull(pluginRegistry.asMap().get(category),
@@ -134,11 +157,21 @@ public class CodecJackson {
         return (T) decodeObject(pluginMap.baseClass(), config);
     }
 
+    /**
+     * Instantiate an object of the requested type based on the provided config. The config should only contain
+     * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
+     * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
+     */
     public <T> T decodeObject(@Nonnull Class<T> type, Config config)
             throws JsonProcessingException, IOException {
         return decodeObject(type, config.root());
     }
 
+    /**
+     * Instantiate an object without a compile time expected type. This expects a config of the
+     * form "{plugin-category: {...}}". ie. there should be exactly one top level key and that
+     * key should be a valid, loaded, plug-in category.
+     */
     public <T> T decodeObject(@Syntax("HOCON") String configText) throws JsonProcessingException, IOException {
         Config config = ConfigFactory.parseString(configText).resolve();
         return decodeObject(config);

@@ -13,11 +13,16 @@
  */
 package com.addthis.codec.jackson;
 
+import javax.validation.Validator;
+
 import java.io.IOException;
 
 import java.util.Iterator;
 import java.util.List;
 
+import com.addthis.codec.plugins.PluginRegistry;
+
+import com.google.common.annotations.Beta;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
@@ -33,6 +38,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigOrigin;
@@ -44,6 +50,7 @@ import static com.fasterxml.jackson.databind.MapperFeature.ALLOW_FINAL_FIELDS_AS
 import static com.fasterxml.jackson.databind.MapperFeature.INFER_PROPERTY_MUTATORS;
 import static com.fasterxml.jackson.databind.MapperFeature.USE_GETTERS_AS_SETTERS;
 
+@Beta
 public final class Jackson {
     private Jackson() {}
 
@@ -54,12 +61,22 @@ public final class Jackson {
         return DefaultCodecJackson.DEFAULT_MAPPER;
     }
 
-    public static ObjectMapper newObjectMapper(CodecModule codecModule) {
+    public static CodecJackson defaultCodec() {
+        return DefaultCodecJackson.DEFAULT_CODEC;
+    }
+
+    public static Validator defaultValidator() {
+        return DefaultCodecJackson.DEFAULT_VALIDATOR;
+    }
+
+    public static ObjectMapper newObjectMapper(PluginRegistry pluginRegistry) {
+        CodecModule codecModule = new CodecModule(pluginRegistry);
+        Config globalConfig = pluginRegistry.config();
         ObjectMapper objectMapper = new ObjectMapper();
         toggleObjectMapperOptions(objectMapper);
         objectMapper.registerModule(codecModule);
         registerExtraModules(objectMapper);
-        toggleParserOptions(objectMapper);
+        allowCommentsAndUnquotedFields(objectMapper);
         return objectMapper;
     }
 
@@ -70,7 +87,7 @@ public final class Jackson {
         return objectMapper;
     }
 
-    public static ObjectMapper toggleParserOptions(ObjectMapper objectMapper) {
+    public static ObjectMapper allowCommentsAndUnquotedFields(ObjectMapper objectMapper) {
         objectMapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
         objectMapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
         objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);

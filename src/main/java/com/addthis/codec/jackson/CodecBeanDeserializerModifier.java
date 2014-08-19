@@ -38,9 +38,11 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
     private static final Logger log = LoggerFactory.getLogger(CodecBeanDeserializerModifier.class);
 
     private final Config globalDefaults;
+    private final boolean modifyEnum;
 
     public CodecBeanDeserializerModifier(Config globalDefaults) {
         this.globalDefaults = globalDefaults;
+        this.modifyEnum = globalDefaults.getBoolean("addthis.codec.jackson.ignore.enum-case");
     }
 
     @Override public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config,
@@ -97,8 +99,8 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
             JsonDeserializer<?> delegatee = ((DelegatingDeserializer) deserializer).getDelegatee();
             JsonDeserializer<?> replacementDelegatee = modifyEnumDeserializer(config, type, beanDesc, delegatee);
             return deserializer.replaceDelegatee(replacementDelegatee);
-        } else if (deserializer instanceof EnumDeserializer) {
-            return new CodecEnumDeserializer((EnumDeserializer) deserializer);
+        } else if (modifyEnum && (deserializer instanceof EnumDeserializer)) {
+            return new CaseIgnoringEnumDeserializer((EnumDeserializer) deserializer);
         } else {
             return deserializer;
         }

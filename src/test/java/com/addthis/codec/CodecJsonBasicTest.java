@@ -13,7 +13,7 @@
  */
 package com.addthis.codec;
 
-import com.addthis.codec.jackson.CodecJackson;
+import com.addthis.codec.jackson.Jackson;
 import com.addthis.codec.json.CodecJSON;
 import com.addthis.codec.letters.C;
 import com.addthis.codec.letters.CCC;
@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 public class CodecJsonBasicTest extends CodecBasicTests {
 
     @Override public Codec getCodec() {
-        CodecJackson.getDefault().getObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        Jackson.defaultCodec().getObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         return CodecJSON.INSTANCE;
     }
 

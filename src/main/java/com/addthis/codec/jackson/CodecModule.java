@@ -29,10 +29,22 @@ public class CodecModule extends Module {
         this.globalConfig = globalConfig;
     }
 
+    public CodecModule(PluginRegistry pluginRegistry) {
+        this.pluginRegistry = pluginRegistry;
+        this.globalConfig = pluginRegistry.config();
+    }
+
     @Override public void setupModule(SetupContext context) {
         context.insertAnnotationIntrospector(new CodecIntrospector(pluginRegistry));
-        context.addDeserializationProblemHandler(new CodecUnknownPropertyHandler());
-        context.addBeanDeserializerModifier(new CodecBeanDeserializerModifier(globalConfig));
+        if (globalConfig.getBoolean("addthis.codec.jackson.ignore.underscore")) {
+            context.addDeserializationProblemHandler(new UnderscorePropertyIgnorer());
+        }
+        if (globalConfig.getBoolean("addthis.codec.jackson.ignore.write-only")) {
+            context.addDeserializationProblemHandler(new WriteonlyPropertyIgnorer());
+        }
+        if (globalConfig.getBoolean("addthis.codec.jackson.modify-fields")) {
+            context.addBeanDeserializerModifier(new CodecBeanDeserializerModifier(globalConfig));
+        }
         context.addDeserializers(new CodecDeserializers());
     }
 
