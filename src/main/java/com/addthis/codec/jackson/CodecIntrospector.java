@@ -54,6 +54,9 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
             } else {
                 log.warn("missing plugin map for {}, reached from {}", pluggable.value(), ac.getRawType());
             }
+        } else if (pluginRegistry.byClass().containsKey(ac.getRawType())) {
+            PluginMap pluginMap = pluginRegistry.byClass().get(ac.getRawType());
+            return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory(), pluginRegistry);
         }
         return null;
     }
@@ -62,15 +65,19 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
     @Override
     public List<NamedType> findSubtypes(Annotated a) {
         Pluggable pluggable = a.getAnnotation(Pluggable.class);
+        PluginMap pluginMap;
         if (pluggable != null) {
-            PluginMap pluginMap = pluginRegistry.byCategory().get(pluggable.value());
-            List<NamedType> result = new ArrayList<>(pluginMap.asBiMap().size());
-            for (Map.Entry<String, Class<?>> type : pluginMap.asBiMap().entrySet()) {
-                result.add(new NamedType(type.getValue(), type.getKey()));
-            }
-            return result;
+            pluginMap = pluginRegistry.byCategory().get(pluggable.value());
+        } else if (pluginRegistry.byClass().containsKey(a.getRawType())) {
+            pluginMap = pluginRegistry.byClass().get(a.getRawType());
+        } else {
+            return null;
         }
-        return null;
+        List<NamedType> result = new ArrayList<>(pluginMap.asBiMap().size());
+        for (Map.Entry<String, Class<?>> type : pluginMap.asBiMap().entrySet()) {
+            result.add(new NamedType(type.getValue(), type.getKey()));
+        }
+        return result;
     }
 
     @Override

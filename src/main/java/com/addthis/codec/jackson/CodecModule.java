@@ -35,7 +35,7 @@ public class CodecModule extends Module {
     }
 
     @Override public void setupModule(SetupContext context) {
-        context.insertAnnotationIntrospector(new CodecIntrospector(pluginRegistry));
+        context.appendAnnotationIntrospector(new CodecIntrospector(pluginRegistry));
         if (globalConfig.getBoolean("addthis.codec.jackson.ignore.underscore")) {
             context.addDeserializationProblemHandler(new UnderscorePropertyIgnorer());
         }
