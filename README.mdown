@@ -98,9 +98,8 @@ public class SuperFastHash implements HashFunction {
 }
 ```
 
-Add our guy to the plugin definition (note that since this is hocon, we could just as easily do
-`-Dplugins.hasher.fast=SuperFastHash` on the command line or split the _class def and the fast def into entirely
-different files or projects).
+Let's add our guy to the plugin definition (we could also just put `-Dplugins.hasher.fast=SuperFastHash` on the command
+line or split the plugin definition across entirely different files or projects).
 ```javascript
 plugins.hasher {
   _class = com.addthis.codec.HashFunction
