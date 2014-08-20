@@ -14,7 +14,7 @@
 package com.addthis.codec.codables;
 
 /**
- * used by classes that could be modified during encoding
+ * Used by classes that could be modified during encoding. Only supported by CodecBin2.
  */
 public interface ConcurrentCodable extends Codable {
 

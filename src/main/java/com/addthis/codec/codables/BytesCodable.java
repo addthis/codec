@@ -14,7 +14,7 @@
 package com.addthis.codec.codables;
 
 /**
- * for classes that want to handle their own direct serialization
+ * For classes that want to handle their own direct serialization. No direct support.
  */
 public interface BytesCodable extends Codable {
 

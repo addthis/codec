@@ -16,8 +16,8 @@ package com.addthis.codec.codables;
 import io.netty.buffer.ByteBuf;
 
 /**
- * for classes that want to handle their own direct serialization and prefer to not
- * use and/or allocate byte arrays
+ * For classes that want to handle their own direct serialization and prefer to not
+ * use and/or allocate byte arrays. No direct support.
  */
 public interface ByteBufCodable extends Codable {
 

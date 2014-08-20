@@ -50,6 +50,10 @@ import static com.fasterxml.jackson.databind.MapperFeature.ALLOW_FINAL_FIELDS_AS
 import static com.fasterxml.jackson.databind.MapperFeature.INFER_PROPERTY_MUTATORS;
 import static com.fasterxml.jackson.databind.MapperFeature.USE_GETTERS_AS_SETTERS;
 
+/**
+ * Utility methods for interacting with the jackson library and creating more customized
+ * object mappers.
+ */
 @Beta
 public final class Jackson {
     private Jackson() {}

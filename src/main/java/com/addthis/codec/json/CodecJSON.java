@@ -16,6 +16,7 @@ package com.addthis.codec.json;
 import java.io.IOException;
 
 import com.addthis.codec.Codec;
+import com.addthis.codec.config.Configs;
 import com.addthis.codec.jackson.CodecJackson;
 import com.addthis.codec.jackson.Jackson;
 import com.addthis.maljson.JSONObject;
@@ -26,6 +27,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Jackson based implementation of the old Codec interface. New code is probably
+ * better off using {@link Configs} or {@link CodecJackson}.
+ */
 public final class CodecJSON implements Codec {
     private CodecJSON() {}
 

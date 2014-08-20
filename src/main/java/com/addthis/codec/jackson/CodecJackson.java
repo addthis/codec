@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.addthis.codec.config.ConfigTraversingParser;
+import com.addthis.codec.config.Configs;
 import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 
@@ -40,6 +41,12 @@ import com.typesafe.config.ConfigValue;
 
 import io.dropwizard.validation.ConstraintViolations;
 
+/**
+ * Wrapper over an object mapper, plugin registry, global config, and a validator. Provides
+ * methods for constructing objects that automatically perform validation, and bridge hocon
+ * strings to jackson construction. Normally obtained either from {@link Jackson#defaultCodec()}
+ * or used indirectly from the static helper methods in {@link Configs}.
+ */
 @Beta
 public class CodecJackson {
 

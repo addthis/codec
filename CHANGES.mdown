@@ -1,4 +1,0 @@
-### Release 2.0.1 (February 18, 2014)
-
-- Removing ````quoteDefault```` system property. It was implemented incorrectly and never worked. The new behavior is identical to the old behavior which is that JSON keys are enclosed in double quotes in the string encoding of CodecJSON. 
-- Updating [maljson](http://github.com/addthis/maljson) library dependency to version 0.1.1.

@@ -14,7 +14,8 @@
 package com.addthis.codec.codables;
 
 /**
- * used to run code to 'transcode' values into codable primitives
+ * Used to run code to 'transcode' values into codable primitives. Only postDecode
+ * is currently supported by jackson/hocon/json. There are usually better options.
  */
 public interface SuperCodable extends Codable {
 

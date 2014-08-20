@@ -14,8 +14,10 @@
 package com.addthis.codec.codables;
 
 /**
- * used to flag an object type as codable when it's a field in another
- * object
+ * Used to flag an object type as codable when it's a field in another object. Non-codable,
+ * non-primitives are ignored.
+ *
+ * Has no meaning outside of CodecBin2.
  */
 public interface Codable {
 
