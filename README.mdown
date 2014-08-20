@@ -78,8 +78,10 @@ public interface HashFunction {
 
 ```javascript
 plugins.hasher {
-  // optionally specify _class = com.addthis.codec.HashFunction ; may not make sense for categories with static
-  // methods, but allows lookup without the @Pluggable annotation, validates sub-types, allows short subtype paths
+  // optionally specify _class = com.addthis.codec.HashFunction
+  // may not make sense for categories with static methods, but allows
+  // lookups without the @Pluggable annotation, validates sub-types, and
+  // short subtype paths (com.addthis.codec.SubClass -> SubClass)
 }
 ```
 
@@ -127,7 +129,7 @@ plugins.hasher {
     _class = fast
     seed = 3
   }
-  // now if no type information can be found or inferred (eg. via some yet unrevealed tricks), we'll assume exactly-pi
+  // if no type information can be found or inferred, we'll try exactly-pi
   _default = exactly-pi
 }
 ```
