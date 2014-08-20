@@ -4,24 +4,215 @@
 
 `codec` is a java serialization library.  There are
 [many](https://github.com/eishay/jvm-serializers) like it, but this
-one is ours.
+one is ours. Codec has its own reflection toolset, but we are moving
+to wards using more and more jackson in the back end. Currently, the
+most notable features are those that are built on top of
+[jackson-databind](https://github.com/FasterXML/jackson-databind)
+and
+[typesafe-config](https://github.com/typesafehub/config).
 
 Codec:
 
- * Supports multiple formats.  You can constitute a POJO from bytes in
-   format A and then serialize it as format B.
- * Is annotation based, favoring ease of development over formality.
- * Includes hooks for classes that need to handle a portion of their
-   own serialization.
+ * Supports both annotation-based and config-based settings.
+ * Flexible plugin system for decentralized, polymorphic handling.
+ * Default values on a per class and a per alias basis.
+ * Override almost anything with system properties via typesafe-config.
+ * Unambiguously enforce required values.
+ * Jsr-303 validation via hibernate-validator.
+ * Easily integrates anywhere that jackson does (most places).
+ * Extra-mile niceties for human-generated json/hocon/config files.
  
  
 Currently supported formats:
 
  * JSON
- * KV pairs
- * Bin1: Moderately intelligent binary format.
- * Bin2: Brittle -- but more compact -- binary format.
+ * HOCON
+ * Jackson supported formats
+ * Bin2: (deprecated) binary format.
 
+## Basic Use
+
+For a simple POJO like this one ruthlessly lifted from jackson's readme...
+```java
+// Note: can use getters/setters as well; here we just use public fields directly:
+public class MyValue {
+  public String name;
+  public int age;
+  // NOTE: if using getters/setters, can keep fields `protected` or `private`
+}
+```
+
+Simple deserialization can be done like this.
+```java
+Configs.decodeObject(MyValue.class, "name = New Friend, age = 1");
+```
+
+Note that the string can be json or hocon (like it is here). The library parameter is annotated with
+`@Syntax("HOCON")` so if your IDE supports it, you'll get syntax highlighting right in the editor.
+(For intellij, install the scala plugin to get hocon support and then set the language
+annotation class to javax.annotation.Syntax via settings/language injections/advanced).
+
+Set default field values (maybe in a file named application.conf or via system properties):
+```javascript
+your.package.name.MyValue {
+  name = Default Friend
+  age = 20
+}
+```
+
+Then you could just do:
+```java
+Configs.newDefault(MyValue.class);
+```
+
+## Plugins
+
+Categories can be defined by annotations and/ or config. The only non-jackson annotation is @Pluggable though.
+
+```java
+@Pluggable("hasher")
+public interface HashFunction {
+  long hash(Object toBeHashed);
+}
+```
+
+```javascript
+plugins.hasher {
+  // optionally specify _class = com.addthis.codec.HashFunction ; may not make sense for categories with static
+  // methods, but allows lookup without the @Pluggable annotation, validates sub-types, allows short subtype paths
+}
+```
+
+Then let's say we have this implementation either in our project or downstream.
+```java
+public class SuperFastHash implements HashFunction {
+  private final long theBestNumber;
+  
+  public SuperFastHash(@JsonProperty("seed") long seed) {
+    this.theBestNumber = seed;
+  }
+  
+  public long hash(Object toBeHashed) {
+    return theBestNumber;
+  }
+}
+```
+
+Add our guy to the plugin definition (note that since this is hocon, we could just as easily do
+`-Dplugins.hasher.fast=SuperFastHash` on the command line or split the _class def and the fast def into entirely
+different files or projects).
+```javascript
+plugins.hasher {
+  _class = com.addthis.codec.HashFunction
+  fast = SuperFastHash
+}
+```
+
+Now any of these will work (and others besides, of course).
+```java
+Configs.decodeObject(HashFunction.class, "type = fast, seed = 4");
+Configs.decodeObject(HashFunction.class, "fast { seed = 5 }");
+Configs.decodeObject("hasher.fast.seed = 6");
+```
+
+We can go a step further and do
+```javascript
+plugins.hasher {
+  fast { 
+    _class = SuperFastHash
+    _primary = seed // assume non-object json values belong to this field
+    seed = 20 // new default value for seed
+  }
+  // create an alias for the fast type; recursively inherits settings, so it also has _primary defined
+  exactly-pi {
+    _class = fast
+    seed = 3
+  }
+  // now if no type information can be found or inferred (eg. via some yet unrevealed tricks), we'll assume exactly-pi
+  _default = exactly-pi
+}
+```
+
+```java
+// using _primary
+Configs.decodeObject(HashFunction.class, "fast = 32");
+// using any and all defaults
+Configs.decodeObject(HashFunction.class, "fast {}");
+```
+
+One more notable example -- lists where ever. (it should go without saying that these are not real hash functions).
+This functionality is useful for lots of cases where a list has a single, intuitive meaning like "an input source
+or a bunch of input sources combined together" or "a filter or a bunch of filters in a row".
+```java
+public class CompositeHash implements HashFunction {
+  private final HashFunction[] hashes;
+  
+  public CompositeHash(@JsonProperty("hashes") long hashes) {
+    this.hashes = hashes;
+  }
+  
+  public long hash(Object toBeHashed) {
+    long total = 0;
+    for (HashFunction hashFunction : hashes) {
+      total += hashFunction.hash(toBeHashed);
+    }
+    return total;
+  }
+}
+```
+
+```javascript
+plugins.hasher {
+  sum { _class = CompositeHash, _primary = hashes }
+  // now anytime we are expecting a HashFunction and instead find an array, turn it into a CompositeHash
+  _array = sum
+}
+```
+
+```java
+Configs.decodeObject("hasher = [{fast = 999}, {exactly-pi {}}]");
+```
+
+## Extras/ quirks/ toggleable things
+
+- error to config location (ie. line number) reporting is accurate for hocon strings/files or even config objects
+derived therefrom. There are a few extra bug fixes on top of the latest jackson release that help make this possible.
+Those fixes help generic json reporting as well, but to a lesser extent.
+
+- @Time(TimeUnit) and @Bytes annotations that will preprocess any field/ parameter by converting values of
+the form "number unit" like "14 days" to the expected TimeUnit or plain bytes. Already valid numbers are left
+alone to make migration easy/ optional.
+
+- required fields are actually required. Specify with either @JsonProperty(required = true) or
+@FieldConfig(required = true). Often easier to reason about and document than preconditions on setters/ constructors
+or after-the-fact jsr-303 validation (especially for primitives).
+
+- type to class resolution tries the plugin map, jackson annotations, and then direct Class.forName lookups using
+all possible package prefixes of the base class (or just the full type string if there is no base class).
+
+- type inclusion is likewise flexible. it is analagous to the combination of several jackson inclusion types. The type
+field is checked first (which can be customized per category via the _field setting), then if it is a single key-value'd
+object, the single key is checked, then inlined types (declared using `_inline = true` as a subtype/ alias setting),
+then _default types.
+
+- generic enum names are not case sensitive (toggleable)
+
+- 'unknown properties' cause an exception by default, but also by default, unknown properties starting with an
+underscore (_) are ignored without malice. This gives some flexibility for custom meta data and stash points for
+hocon substitution targets.
+
+- unknown properties encountered during deserialization may optionally (disabled by default) be ignored if they are
+known to be written by the class in question (ie. write-only properties).
+
+- null values are not written to deserialized objects unless they have a special null representation like guava/java8
+Optionals. This is to give 'user space things' like custom types and aliases more flexibility to control inheritance
+but still give developers/admins guarantees over behavior. eg. if I define a field like `int myField = 5` in code, then
+I probably won't also flag it as required, but on the other hand, if it is being over written to 0, then at least one
+person involved should actively desire that rather than occuring when someone uses the otherwise ambiguous null -- which
+likely means unset rather than 'the java default for primitive integers'.
+
+- fields can be read or write only without using extra, explicit getters/setters by using @FieldConfig(readonly = true)
+or (writeonly = true). However, that only works in the absence of other @JsonProperty annotations.
 
 ## Building
 
@@ -30,7 +221,7 @@ the scope to detail.  The super simple quick start is:
 
 `mvn test`
 
-## Use
+## Maven
 
 ```xml
 <dependency>
@@ -43,6 +234,47 @@ the scope to detail.  The super simple quick start is:
 You can either install locally, or releases will eventually make their
 way to maven central.
 
+If you use a fat jar, or don't know what the words 'fat jar' mean, you
+may want to use something like the following for your build. You can
+maybe get away without it if you have no other dependencies that use
+either typesafe-config or codec. In that case, make sure not to define
+your own reference.conf.
+
+```xml
+<plugin>
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-shade-plugin</artifactId>
+<version>2.3</version>
+<executions>
+  <execution>
+    <phase>package</phase>
+    <goals>
+      <goal>shade</goal>
+    </goals>
+    <configuration>
+      <filters>
+        <filter>
+          <artifact>*:*</artifact>
+          <excludes>
+            <exclude>META-INF/*.SF</exclude>
+            <exclude>META-INF/*.DSA</exclude>
+            <exclude>META-INF/*.RSA</exclude>
+          </excludes>
+        </filter>
+      </filters>
+      <transformers>
+        <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+          <resource>reference.conf</resource>
+        </transformer>
+        <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+          <resource>application.conf</resource>
+        </transformer>
+      </transformers>
+    </configuration>
+  </execution>
+</executions>
+</plugin>
+```
 
 
 ## Administrative
