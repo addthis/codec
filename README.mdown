@@ -194,7 +194,7 @@ field is checked first (which can be customized per category via the _field sett
 object, the single key is checked, then inlined types (declared using `_inline = true` as a subtype/ alias setting),
 then _default types.
 
-- generic enum names are not case sensitive (toggleable)
+- generic enum names are not case sensitive
 
 - 'unknown properties' cause an exception by default, but also by default, unknown properties starting with an
 underscore (_) are ignored without malice. This gives some flexibility for custom meta data and stash points for
