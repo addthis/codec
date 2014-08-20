@@ -140,14 +140,14 @@ Configs.decodeObject(HashFunction.class, "fast = 32");
 Configs.decodeObject(HashFunction.class, "fast {}");
 ```
 
-One more notable example -- lists where ever. (it should go without saying that these are not real hash functions).
-This functionality is useful for lots of cases where a list has a single, intuitive meaning like "an input source
-or a bunch of input sources combined together" or "a filter or a bunch of filters in a row".
+One more notable example -- lists where ever. This functionality is useful for lots of cases where a list has a
+single, intuitive meaning like "an input source or a bunch of input sources combined together" or "a filter or
+a bunch of filters in a row".
 ```java
 public class CompositeHash implements HashFunction {
   private final HashFunction[] hashes;
   
-  public CompositeHash(@JsonProperty("hashes") long hashes) {
+  public CompositeHash(@JsonProperty("hashes") HashFunction[] hashes) {
     this.hashes = hashes;
   }
   
