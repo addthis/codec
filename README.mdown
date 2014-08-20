@@ -54,7 +54,7 @@ annotation class to javax.annotation.Syntax via settings/language injections/adv
 
 Set default field values (maybe in a file named application.conf or via system properties):
 ```javascript
-your.package.name.MyValue {
+fully.qualified.name.MyValue {
   name = Default Friend
   age = 20
 }
