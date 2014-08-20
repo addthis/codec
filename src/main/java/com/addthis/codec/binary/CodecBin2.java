@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.addthis.basis.util.Bytes;
-import com.addthis.basis.util.Strings;
 
 import com.addthis.codec.Codec;
 import com.addthis.codec.codables.Codable;
@@ -42,6 +41,8 @@ import com.addthis.codec.codables.SuperCodable;
 import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 import com.addthis.codec.reflection.Fields;
+
+import com.google.common.base.Strings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,7 +150,7 @@ public final class CodecBin2 implements Codec {
         Class<?> type = classInfo.getBaseClass();
         log.trace("decodeObject: {} {} {}", classInfo, object, buf);
         String stype = readStringHelper(buf.in);
-        if (!Strings.isEmpty(stype)) {
+        if (!Strings.isNullOrEmpty(stype)) {
             Class<?> atype = classInfo.getClass(stype);
             if (type != atype) {
                 classInfo = Fields.getClassFieldMap(atype);
