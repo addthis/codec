@@ -146,13 +146,19 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         }
         if (idRes.isValidTypeId("_default")) {
             ConfigObject aliasDefaults = pluginMap.aliasDefaults("_default");
-            if (!aliasDefaults.isEmpty()) {
-                Jackson.merge(objectNode, Jackson.configConverter(aliasDefaults));
-            }
             JsonDeserializer<Object> deser = _findDeserializer(ctxt, "_default");
-            JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
-            treeParser.nextToken();
-            bean = deser.deserialize(treeParser, ctxt);
+            boolean unwrapPrimary = handleDefaultsAndImplicitPrimary(objectNode, aliasDefaults, deser, ctxt);
+            try {
+                JsonParser treeParser = objectCodec.treeAsTokens(objectNode);
+                treeParser.nextToken();
+                bean = deser.deserialize(treeParser, ctxt);
+            } catch (IOException cause) {
+                if (unwrapPrimary) {
+                    throw Jackson.maybeUnwrapPath((String) aliasDefaults.get("_primary").unwrapped(), cause);
+                } else {
+                    throw cause;
+                }
+            }
         }
         return bean;
     }
