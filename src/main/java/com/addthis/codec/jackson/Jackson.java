@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.addthis.codec.plugins.PluginRegistry;
+import com.addthis.codec.utils.ExecutorsModule;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Splitter;
@@ -88,6 +89,7 @@ public final class Jackson {
         objectMapper.registerModule(new GuavaModule());
         objectMapper.registerModule(new Jdk7Module());
         objectMapper.registerModule(new JodaModule());
+        objectMapper.registerModule(new ExecutorsModule());
         return objectMapper;
     }
 

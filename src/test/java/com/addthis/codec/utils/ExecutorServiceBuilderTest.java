@@ -30,7 +30,6 @@ public class ExecutorServiceBuilderTest {
     @Test
     public void dontError() throws IOException {
         CodecJackson codecJackson = Jackson.defaultCodec();
-        ExecutorBuilders.mix(codecJackson.getObjectMapper());
         ExecutorService service =
                 codecJackson.decodeObject(ExecutorService.class,
                                           "thread-factory {nameFormat = ianRules}, core-threads = 2," +

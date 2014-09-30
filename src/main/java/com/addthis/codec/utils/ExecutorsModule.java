@@ -20,17 +20,30 @@ import java.util.concurrent.ThreadFactory;
 import com.google.common.annotations.Beta;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
+/**
+ * Adds deserialization support for {@link ThreadFactory} and {@link ExecutorService} types.
+ */
 @Beta
-public class ExecutorBuilders {
-    public static void mix(ObjectMapper codec) {
-        codec.addMixInAnnotations(ThreadFactory.class, ThreadFactoryMixer.class);
-        codec.addMixInAnnotations(ThreadFactoryBuilder.class, ThreadFactoryBuilderMixer.class);
-        codec.addMixInAnnotations(ExecutorService.class, ExecutorServiceBuilder.class);
-        codec.addMixInAnnotations(ScheduledExecutorService.class, ScheduledExecutorServiceBuilder.class);
+public class ExecutorsModule extends Module {
+
+    @Override public void setupModule(SetupContext context) {
+        context.setMixInAnnotations(ThreadFactory.class, ThreadFactoryMixer.class);
+        context.setMixInAnnotations(ThreadFactoryBuilder.class, ThreadFactoryBuilderMixer.class);
+        context.setMixInAnnotations(ExecutorService.class, ExecutorServiceBuilder.class);
+        context.setMixInAnnotations(ScheduledExecutorService.class, ScheduledExecutorServiceBuilder.class);
+    }
+
+    @Override public String getModuleName() {
+        return "jdk-executors";
+    }
+
+    @Override public Version version() {
+        return Version.unknownVersion();
     }
 
     @JsonDeserialize(builder = ThreadFactoryBuilder.class)
