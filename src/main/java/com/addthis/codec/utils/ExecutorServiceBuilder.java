@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.yammer.metrics.Metrics;
 
 @Beta
 @JsonDeserialize(builder = ExecutorServiceBuilder.class)
@@ -46,12 +47,17 @@ public class ExecutorServiceBuilder {
                                   @JsonProperty("max-threads") int maxThreads,
                                   @JsonProperty("keep-alive") @Time(TimeUnit.MILLISECONDS) int keepAlive,
                                   @JsonProperty("queue-size") int queueSize,
+                                  @JsonProperty("queue-gauge-class") Class<?> gaugeClass,
+                                  @JsonProperty("queue-gauge-name") String gaugeName,
                                   @JsonProperty("shutdown-hook") boolean shutdownHook) {
         this.threadFactory = threadFactory;
         this.coreThreads = coreThreads;
         this.maxThreads = maxThreads;
         this.keepAlive = keepAlive;
         this.queue = new LinkedBlockingQueue<>(queueSize);
+        if ((gaugeClass != null) && (gaugeName != null)) {
+            Metrics.newGauge(gaugeClass, gaugeName, new SizeGauge(queue));
+        }
         this.shutdownHook = shutdownHook;
     }
 
