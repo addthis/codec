@@ -82,6 +82,7 @@ public final class Jackson {
         objectMapper.registerModule(codecModule);
         registerExtraModules(objectMapper);
         allowCommentsAndUnquotedFields(objectMapper);
+        objectMapper.setInjectableValues(new EmptyInjectableValues());
         return objectMapper;
     }
 
