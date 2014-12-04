@@ -208,7 +208,7 @@ public class CodecJackson {
     public <T> T validate(T value) {
         Set<ConstraintViolation<T>> violations = validator.validate(value);
         if (!violations.isEmpty()) {
-            throw new ValidationException(ConstraintViolations.format(violations).toString());
+            throw new ValidationException(ConstraintViolations.<T>format(violations).toString());
         }
         return value;
     }

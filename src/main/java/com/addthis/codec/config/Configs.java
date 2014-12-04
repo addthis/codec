@@ -286,16 +286,10 @@ public final class Configs {
                                                         pluginMap.config().root().get("_array").origin().description()))
                                             .withValue(arrayFieldName, configValue)
                                             .withFallback(aliasDefaults);
-                    } else {
-                        throw new ConfigException.WrongType(configValue.origin(),
-                                                            "found an array instead of an object, but no array type set");
-
                     }
                 }
             }
-            throw new ConfigException.WrongType(configValue.origin(),
-                                                "invalid config type of " + configValue.valueType() +
-                                                " for " + pluginMap);
+            return configValue;
         }
         ConfigObject root = (ConfigObject) configValue;
         ConfigValue classValue = root.get(classField);
