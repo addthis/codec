@@ -215,4 +215,11 @@ public class FeatureTest {
         assertEquals(expected, greeterObject.greet());
     }
 
+    @Test
+    public void abstractDelegate() throws Exception {
+        Greeter holder = decodeObject(Greeter.class,
+                                                "holder { type: simple, suffix = s }");
+        String expected = "Hello Worlds";
+        assertEquals(expected, holder.greet());
+    }
 }

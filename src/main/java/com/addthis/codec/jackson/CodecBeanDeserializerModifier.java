@@ -25,9 +25,7 @@ import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.deser.std.DelegatingDeserializer;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
-import com.fasterxml.jackson.databind.deser.std.MapDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.type.MapType;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
 
@@ -71,21 +69,6 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
                 }
             }
             return new CodecBeanDeserializer(beanDeserializer, fieldDefaults);
-        } else {
-            return deserializer;
-        }
-    }
-
-    @Override public JsonDeserializer<?> modifyMapDeserializer(DeserializationConfig config,
-                                                               MapType type,
-                                                               BeanDescription beanDesc,
-                                                               JsonDeserializer<?> deserializer) {
-        if (deserializer instanceof DelegatingDeserializer) {
-            JsonDeserializer<?> delegatee = ((DelegatingDeserializer) deserializer).getDelegatee();
-            JsonDeserializer<?> replacementDelegatee = modifyMapDeserializer(config, type, beanDesc, delegatee);
-            return deserializer.replaceDelegatee(replacementDelegatee);
-        } else if (deserializer.getClass() == MapDeserializer.class) {
-            return new KeyReportingMapDeserializer((MapDeserializer) deserializer);
         } else {
             return deserializer;
         }

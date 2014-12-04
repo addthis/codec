@@ -13,9 +13,18 @@
  */
 package com.addthis.codec.plugins;
 
-import com.addthis.codec.annotations.FieldConfig;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
-public class ConfigGreetHolder {
+public class GreetHolder implements Greeter {
 
-    @FieldConfig public ConfigGreet configGreet;
+    private final Greeter greeter;
+
+    @JsonCreator
+    public GreetHolder(Greeter greeter) {
+        this.greeter = greeter;
+    }
+
+    @Override public String greet() {
+        return greeter.greet();
+    }
 }
