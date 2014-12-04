@@ -25,6 +25,10 @@ public class GreetHolder implements Greeter {
     }
 
     @Override public String greet() {
-        return greeter.greet();
+        if (greeter == null) {
+            return "null";
+        } else {
+            return greeter.greet();
+        }
     }
 }

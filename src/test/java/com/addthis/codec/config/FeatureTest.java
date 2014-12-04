@@ -217,9 +217,15 @@ public class FeatureTest {
 
     @Test
     public void abstractDelegate() throws Exception {
-        Greeter holder = decodeObject(Greeter.class,
-                                                "holder { type: simple, suffix = s }");
+        Greeter holder = decodeObject(Greeter.class, "holder { type: simple, suffix = s }");
         String expected = "Hello Worlds";
+        assertEquals(expected, holder.greet());
+    }
+
+    @Test
+    public void abstractDelegateEmpty() throws Exception {
+        Greeter holder = decodeObject(Greeter.class, "holder {}");
+        String expected = "Hello World! What a pleasant default-alias suffix we are having!";
         assertEquals(expected, holder.greet());
     }
 }

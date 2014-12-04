@@ -24,6 +24,7 @@ import com.addthis.codec.plugins.PluginMap;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -103,7 +104,13 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         }
         // can use this to approximate error location if a sub-method throws an exception
         JsonLocation currentLocation = jp.getTokenLocation();
-        JsonNode jsonNode = jp.readValueAsTree();
+        JsonNode jsonNode;
+        // empty objects can appear with END_OBJECT. that has special handling lots of places, but not in readTree
+        if (jp.getCurrentToken() == JsonToken.END_OBJECT) {
+            jsonNode = ctxt.getNodeFactory().objectNode();
+        } else {
+            jsonNode = jp.readValueAsTree();
+        }
         ObjectCodec objectCodec = jp.getCodec();
 
         try {
