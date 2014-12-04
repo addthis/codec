@@ -141,8 +141,9 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
         if (objectNode.hasNonNull(_typePropertyName)) {
             return _deserializeObjectFromProperty(objectNode, objectCodec, ctxt);
         }
-        if (objectNode.size() == 1) {
-            Object bean = _deserializeObjectFromSingleKey(objectNode, objectCodec, ctxt);
+        String singleKeyName = getSingleKeyIfPresent(objectNode);
+        if (singleKeyName != null) {
+            Object bean = _deserializeObjectFromSingleKey(objectNode, singleKeyName, objectCodec, ctxt);
             if (bean != null) {
                 return bean;
             }
@@ -168,6 +169,21 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             }
         }
         return bean;
+    }
+
+    // returns non-null if there is only one key or only one non-meta-data key. ie. (_class, some-key) or (_some-key)
+    @Nullable private String getSingleKeyIfPresent(ObjectNode objectNode) {
+        Iterator<String> fieldNames = objectNode.fieldNames();
+        String singleKey = null;
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
+            if ((singleKey == null) || (singleKey.charAt(0) == '_')) {
+                singleKey = fieldName;
+            } else if (fieldName.charAt(0) != '_') {
+                return null; // more than one key found
+            }
+        }
+        return singleKey;
     }
 
     @Nullable private Object _deserializeObjectFromInlinedType(ObjectNode objectNode,
@@ -216,9 +232,9 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     }
 
     @Nullable private Object _deserializeObjectFromSingleKey(ObjectNode objectNode,
+                                                             String singleKeyName,
                                                              ObjectCodec objectCodec,
                                                              DeserializationContext ctxt) throws IOException {
-        String singleKeyName = objectNode.fieldNames().next();
         if (idRes.isValidTypeId(singleKeyName)) {
             ConfigObject aliasDefaults = pluginMap.aliasDefaults(singleKeyName);
             String primaryField;

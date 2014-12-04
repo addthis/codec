@@ -220,6 +220,8 @@ public class FeatureTest {
         Greeter holder = decodeObject(Greeter.class, "holder { type: simple, suffix = s }");
         String expected = "Hello Worlds";
         assertEquals(expected, holder.greet());
+        holder = decodeObject(Greeter.class, "holder.simple.suffix = s");
+        assertEquals(expected, holder.greet());
     }
 
     @Test
