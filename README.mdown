@@ -215,6 +215,11 @@ likely means unset rather than 'the java default for primitive integers'.
 - fields can be read or write only without using extra, explicit getters/setters by using @FieldConfig(readonly = true)
 or (writeonly = true). However, that only works in the absence of other @JsonProperty annotations.
 
+## java version
+
+`codec` versions `3.3.0` and earlier require java 7. Later versions require java 8, but may run under 7 with a bit
+of fiddling.
+
 ## Building
 
 `codec` uses [Apache Maven](http://maven.apache.org/) which it is beyond

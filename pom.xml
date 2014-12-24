@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 <!--
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@
   <parent>
     <artifactId>jar-pom</artifactId>
     <groupId>com.addthis.common.build.maven.pom</groupId>
-    <version>3.4.0</version>
+    <version>3.4.1-SNAPSHOT</version>
   </parent>
   
   <groupId>com.addthis</groupId>
@@ -30,6 +31,10 @@
       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
+
+  <properties>
+    <project.build.targetJdk>1.8</project.build.targetJdk>
+  </properties>
 
   <dependencies>
     <!-- addthis dependencies ; maljson should go away soon -->
@@ -60,7 +65,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-buffer</artifactId>
-      <version>4.0.19.Final</version>
+      <version>4.0.23.Final</version>
     </dependency>
 
     <!-- validation and a few time/ size utilities from dropwizard -->
@@ -75,7 +80,7 @@
       <version>0.7.1</version>
     </dependency>
 
-    <!-- jackson and extra jackson modules ; joda, guava, jdk7 helpers -->
+    <!-- jackson and extra jackson modules ; joda, guava, jdk7, jdk8 helpers -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
@@ -95,6 +100,15 @@
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jdk7</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <!-- jsr310 is basically just the jdk 8 date/time classes split into its own module -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
     <dependency>
       <groupId>joda-time</groupId>
@@ -121,7 +135,6 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <version>0.11</version>
       </plugin>
     </plugins>
   </reporting>
@@ -132,5 +145,4 @@
     <url>https://github.com/addthis/codec</url>
     <tag>HEAD</tag>
   </scm>
-  
 </project>
