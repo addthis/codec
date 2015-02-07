@@ -38,4 +38,14 @@ public @interface FieldConfig {
     boolean writeonly() default false;
 
     boolean required() default false;
+
+    /**
+     * If enabled then some numeric types are narrowed into a smaller type
+     * for serialization. This is for backwards compatibility it is not
+     * an encouraged practice. Longs are narrowed to Integers. longs are
+     * narrowed to ints. If the value is too wide to store in the narrow
+     * representation then decode(encode(value)) will not equal the original
+     * value. Using this annotation is not recommended.
+     */
+    boolean narrow() default false;
 }
