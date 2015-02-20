@@ -44,8 +44,39 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
         this.pluginRegistry = pluginRegistry;
     }
 
+    // these three methods are borrowed from the default jackson annotation introspector
+
     @Override
     public TypeResolverBuilder<?> findTypeResolver(MapperConfig<?> config, AnnotatedClass ac, JavaType baseType) {
+        return _findTypeResolver(config, ac, baseType);
+    }
+
+    @Override
+    public TypeResolverBuilder<?> findPropertyTypeResolver(MapperConfig<?> config,
+                                                           AnnotatedMember am, JavaType baseType)
+    {
+        /* As per definition of @JsonTypeInfo, should only apply to contents of container
+         * (collection, map) types, not container types themselves:
+         */
+        if (baseType.isContainerType()) return null;
+        // No per-member type overrides (yet)
+        return _findTypeResolver(config, am, baseType);
+    }
+
+    @Override
+    public TypeResolverBuilder<?> findPropertyContentTypeResolver(MapperConfig<?> config,
+                                                                  AnnotatedMember am, JavaType containerType)
+    {
+        /* First: let's ensure property is a container type: caller should have
+         * verified but just to be sure
+         */
+        if (!containerType.isContainerType()) {
+            throw new IllegalArgumentException("Must call method with a container type (got "+containerType+")");
+        }
+        return _findTypeResolver(config, am, containerType);
+    }
+
+    public TypeResolverBuilder<?> _findTypeResolver(MapperConfig<?> config, Annotated ac, JavaType baseType) {
         Pluggable pluggable = ac.getAnnotation(Pluggable.class);
         if (pluggable != null) {
             PluginMap pluginMap = pluginRegistry.byCategory().get(pluggable.value());
