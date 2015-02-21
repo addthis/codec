@@ -94,6 +94,8 @@ public class PluginMap {
                         configObject.toConfig().getBoolean("_inline")) {
                     mutableInlinedAliasSet.add(label);
                 }
+            } else if (configValue.valueType() == ConfigValueType.NULL) {
+                continue;
             } else {
                 throw new ConfigException.WrongType(configValue.origin(), label,
                                                     "STRING OR OBJECT", configValue.valueType().toString());
