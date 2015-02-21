@@ -20,12 +20,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.addthis.codec.annotations.Pluggable;
+
 import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 
+import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.typesafe.config.Config;
 
 import org.slf4j.Logger;
@@ -61,8 +65,20 @@ public class PluginRegistry {
                                                .withFallback(defaultPluginMapSettings);
             PluginMap pluginMap = new PluginMap(category, pluginConfig);
             mapsFromConfig.put(category, pluginMap);
-            if (pluginMap.baseClass() != null) {
-                mapsFromConfigByClass.put(pluginMap.baseClass(), pluginMap);
+            Class<?> baseClass = pluginMap.baseClass();
+            if (baseClass != null) {
+                // if two categories define _class, then ensure the annotated one (if any) is the canonical one
+                if (mapsFromConfigByClass.containsKey(baseClass)) {
+                    AnnotatedClass annotatedClass =
+                            AnnotatedClass.construct(baseClass, new JacksonAnnotationIntrospector(), null);
+                    String existingCategory = mapsFromConfigByClass.get(baseClass).category();
+                    if (!annotatedClass.hasAnnotation(Pluggable.class)
+                        || !annotatedClass.getAnnotation(Pluggable.class).value().equals(existingCategory))  {
+                        mapsFromConfigByClass.put(pluginMap.baseClass(), pluginMap);
+                    }
+                } else {
+                    mapsFromConfigByClass.put(pluginMap.baseClass(), pluginMap);
+                }
             }
         }
         pluginMapsByCategory = Collections.unmodifiableMap(mapsFromConfig);

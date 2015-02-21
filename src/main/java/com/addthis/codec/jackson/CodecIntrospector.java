@@ -48,7 +48,15 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
 
     @Override
     public TypeResolverBuilder<?> findTypeResolver(MapperConfig<?> config, AnnotatedClass ac, JavaType baseType) {
-        return _findTypeResolver(config, ac, baseType);
+        TypeResolverBuilder<?> annotationLookup = _findTypeResolver(config, ac, baseType);
+        if (annotationLookup != null) {
+            return annotationLookup;
+        }
+        if (pluginRegistry.byClass().containsKey(ac.getRawType())) {
+            PluginMap pluginMap = pluginRegistry.byClass().get(ac.getRawType());
+            return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory(), pluginRegistry);
+        }
+        return null;
     }
 
     @Override
@@ -85,9 +93,6 @@ public class CodecIntrospector extends NopAnnotationIntrospector {
             } else {
                 log.warn("missing plugin map for {}, reached from {}", pluggable.value(), ac.getRawType());
             }
-        } else if (pluginRegistry.byClass().containsKey(ac.getRawType())) {
-            PluginMap pluginMap = pluginRegistry.byClass().get(ac.getRawType());
-            return new CodecTypeResolverBuilder(pluginMap, config.getTypeFactory(), pluginRegistry);
         }
         return null;
     }
