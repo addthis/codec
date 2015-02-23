@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 <!--
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,7 +22,7 @@
   <groupId>com.addthis</groupId>
   <artifactId>codec</artifactId>
   <name>Codec</name>
-  <version>3.3.1-SNAPSHOT</version>
+  <version>3.4.0</version>
   <description>Codec serialization library</description>
   <licenses>
     <license>
@@ -152,6 +151,6 @@
     <connection>scm:git:git@github.com:addthis/codec.git</connection>
     <developerConnection>scm:git:git@github.com:addthis/codec.git</developerConnection>
     <url>https://github.com/addthis/codec</url>
-    <tag>HEAD</tag>
+    <tag>v3.4.0</tag>
   </scm>
 </project>
