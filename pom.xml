@@ -17,7 +17,7 @@
   <parent>
     <artifactId>jar-pom</artifactId>
     <groupId>com.addthis.common.build.maven.pom</groupId>
-    <version>3.4.1-SNAPSHOT</version>
+    <version>3.4.1</version>
   </parent>
   
   <groupId>com.addthis</groupId>
