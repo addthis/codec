@@ -22,7 +22,7 @@
   <groupId>com.addthis</groupId>
   <artifactId>codec</artifactId>
   <name>Codec</name>
-  <version>3.4.0</version>
+  <version>3.4.1-SNAPSHOT</version>
   <description>Codec serialization library</description>
   <licenses>
     <license>
@@ -151,6 +151,6 @@
     <connection>scm:git:git@github.com:addthis/codec.git</connection>
     <developerConnection>scm:git:git@github.com:addthis/codec.git</developerConnection>
     <url>https://github.com/addthis/codec</url>
-    <tag>v3.4.0</tag>
+    <tag>HEAD</tag>
   </scm>
 </project>
