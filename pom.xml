@@ -36,6 +36,16 @@
     <project.build.targetJdk>1.8</project.build.targetJdk>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-buffer</artifactId>
+        <version>4.0.23.Final</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <!-- addthis dependencies ; maljson should go away soon -->
     <dependency>
@@ -65,7 +75,6 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-buffer</artifactId>
-      <version>4.0.23.Final</version>
     </dependency>
 
     <!-- validation and a few time/ size utilities from dropwizard -->
