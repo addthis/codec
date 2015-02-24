@@ -13,15 +13,33 @@
  */
 package com.addthis.codec.jackson;
 
+import java.lang.reflect.Type;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.InjectableValues;
 
-public class EmptyInjectableValues extends InjectableValues {
+public class BasicInjectableValues extends InjectableValues {
     @Override public Object findInjectableValue(Object valueId,
                                                 DeserializationContext ctxt,
                                                 BeanProperty forProperty,
                                                 Object beanInstance) {
+        if (TypeReference.class.getName().equals(valueId)) {
+            return new StoredTypeReference(forProperty.getType().containedType(0));
+        }
         return null;
+    }
+
+    private static class StoredTypeReference extends TypeReference<Void> {
+        private final Type containedType;
+
+        public StoredTypeReference(Type containedType) {
+            this.containedType = containedType;
+        }
+
+        @Override public Type getType() {
+            return containedType;
+        }
     }
 }
