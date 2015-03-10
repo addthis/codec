@@ -87,7 +87,7 @@ public class BitReversalExample {
     @Benchmark
     public int reverseBasis() {
         inty += 1;
-        return Bytes.reverseBits(inty);
+        return LessBytes.reverseBits(inty);
     }
 
     @Benchmark

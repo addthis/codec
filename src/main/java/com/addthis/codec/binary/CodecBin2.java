@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.addthis.basis.util.Bytes;
+import com.addthis.basis.util.LessBytes;
 
 import com.addthis.codec.Codec;
 import com.addthis.codec.codables.Codable;
@@ -84,7 +84,7 @@ public final class CodecBin2 implements Codec {
 
     public static byte[] encodeBytes(Object object) throws Exception {
         BufferOut buf = new BufferOut();
-        Bytes.writeInt(CODEC_VERSION, buf.out());
+        LessBytes.writeInt(CODEC_VERSION, buf.out());
         INSTANCE.encodeObject(object, buf);
         return buf.out.toByteArray();
     }
@@ -92,7 +92,7 @@ public final class CodecBin2 implements Codec {
     @Nullable @SuppressWarnings("unchecked")
     public static Object decodeBytes(Object object, byte[] data) throws Exception {
         BufferIn buf = new BufferIn(data);
-        int ver = Bytes.readInt(buf.in);
+        int ver = LessBytes.readInt(buf.in);
         require(ver == CODEC_VERSION, "version mismatch " + ver + " != " + CODEC_VERSION);
         return INSTANCE.decodeObject(Fields.getClassFieldMap(object.getClass()), object, buf);
     }
@@ -172,18 +172,18 @@ public final class CodecBin2 implements Codec {
     private void encodeArray(Object value, Class<?> type, BufferOut buf) throws Exception {
         int len = Array.getLength(value);
         log.trace("encodeArray: {} {} {} len={}", value, type, buf, len);
-        Bytes.writeLength(len, buf.out());
+        LessBytes.writeLength(len, buf.out());
         if ((type == byte.class) || (type == Byte.class)) {
             buf.out.write((byte[]) value);
         } else if ((type == int.class) || (type == Integer.class)) {
             int[] val = (int[]) value;
             for (int i = 0; i < len; i++) {
-                Bytes.writeInt(val[i], buf.out());
+                LessBytes.writeInt(val[i], buf.out());
             }
         } else if ((type == long.class) || (type == Long.class)) {
             long[] val = (long[]) value;
             for (int i = 0; i < len; i++) {
-                Bytes.writeLong(val[i], buf.out());
+                LessBytes.writeLong(val[i], buf.out());
             }
         } else if (type.isEnum()) {
             for (int i = 0; i < len; i++) {
@@ -198,7 +198,7 @@ public final class CodecBin2 implements Codec {
 
     @Nullable private Object decodeArray(Class<?> type, BufferIn buf) throws Exception {
         log.trace("decodeArray: {} {}", type, buf);
-        int len = (int) Bytes.readLength(buf.in);
+        int len = (int) LessBytes.readLength(buf.in);
         Object value = null;
         if (len > 0) {
             value = Array.newInstance(type, len);
@@ -207,13 +207,13 @@ public final class CodecBin2 implements Codec {
             } else if ((type == int.class) || (type == Integer.class)) {
                 int[] val = (int[]) value;
                 for (int i = 0; i < len; i++) {
-                    val[i] = Bytes.readInt(buf.in);
+                    val[i] = LessBytes.readInt(buf.in);
                 }
                 value = val;
             } else if ((type == long.class) || (type == Long.class)) {
                 long[] val = (long[]) value;
                 for (int i = 0; i < len; i++) {
-                    val[i] = Bytes.readLong(buf.in);
+                    val[i] = LessBytes.readLong(buf.in);
                 }
                 value = val;
             } else if (type.isEnum()) {
@@ -240,7 +240,7 @@ public final class CodecBin2 implements Codec {
                     encodeNative(value, buf);
                 } else if (field.isMap()) {
                     Map<?, ?> map = (Map<?, ?>) value;
-                    Bytes.writeLength(map.size(), buf.out());
+                    LessBytes.writeLength(map.size(), buf.out());
                     for (Entry<?, ?> entry : map.entrySet()) {
                         Object key = entry.getKey();
                         encodeObject(key, buf);
@@ -248,7 +248,7 @@ public final class CodecBin2 implements Codec {
                     }
                 } else if (field.isCollection()) {
                     Collection<?> coll = (Collection<?>) value;
-                    Bytes.writeLength(coll.size(), buf.out());
+                    LessBytes.writeLength(coll.size(), buf.out());
                     for (Object aColl : coll) {
                         encodeObject(aColl, buf);
                     }
@@ -298,7 +298,7 @@ public final class CodecBin2 implements Codec {
             return decodeArray(type, buf);
         } else if (field.isMap()) {
             Map<Object, Object> map = (Map<Object, Object>) newMap(type);
-            int elements = (int) Bytes.readLength(buf.in);
+            int elements = (int) LessBytes.readLength(buf.in);
             if (elements == 0) {
                 return map;
             }
@@ -324,7 +324,7 @@ public final class CodecBin2 implements Codec {
             }
             return map;
         } else if (field.isCollection()) {
-            int elements = (int) Bytes.readLength(buf.in);
+            int elements = (int) LessBytes.readLength(buf.in);
             Collection<Object> coll = (Collection<Object>) newCollection(type, elements);
             if (elements == 0) {
                 return coll;
@@ -353,21 +353,21 @@ public final class CodecBin2 implements Codec {
         if (type == String.class) {
             writeStringHelper(value.toString(), buf.out());
         } else if ((type == Integer.class) || (type == int.class)) {
-            Bytes.writeInt((Integer) value, buf.out());
+            LessBytes.writeInt((Integer) value, buf.out());
         } else if ((type == Long.class) || (type == long.class)) {
-            Bytes.writeLong((Long) value, buf.out());
+            LessBytes.writeLong((Long) value, buf.out());
         } else if ((type == Short.class) || (type == short.class)) {
-            Bytes.writeShort((Short) value, buf.out());
+            LessBytes.writeShort((Short) value, buf.out());
         } else if ((type == Boolean.class) || (type == boolean.class)) {
             buf.out.write((Boolean) value ? 1 : 0);
         } else if ((type == Float.class) || (type == float.class)) {
-            Bytes.writeInt(Float.floatToIntBits(((Float) value)), buf.out());
+            LessBytes.writeInt(Float.floatToIntBits(((Float) value)), buf.out());
         } else if ((type == Double.class) || (type == double.class)) {
-            Bytes.writeLong(Double.doubleToLongBits(((Double) value)), buf.out());
+            LessBytes.writeLong(Double.doubleToLongBits(((Double) value)), buf.out());
         } else if (type == AtomicLong.class) {
-            Bytes.writeLong(((AtomicLong) value).get(), buf.out());
+            LessBytes.writeLong(((AtomicLong) value).get(), buf.out());
         } else if (type == AtomicInteger.class) {
-            Bytes.writeInt(((AtomicInteger) value).get(), buf.out());
+            LessBytes.writeInt(((AtomicInteger) value).get(), buf.out());
         } else if (type == AtomicBoolean.class) {
             buf.out.write(((AtomicBoolean) value).get() ? 1 : 0);
         } else {
@@ -385,21 +385,21 @@ public final class CodecBin2 implements Codec {
         if (type == String.class) {
             result = readStringHelper(buf.in);
         } else if ((type == Integer.class) || (type == int.class)) {
-            result = Bytes.readInt(buf.in);
+            result = LessBytes.readInt(buf.in);
         } else if ((type == Long.class) || (type == long.class)) {
-            result = Bytes.readLong(buf.in);
+            result = LessBytes.readLong(buf.in);
         } else if ((type == Short.class) || (type == short.class)) {
-            result = Bytes.readShort(buf.in);
+            result = LessBytes.readShort(buf.in);
         } else if ((type == Boolean.class) || (type == boolean.class)) {
             result = buf.in.read() != 0 ? true : false;
         } else if ((type == Double.class) || (type == double.class)) {
-            result = Double.longBitsToDouble(Bytes.readLong(buf.in));
+            result = Double.longBitsToDouble(LessBytes.readLong(buf.in));
         } else if ((type == Float.class) || (type == float.class)) {
-            result = Float.intBitsToFloat(Bytes.readInt(buf.in));
+            result = Float.intBitsToFloat(LessBytes.readInt(buf.in));
         } else if (type == AtomicLong.class) {
-            result = new AtomicLong(Bytes.readLong(buf.in));
+            result = new AtomicLong(LessBytes.readLong(buf.in));
         } else if (type == AtomicInteger.class) {
-            result = new AtomicInteger(Bytes.readInt(buf.in));
+            result = new AtomicInteger(LessBytes.readInt(buf.in));
         } else if (type == AtomicBoolean.class) {
             result = buf.in.read() != 0 ? new AtomicBoolean(true) : new AtomicBoolean(false);
         } else {
@@ -416,17 +416,17 @@ public final class CodecBin2 implements Codec {
 
     @Nullable private String readStringHelper(InputStream in) throws Exception {
         if (charstring) {
-            return Bytes.readCharString(in);
+            return LessBytes.readCharString(in);
         } else {
-            return Bytes.readString(in);
+            return LessBytes.readString(in);
         }
     }
 
     private void writeStringHelper(String str, OutputStream out) throws Exception {
         if (charstring) {
-            Bytes.writeCharString(str, out);
+            LessBytes.writeCharString(str, out);
         } else {
-            Bytes.writeString(str, out);
+            LessBytes.writeString(str, out);
         }
     }
 }

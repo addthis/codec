@@ -13,7 +13,7 @@
  */
 package com.addthis.codec;
 
-import com.addthis.basis.util.Bytes;
+import com.addthis.basis.util.LessBytes;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -26,7 +26,7 @@ public class CodecUtilTest {
 
     private boolean compareTest(String a, String b) {
         int scomp = a.compareTo(b);
-        int bcomp = Bytes.compare(Bytes.toBytes(a), Bytes.toBytes(b));
+        int bcomp = LessBytes.compare(LessBytes.toBytes(a), LessBytes.toBytes(b));
         log.info("compareTest({},{}) sc({}) bc({})", a, b, scomp, bcomp);
         return scomp == bcomp;
     }

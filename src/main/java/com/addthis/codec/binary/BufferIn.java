@@ -18,7 +18,7 @@ import java.io.IOException;
 
 import java.util.Stack;
 
-import com.addthis.basis.util.Bytes;
+import com.addthis.basis.util.LessBytes;
 
 final class BufferIn {
 
@@ -31,8 +31,8 @@ final class BufferIn {
     }
 
     public void push() throws IOException {
-        int len = (int) Bytes.readLength(in);
-        byte[] ndat = Bytes.readBytes(in, len);
+        int len = (int) LessBytes.readLength(in);
+        byte[] ndat = LessBytes.readBytes(in, len);
         stack.push(in);
         in = new ByteArrayInputStream(ndat);
     }

@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.addthis.basis.util.Bytes;
+import com.addthis.basis.util.LessBytes;
 
 import com.addthis.codec.annotations.Pluggable;
 import com.addthis.codec.binary.CodecBin2;
@@ -49,8 +49,8 @@ public class CodecObjectSubclassTest {
             Bundle b = c.decode(Bundle.class, en1);
             byte[] en2 = c.encode(b);
             boolean passfail = Arrays.equals(en1, en2);
-            log.info("en1[{}] -> {}", en1.length, Bytes.toString(en1));
-            log.info("en2[{}] -> {}", en2.length, Bytes.toString(en2));
+            log.info("en1[{}] -> {}", en1.length, LessBytes.toString(en1));
+            log.info("en2[{}] -> {}", en2.length, LessBytes.toString(en2));
             log.info("{} --> {}", c.getClass().getSimpleName(), passfail ? "PASSED" : "FAILED");
             assertTrue(passfail);
         }

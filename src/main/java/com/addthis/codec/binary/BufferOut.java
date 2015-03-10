@@ -19,7 +19,7 @@ import java.io.OutputStream;
 
 import java.util.Stack;
 
-import com.addthis.basis.util.Bytes;
+import com.addthis.basis.util.LessBytes;
 
 final class BufferOut {
 
@@ -43,7 +43,7 @@ final class BufferOut {
     public void pop() throws IOException {
         ByteArrayOutputStream last = stack.pop();
         out = stack.peek();
-        Bytes.writeLength(last.size(), out());
+        LessBytes.writeLength(last.size(), out());
         last.writeTo(out());
     }
 
