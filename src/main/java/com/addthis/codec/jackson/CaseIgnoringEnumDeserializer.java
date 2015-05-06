@@ -19,16 +19,14 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
-import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.util.EnumResolver;
 
 // ignores case when deserializing enums
-public class CaseIgnoringEnumDeserializer extends StdScalarDeserializer<Enum<?>> {
-    private final EnumDeserializer base;
+public class CaseIgnoringEnumDeserializer extends EnumDeserializer {
 
-    public CaseIgnoringEnumDeserializer(EnumDeserializer base) {
-        super(Enum.class);
-        this.base = base;
+    public CaseIgnoringEnumDeserializer(EnumResolver<?> enumResolver) {
+        super(enumResolver);
     }
 
     @Override
@@ -38,13 +36,16 @@ public class CaseIgnoringEnumDeserializer extends StdScalarDeserializer<Enum<?>>
         if ((curr == JsonToken.VALUE_STRING) || (curr == JsonToken.FIELD_NAME)
             || (curr == JsonToken.VALUE_FALSE) || (curr == JsonToken.VALUE_TRUE)) {
             String name = jp.getText();
+            if (_resolver.findEnum(name) != null) {
+                return super.deserialize(jp, ctxt);
+            }
             TextNode upperName = ctxt.getNodeFactory().textNode(name.toUpperCase());
 
             JsonParser treeParser = jp.getCodec().treeAsTokens(upperName);
             treeParser.nextToken();
-            return base.deserialize(treeParser, ctxt);
+            return super.deserialize(treeParser, ctxt);
         } else {
-            return base.deserialize(jp, ctxt);
+            return super.deserialize(jp, ctxt);
         }
     }
 }

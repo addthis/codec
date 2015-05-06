@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.deser.std.DelegatingDeserializer;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.util.EnumResolver;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
 
@@ -82,8 +83,10 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
             JsonDeserializer<?> delegatee = ((DelegatingDeserializer) deserializer).getDelegatee();
             JsonDeserializer<?> replacementDelegatee = modifyEnumDeserializer(config, type, beanDesc, delegatee);
             return deserializer.replaceDelegatee(replacementDelegatee);
-        } else if (modifyEnum && (deserializer instanceof EnumDeserializer)) {
-            return new CaseIgnoringEnumDeserializer((EnumDeserializer) deserializer);
+        } else if (modifyEnum && deserializer.getClass().equals(EnumDeserializer.class)) {
+            EnumResolver<?> enumResolver =
+                    EnumResolver.constructUnsafe(deserializer.handledType(), config.getAnnotationIntrospector());
+            return new CaseIgnoringEnumDeserializer(enumResolver);
         } else {
             return deserializer;
         }
