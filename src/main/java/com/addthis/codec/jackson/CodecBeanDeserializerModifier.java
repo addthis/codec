@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerBase;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
-import com.fasterxml.jackson.databind.deser.std.DelegatingDeserializer;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.util.EnumResolver;
@@ -47,8 +46,8 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
     @Override public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config,
                                                             BeanDescription beanDesc,
                                                             JsonDeserializer<?> deserializer) {
-        if (deserializer instanceof DelegatingDeserializer) {
-            JsonDeserializer<?> delegatee = ((DelegatingDeserializer) deserializer).getDelegatee();
+        JsonDeserializer<?> delegatee = deserializer.getDelegatee();
+        if (delegatee != null) {
             JsonDeserializer<?> replacementDelegatee = modifyDeserializer(config, beanDesc, delegatee);
             return deserializer.replaceDelegatee(replacementDelegatee);
         } else if (deserializer instanceof BeanDeserializerBase) {
@@ -79,8 +78,8 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
                                                                 JavaType type,
                                                                 BeanDescription beanDesc,
                                                                 JsonDeserializer<?> deserializer) {
-        if (deserializer instanceof DelegatingDeserializer) {
-            JsonDeserializer<?> delegatee = ((DelegatingDeserializer) deserializer).getDelegatee();
+        JsonDeserializer<?> delegatee = deserializer.getDelegatee();
+        if (delegatee != null) {
             JsonDeserializer<?> replacementDelegatee = modifyEnumDeserializer(config, type, beanDesc, delegatee);
             return deserializer.replaceDelegatee(replacementDelegatee);
         } else if (modifyEnum && deserializer.getClass().equals(EnumDeserializer.class)) {
