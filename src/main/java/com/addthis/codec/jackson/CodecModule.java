@@ -45,7 +45,6 @@ public class CodecModule extends Module {
         if (globalConfig.getBoolean("addthis.codec.jackson.modify-fields")) {
             context.addBeanDeserializerModifier(new CodecBeanDeserializerModifier(globalConfig));
         }
-        context.addDeserializers(new CodecDeserializers());
     }
 
     @Override public String getModuleName() {
