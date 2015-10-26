@@ -56,15 +56,9 @@
       <version>0.2.0</version>
     </dependency>
     <dependency>
-      <groupId>com.addthis</groupId>
-      <artifactId>basis</artifactId>
-      <version>3.0.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpclient</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>com.addthis.basis</groupId>
+      <artifactId>basis-core</artifactId>
+      <version>4.0.0</version>
     </dependency>
 
     <!-- hocon parsing et al for CodecConfig -->
