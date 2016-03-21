@@ -32,6 +32,7 @@ import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
@@ -116,6 +117,12 @@ public class CodecJackson {
         return validate(configParser.readValueAs(type));
     }
 
+    public <T> T decodeObject(@Nonnull TypeReference<T> type, ConfigValue configValue)
+            throws JsonProcessingException, IOException {
+        ConfigTraversingParser configParser = new ConfigTraversingParser(configValue, objectMapper);
+        return validate(configParser.readValueAs(type));
+    }
+
     public <T> T decodeObject(@Nonnull Class<T> type, JsonNode jsonNode) throws JsonProcessingException {
         return validate(objectMapper.treeToValue(jsonNode, type));
     }
@@ -152,6 +159,12 @@ public class CodecJackson {
         return decodeObject(type, config);
     }
 
+    public <T> T decodeObject(@Nonnull TypeReference<T> type, @Syntax("HOCON") String configText)
+            throws JsonProcessingException, IOException {
+        Config config = ConfigFactory.parseString(configText).resolve();
+        return decodeObject(type, config);
+    }
+
     /**
      * Instantiate an object of the requested category based on the provided config. The config should only contain
      * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
@@ -170,6 +183,11 @@ public class CodecJackson {
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
      */
     public <T> T decodeObject(@Nonnull Class<T> type, Config config)
+            throws JsonProcessingException, IOException {
+        return decodeObject(type, config.root());
+    }
+
+    public <T> T decodeObject(@Nonnull TypeReference<T> type, Config config)
             throws JsonProcessingException, IOException {
         return decodeObject(type, config.root());
     }

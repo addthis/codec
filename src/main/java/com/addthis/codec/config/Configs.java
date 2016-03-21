@@ -36,6 +36,7 @@ import com.addthis.codec.reflection.CodableFieldInfo;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Objects;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -72,6 +73,15 @@ public final class Configs {
     }
 
     /**
+     * Instantiate an object of the requested type based on the provided config. The config should only contain
+     * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
+     * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
+     */
+    public static <T> T decodeObject(@Nonnull TypeReference<T> type, @Nonnull Config config) throws IOException {
+        return Jackson.defaultCodec().decodeObject(type, config);
+    }
+
+    /**
      * Instantiate an object of the requested category based on the provided config. The config should only contain
      * field and type information for the object to be constructed. Global defaults, plugin configuration, etc, are
      * provided by this CodecConfig instance's globalConfig and pluginRegistry fields.
@@ -86,6 +96,16 @@ public final class Configs {
      * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
      */
     public static <T> T decodeObject(@Nonnull Class<T> type, @Syntax("HOCON") @Nonnull String configText)
+            throws IOException {
+        return Jackson.defaultCodec().decodeObject(type, configText);
+    }
+
+    /**
+     * Tries to parse the string as an isolated typesafe-config object, tries to resolve it, and then calls
+     * {@link #decodeObject(TypeReference, Config)} with the resultant config and the passed in type. Pretty much just
+     * a convenience function for simple use cases that don't want to care about how ConfigFactory works.
+     */
+    public static <T> T decodeObject(@Nonnull TypeReference<T> type, @Syntax("HOCON") @Nonnull String configText)
             throws IOException {
         return Jackson.defaultCodec().decodeObject(type, configText);
     }

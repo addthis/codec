@@ -13,6 +13,9 @@
  */
 package com.addthis.codec.config;
 
+import java.util.List;
+import java.util.Map;
+
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.jackson.Jackson;
 import com.addthis.codec.json.CodecJSON;
@@ -20,7 +23,10 @@ import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
 import com.addthis.codec.plugins.PluginRegistry;
 
+import com.google.common.collect.Lists;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
@@ -196,6 +202,13 @@ public class FeatureTest {
         Greeter greeterObject = decodeObject(ParseGreetSub.class, greet);
         String expected = "extra extra! other [SECONDS] bytes: 524288 millis: 1000";
         assertEquals(expected, greeterObject.greet());
+    }
+
+    @Test
+    public void typeReference() throws Exception {
+        TypeReference<Map<String, List<String>>> typeReference = new TypeReference<Map<String, List<String>>>() {};
+        Map<String, List<String>> object = Configs.decodeObject(typeReference, "{foo = [bar, baz]}");
+        assertEquals(Lists.newArrayList("bar", "baz"), object.get("foo"));
     }
 
     @Test
