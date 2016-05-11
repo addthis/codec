@@ -28,8 +28,10 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.typesafe.config.Config;
 
 import org.slf4j.Logger;
@@ -53,10 +55,14 @@ public class PluginRegistry {
 
     public PluginRegistry(@Nonnull Config config) {
         this.config = config;
+
+        // this field is proof that this constructor is going too much.
+        DeserializationConfig temporary = new ObjectMapper().getDeserializationConfig();
+
+        TypeFactory typeFactory = TypeFactory.defaultInstance();
         Config defaultPluginMapSettings = config.getConfig(PLUGIN_DEFAULTS_PATH);
         String pluginPath = config.getString(PLUGINS_PATH_PATH);
         Config pluginConfigs = config.getConfig(pluginPath);
-
         Set<String> categories = pluginConfigs.root().keySet();
         Map<String, PluginMap> mapsFromConfig = new HashMap<>(categories.size());
         BiMap<Class<?>, PluginMap> mapsFromConfigByClass = HashBiMap.create(categories.size());
@@ -70,7 +76,8 @@ public class PluginRegistry {
                 // if two categories define _class, then ensure the annotated one (if any) is the canonical one
                 if (mapsFromConfigByClass.containsKey(baseClass)) {
                     AnnotatedClass annotatedClass =
-                            AnnotatedClass.construct(baseClass, new JacksonAnnotationIntrospector(), null);
+                            AnnotatedClass.construct(typeFactory.constructType(baseClass),
+                                                     temporary);
                     String existingCategory = mapsFromConfigByClass.get(baseClass).category();
                     if (!annotatedClass.hasAnnotation(Pluggable.class)
                         || !annotatedClass.getAnnotation(Pluggable.class).value().equals(existingCategory))  {

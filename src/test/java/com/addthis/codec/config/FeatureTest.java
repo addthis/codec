@@ -198,7 +198,7 @@ public class FeatureTest {
     @Test
     public void inheritance() throws Exception {
         Config greet = parseString(
-                "bytes: 512KB, other: {enum.timeUnit: SECONDS}");
+                "bytes: 512KB, otherConstructor: {enum.timeUnit: SECONDS}");
         Greeter greeterObject = decodeObject(ParseGreetSub.class, greet);
         String expected = "extra extra! other [SECONDS] bytes: 524288 millis: 1000";
         assertEquals(expected, greeterObject.greet());

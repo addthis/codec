@@ -83,7 +83,7 @@ public class CodecBeanDeserializerModifier extends BeanDeserializerModifier {
             JsonDeserializer<?> replacementDelegatee = modifyEnumDeserializer(config, type, beanDesc, delegatee);
             return deserializer.replaceDelegatee(replacementDelegatee);
         } else if (modifyEnum && deserializer.getClass().equals(EnumDeserializer.class)) {
-            EnumResolver<?> enumResolver =
+            EnumResolver enumResolver =
                     EnumResolver.constructUnsafe(type.getRawClass(), config.getAnnotationIntrospector());
             return new CaseIgnoringEnumDeserializer(enumResolver);
         } else {

@@ -18,10 +18,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 public class GreetHolder implements Greeter {
 
     private final Greeter greeter;
+    private final int a;
 
     @JsonCreator
-    public GreetHolder(Greeter greeter) {
+    public GreetHolder(Greeter greeter, int a) {
         this.greeter = greeter;
+        this.a = 5;
     }
 
     @Override public String greet() {

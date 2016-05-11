@@ -33,9 +33,9 @@
 
   <properties>
     <project.build.targetJdk>1.8</project.build.targetJdk>
-    <dep.jackson.version>2.5.3</dep.jackson.version>
-    <dep.jackson.etc.version>2.5.3</dep.jackson.etc.version>
-    <dep.jackson.api.version>2.5.3</dep.jackson.api.version>
+    <dep.jackson.version>2.7.4</dep.jackson.version>
+    <dep.jackson.etc.version>2.7.4</dep.jackson.etc.version>
+    <dep.jackson.api.version>2.7.4</dep.jackson.api.version>
   </properties>
 
   <dependencyManagement>
@@ -96,16 +96,17 @@
       <artifactId>jackson-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-parameter-names</artifactId>
+      <version>${dep.jackson.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-guava</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jdk7</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -135,6 +136,58 @@
       <artifactId>slf4j-simple</artifactId>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.basedir}/target</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <inherited>true</inherited>
+        <configuration>
+          <showDeprecation>false</showDeprecation>
+          <showWarnings>false</showWarnings>
+        </configuration>
+        <executions>
+          <execution>
+            <id>initial</id>
+          </execution>
+          <execution>
+            <phase>test-compile</phase>
+            <id>secondary</id>
+            <configuration>
+              <compilerArgs>"-parameters"</compilerArgs>
+              <compilerReuseStrategy>alwaysNew</compilerReuseStrategy>
+              <includes>
+                <include>"test/java"</include>
+                <include>"**/*"</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+</build>
 
   <reporting>
     <plugins>
