@@ -52,7 +52,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
     protected CodecTypeDeserializer(PluginMap pluginMap, JsonTypeInfo.As inludeAs,
                                     JavaType baseType, CodecTypeIdResolver idRes,
                                     String typePropertyName, boolean typeIdVisible,
-                                    Class<?> defaultImpl) {
+                                    JavaType defaultImpl) {
         super(baseType, idRes, typePropertyName, typeIdVisible, defaultImpl);
         this.pluginMap = pluginMap;
         this.inludeAs = inludeAs;
@@ -125,7 +125,9 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             if (bean != null) {
                 return bean;
             } else {
-                JsonDeserializer<Object> deser = _findDeserializer(ctxt, null);
+                // Jackson 2.6+ throws NPE on null typeId parameter (underlying Map changed from HashMap
+                // to ConcurrentHashMap), so use empty string instead of null
+                JsonDeserializer<Object> deser = _findDeserializer(ctxt, "");
                 JsonParser treeParser = jp.getCodec().treeAsTokens(jsonNode);
                 treeParser.nextToken();
                 return deser.deserialize(treeParser, ctxt);
@@ -221,7 +223,7 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
             } catch (IOException cause) {
                 IOException unwrapped = Jackson.maybeUnwrapPath(primaryField, cause);
                 if (unwrapped != cause) {
-                    throw wrapWithPath(unwrapped, idRes.typeFromId(matched), matched);
+                    throw wrapWithPath(unwrapped, idRes.typeFromId(ctxt, matched), matched);
                 } else {
                     throw unwrapped;
                 }
@@ -270,9 +272,9 @@ public class CodecTypeDeserializer extends TypeDeserializerBase {
                 if (unwrapPrimary) {
                     cause = Jackson.maybeUnwrapPath(primaryField, cause);
                 }
-                throw wrapWithPath(cause, idRes.typeFromId(singleKeyName), singleKeyName);
+                throw wrapWithPath(cause, idRes.typeFromId(ctxt, singleKeyName), singleKeyName);
             } catch (Throwable cause) {
-                throw wrapWithPath(cause, idRes.typeFromId(singleKeyName), singleKeyName);
+                throw wrapWithPath(cause, idRes.typeFromId(ctxt, singleKeyName), singleKeyName);
             }
         }
         return null;

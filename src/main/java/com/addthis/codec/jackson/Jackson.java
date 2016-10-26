@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.PropertyBindingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
@@ -90,7 +89,6 @@ public final class Jackson {
 
     public static ObjectMapper registerExtraModules(ObjectMapper objectMapper) {
         objectMapper.registerModule(new GuavaModule());
-        objectMapper.registerModule(new Jdk7Module());
         objectMapper.registerModule(new Jdk8Module());
         // jsr310 is basically just the jdk 8 date/time classes split into its own module
         objectMapper.registerModule(new JSR310Module());

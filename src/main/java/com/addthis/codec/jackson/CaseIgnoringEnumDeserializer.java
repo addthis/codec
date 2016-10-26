@@ -25,18 +25,18 @@ import com.fasterxml.jackson.databind.util.EnumResolver;
 // ignores case when deserializing enums
 public class CaseIgnoringEnumDeserializer extends EnumDeserializer {
 
-    public CaseIgnoringEnumDeserializer(EnumResolver<?> enumResolver) {
+    public CaseIgnoringEnumDeserializer(EnumResolver enumResolver) {
         super(enumResolver);
     }
 
     @Override
-    public Enum<?> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public Object deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         JsonToken curr = jp.getCurrentToken();
 
         if ((curr == JsonToken.VALUE_STRING) || (curr == JsonToken.FIELD_NAME)
             || (curr == JsonToken.VALUE_FALSE) || (curr == JsonToken.VALUE_TRUE)) {
             String name = jp.getText();
-            if (_resolver.findEnum(name) != null) {
+            if (_getToStringLookup(ctxt).find(name) != null) {
                 return super.deserialize(jp, ctxt);
             }
             TextNode upperName = ctxt.getNodeFactory().textNode(name.toUpperCase());
