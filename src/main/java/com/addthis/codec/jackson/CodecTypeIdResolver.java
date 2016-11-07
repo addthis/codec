@@ -19,6 +19,7 @@ import com.addthis.codec.plugins.PluginMap;
 import com.addthis.codec.plugins.PluginRegistry;
 import com.addthis.codec.plugins.Plugins;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -90,16 +91,12 @@ public class CodecTypeIdResolver extends TypeIdResolverBase {
         return pluginMap.getClassName(suggestedType);
     }
 
-    @Override public JavaType typeFromId(String id) {
-        return _typeFromId(id, _typeFactory);
-    }
-
     @Override public JsonTypeInfo.Id getMechanism() {
         return JsonTypeInfo.Id.CUSTOM;
     }
 
     private JavaType _typeFromId(String id, TypeFactory typeFactory) {
-        if (id == null) {
+        if (Strings.isNullOrEmpty(id)) {
             return null;
         }
         Class<?> cls = pluginMap.getClassIfConfigured(id);
