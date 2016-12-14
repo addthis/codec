@@ -36,7 +36,7 @@ public class CaseIgnoringEnumDeserializer extends EnumDeserializer {
         if ((curr == JsonToken.VALUE_STRING) || (curr == JsonToken.FIELD_NAME)
             || (curr == JsonToken.VALUE_FALSE) || (curr == JsonToken.VALUE_TRUE)) {
             String name = jp.getText();
-            if (_enumLookup.find(name) != null) {
+            if (_lookupByName.find(name) != null) {
                 return super.deserialize(jp, ctxt);
             }
             TextNode upperName = ctxt.getNodeFactory().textNode(name.toUpperCase());
