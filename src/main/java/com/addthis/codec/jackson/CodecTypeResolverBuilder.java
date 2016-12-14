@@ -49,7 +49,7 @@ public class CodecTypeResolverBuilder extends StdTypeResolverBuilder {
             defaultImplForType = baseType.getRawClass();
         }
         return new CodecTypeDeserializer(pluginMap, _includeAs, baseType, codecTypeIdResolver,
-                                         _typeProperty, _typeIdVisible, typeFactory.constructType(defaultImplForType));
+                                         _typeProperty, _typeIdVisible, defaultImplForType);
     }
 
     @Override

@@ -19,6 +19,7 @@ import java.util.Map;
 import com.addthis.codec.annotations.Bytes;
 import com.addthis.codec.jackson.Jackson;
 import com.addthis.codec.json.CodecJSON;
+import com.addthis.codec.plugins.GenericGreet;
 import com.addthis.codec.plugins.Greeter;
 import com.addthis.codec.plugins.ParseGreetSub;
 import com.addthis.codec.plugins.PluginRegistry;
@@ -242,5 +243,11 @@ public class FeatureTest {
         Greeter holder = decodeObject(Greeter.class, "holder {}");
         String expected = "Hello World! What a pleasant default-alias suffix we are having!";
         assertEquals(expected, holder.greet());
+    }
+
+    @Test
+    public void genericAutocollection() throws Exception {
+        GenericGreet<List<String>> gg = Jackson.defaultMapper().readValue("\"yolo\"", new TypeReference<GenericGreet<List<String>>>() {});
+        assertEquals(Lists.newArrayList("yolo"), gg.value);
     }
 }
