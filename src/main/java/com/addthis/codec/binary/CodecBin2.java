@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.addthis.basis.util.LessBytes;
 
 import com.addthis.codec.Codec;
+import com.addthis.codec.annotations.FieldConfig;
 import com.addthis.codec.codables.Codable;
 import com.addthis.codec.codables.ConcurrentCodable;
 import com.addthis.codec.codables.SuperCodable;
@@ -55,8 +56,8 @@ public final class CodecBin2 implements Codec {
 
     private static final Logger log = LoggerFactory.getLogger(CodecBin2.class);
 
-    public static final CodecBin2 INSTANCE            = new CodecBin2(false);
-    public static final int       CODEC_VERSION       = 2;
+    public static final CodecBin2 INSTANCE = new CodecBin2(false);
+    public static final int CODEC_VERSION = 2;
 
     private final boolean charstring;
 
@@ -142,7 +143,8 @@ public final class CodecBin2 implements Codec {
         }
     }
 
-    @Nullable private Object decodeObject(CodableClassInfo classInfo, @Nullable Object object, BufferIn buf) throws Exception {
+    @Nullable private Object decodeObject(CodableClassInfo classInfo, @Nullable Object object, BufferIn buf)
+            throws Exception {
         int ck = buf.in.read();
         if (ck == 0) {
             return null;
@@ -237,7 +239,7 @@ public final class CodecBin2 implements Codec {
                 if (field.isArray()) {
                     encodeArray(value, field.getTypeOrComponentType(), buf);
                 } else if (field.isNative()) {
-                    encodeNative(value, buf);
+                    encodeNative(value, buf, field.isNarrow());
                 } else if (field.isMap()) {
                     Map<?, ?> map = (Map<?, ?>) value;
                     LessBytes.writeLength(map.size(), buf.out());
@@ -283,7 +285,8 @@ public final class CodecBin2 implements Codec {
     }
 
     @SuppressWarnings("unchecked")
-    private static Collection<Object> newCollection(Class<?> type, int size) throws InstantiationException, IllegalAccessException {
+    private static Collection<Object> newCollection(Class<?> type, int size)
+            throws InstantiationException, IllegalAccessException {
         return isNotConcrete(type) ? new ArrayList<>(size) : (Collection<Object>) type.newInstance();
     }
 
@@ -293,7 +296,25 @@ public final class CodecBin2 implements Codec {
         if (ck == 0) {
             return null;
         }
-        Class<?> type = field.getTypeOrComponentType();
+        Class<?> originalType = field.getTypeOrComponentType();
+        Class<?> type = originalType;
+        if (field.isNarrow()) {
+            if (type.equals(Long.class)) {
+                type = Integer.class;
+            } else if (type.equals(long.class)) {
+                type = int.class;
+            }
+        }
+        Object result = decodeFieldInternal(field, buf, type);
+        if (field.isNarrow() && result != null) {
+            if (originalType.equals(Long.class) || originalType.equals(long.class)) {
+                result = ((Number) result).longValue();
+            }
+        }
+        return result;
+    }
+
+    private Object decodeFieldInternal(CodableFieldInfo field, BufferIn buf, Class<?> type) throws Exception {
         if (field.isArray()) {
             return decodeArray(type, buf);
         } else if (field.isMap()) {
@@ -348,8 +369,21 @@ public final class CodecBin2 implements Codec {
     }
 
     private void encodeNative(Object value, BufferOut buf) throws Exception {
+        encodeNative(value, buf, false);
+    }
+
+    private void encodeNative(Object value, BufferOut buf, boolean narrow) throws Exception {
         log.trace("encodeNative: {} {}", value, buf);
         Class<?> type = value.getClass();
+        if (narrow) {
+            if (type.equals(Long.class)) {
+                type = Integer.class;
+                value = ((Long) value).intValue();
+            } else if (type.equals(long.class)) {
+                type = int.class;
+                value = ((Long) value).intValue();
+            }
+        }
         if (type == String.class) {
             writeStringHelper(value.toString(), buf.out());
         } else if ((type == Integer.class) || (type == int.class)) {

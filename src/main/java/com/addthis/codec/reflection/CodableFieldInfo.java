@@ -50,6 +50,7 @@ public final class CodableFieldInfo {
     public static final int READONLY   = 1 << 8;
     public static final int WRITEONLY  = 1 << 9;
     public static final int ENUM       = 1 << 10;
+    public static final int NARROW     = 1 << 11;
 
     @Nonnull private final Field    field;
     @Nonnull private final Class<?> typeOrComponentType;
@@ -119,6 +120,9 @@ public final class CodableFieldInfo {
             }
             if (fieldConfig.required()) {
                 partialBits |= CodableFieldInfo.REQUIRED;
+            }
+            if (fieldConfig.narrow()) {
+                partialBits |= CodableFieldInfo.NARROW;
             }
         }
         return partialBits;
@@ -262,6 +266,8 @@ public final class CodableFieldInfo {
     public boolean isReadOnly() {
         return (bits & READONLY) == READONLY;
     }
+
+    public boolean isNarrow() { return (bits & NARROW) == NARROW; }
 
     public boolean isWriteOnly() {
         return (bits & WRITEONLY) == WRITEONLY;
