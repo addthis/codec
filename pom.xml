@@ -16,13 +16,13 @@
   <parent>
     <artifactId>jar-pom</artifactId>
     <groupId>com.addthis.common.build.maven.pom</groupId>
-    <version>3.8.0</version>
+    <version>3.9.0</version>
   </parent>
   
   <groupId>com.addthis</groupId>
   <artifactId>codec</artifactId>
   <name>Codec</name>
-  <version>3.7.1-SNAPSHOT</version>
+  <version>3.8.0-SNAPSHOT</version>
   <description>Codec serialization library</description>
   <licenses>
     <license>
@@ -55,7 +55,7 @@
     <dependency>
       <groupId>com.addthis.basis</groupId>
       <artifactId>basis-core</artifactId>
-      <version>4.2.0</version>
+      <version>4.3.0</version>
     </dependency>
 
     <!-- hocon parsing et al for CodecConfig -->
