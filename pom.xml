@@ -55,7 +55,7 @@
     <dependency>
       <groupId>com.addthis.basis</groupId>
       <artifactId>basis-core</artifactId>
-      <version>4.3.0</version>
+      <version>4.3.1</version>
     </dependency>
 
     <!-- hocon parsing et al for CodecConfig -->
