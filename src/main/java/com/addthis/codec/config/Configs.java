@@ -34,7 +34,7 @@ import com.addthis.codec.reflection.CodableClassInfo;
 import com.addthis.codec.reflection.CodableFieldInfo;
 
 import com.google.common.annotations.Beta;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.typesafe.config.Config;
@@ -150,7 +150,7 @@ public final class Configs {
                                                category,
                                                "top level key must be a valid category");
         }
-        Class<?> baseClass = Objects.firstNonNull(pluginMap.baseClass(), Object.class);
+        Class<?> baseClass = MoreObjects.firstNonNull(pluginMap.baseClass(), Object.class);
         return expandSugar(baseClass, config.root().get(category), pluginRegistry);
     }
 

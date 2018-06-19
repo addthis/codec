@@ -23,7 +23,7 @@ import java.util.Set;
 import com.addthis.codec.annotations.Pluggable;
 
 import com.google.common.annotations.Beta;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
@@ -130,7 +130,7 @@ public class PluginRegistry {
     }
 
     @Override public String toString() {
-        return Objects.toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
                       .add("config.origin", config.origin())
                       .add("pluginMapsByCategory", pluginMapsByCategory)
                       .add("pluginMapsByClass", pluginMapsByClass)
