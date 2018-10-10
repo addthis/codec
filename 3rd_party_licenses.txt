@@ -1,0 +1,103 @@
+
+ LICENSES FOR THIRD-PARTY COMPONENTS 
+
+===============================================================================
+   
+The following sections list licensing information for
+libraries included with the codec source and components
+used to test codec. 
+
+The following software may be included in this product:
+
+===============================================================================
+
+        Config » 1.3.0
+
+Apache 2.0 license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+https://github.com/lightbend/config/blob/master/LICENSE-2.0.txt
+
+---------------------------------------------------------------------------
+
+        Netty/Buffer » 4.0.28.Final
+
+Copyright 2014 The Netty Project
+  
+
+Netty/Buffer » 4.0.28.Final uses the Apache 2.0 license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+  
+
+https://github.com/netty/netty/blob/4.0/LICENSE.txt
+
+---------------------------------------------------------------------------
+
+        Dropwizard Utility Classes » 1.0.2
+        Dropwizard Validation Support » 1.0.2
+
+Copyright 2010-2013 Coda Hale and Yammer, Inc., 2014-2016 Dropwizard Team
+
+Dropwizard Utility Classes » 1.0.2 and Dropwizard Validation Support » 1.0.2 uses the Apache 2.0 license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+https://github.com/dropwizard/dropwizard/blob/release/1.0.x/LICENSE
+
+---------------------------------------------------------------------------
+
+        SLF4J Simple Binding 
+
+        SLF4J API Module 
+
+ Copyright (c) 2004-2007 QOS.ch
+
+SLF4J Simple Binding 1.7.25 and SLF4J API Module 1.7.25 use MIT license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+
+https://opensource.org/licenses/mit-license.php
+
+--------------------------------------------------------------------------- 
+
+        Jackson Databind » 2.9.5
+        Jackson Core » 2.9.5
+        Jackson Annotations » 2.9.5
+        Jackson Datatype: Guava » 2.9.5
+        Jackson Datatype: JDK8 » 2.9.5
+        Jackson Datatype: JSR310 » 2.9.5
+        Jackson Datatype Joda » 2.9.5
+
+Apache 2.0 license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+  
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+---------------------------------------------------------------------------
+
+        Joda Time » 2.5
+
+Apache 2.0 license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+  
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+---------------------------------------------------------------------------
+
+        Metrics Core Library » 2.2.0
+
+Copyright 2010-2012 Coda Hale and Yammer, Inc. 
+
+Metrics Core Library 2.2.0 uses the Apache 2.0 license, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+  
+
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+--------------------------------------------------------------------------- 
+
+        JUnit
+
+JUnit » 4.12 uses Eclipse Public License - Version 1.0, shown below. See the License for details about distribution rights, and the specific rights regarding derivate works. 
+
+
+http://www.eclipse.org/org/documents/epl-v10.php
+
+
+--------------------------------------------------------------------------- 
